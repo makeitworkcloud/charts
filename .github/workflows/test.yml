@@ -10,12 +10,78 @@ permissions:
 
 jobs:
   test:
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: Azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
-      - uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
-      - run: make test
+      - id: hygiene
+        name: Run repository hygiene
+        continue-on-error: true
+        run: |
+          python -m pip install pre-commit
+          pre-commit run --all-files --show-diff-on-failure --color=never 2>&1 | tee hygiene.log
+      - id: helm
+        name: Run Helm validation
+        if: always()
+        continue-on-error: true
+        run: make test 2>&1 | tee helm.log
+      - name: Report failure on pull request
+        if: >-
+          always() && github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          (steps.hygiene.outcome == 'failure' || steps.helm.outcome == 'failure')
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- charts-ci-failure -->';
+            const maxLength = 12000;
+            const log = ['hygiene.log', 'helm.log']
+              .filter(fs.existsSync)
+              .map((file) => `### ${file}\n${fs.readFileSync(file, 'utf8')}`)
+              .join('\n\n')
+              .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, '***REDACTED***');
+            const excerpt = log.length > maxLength ? log.slice(-maxLength) : log;
+            const body = `${marker}
+            ## Chart CI failed
+
+            [View the workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+
+            <details><summary>Validation output (redacted, last ${maxLength} characters)</summary>
+
+            \`\`\`text
+            ${excerpt}
+            \`\`\`
+            </details>`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+      - name: Mark validation failed
+        if: >-
+          always() &&
+          (steps.hygiene.outcome == 'failure' || steps.helm.outcome == 'failure')
+        run: exit 1
 
   detect:
     runs-on: ubuntu-latest
