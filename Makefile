@@ -1,4 +1,4 @@
-.PHONY: changed-charts list-charts list-charts-json test
+.PHONY: changed-charts list-charts list-charts-json package-chart test
 
 SHELL := /bin/bash
 CHARTS := $(shell find . -maxdepth 2 -name Chart.yaml -printf '%h\n' | cut -d'/' -f2 | sort -u)
@@ -12,6 +12,10 @@ list-charts:
 
 list-charts-json:
 	@echo '$(CHARTS)' | tr ' ' '\n' | jq -R -s -c 'split("\n") | map(select(length > 0))'
+
+package-chart:
+	@test -n "$(CHART)"
+	@helm package "$(CHART)" --destination "$(DESTINATION)"
 
 test:
 	@for chart in $(CHARTS); do helm lint --strict "$$chart" && helm template test "$$chart" > /dev/null; done

@@ -3,13 +3,16 @@
 ## Repository Purpose
 
 Helm chart monorepo for Make IT Work Cloud workloads. Every direct child directory
-containing `Chart.yaml` is an independently validated chart.
+containing `Chart.yaml` is an independently validated chart. Merges to `main`
+publish changed charts as OCI artifacts to GHCR.
 
 ## Workflow
 
 Use feature branches and pull requests. CI is authoritative: do not claim local
-Helm or pre-commit checks ran from the shared server. A chart source is consumed
-by ArgoCD directly from Git; merging a chart change can affect a live workload.
+Helm or pre-commit checks ran from the shared server. Chart versions are immutable:
+bump `Chart.yaml` for every chart change that must be published. ArgoCD currently
+consumes a chart at an explicit version; do not use mutable OCI tags as a deployment
+mechanism.
 
 ## Chart conventions
 
