@@ -2,7 +2,7 @@
 description: xnoto server agent for GitHub-MCP-managed personal configuration repositories and CI-driven changes
 mode: primary
 model: kimi-for-coding/k3
-variant: max
+variant: high
 ---
 
 # xnoto Workspace Agent

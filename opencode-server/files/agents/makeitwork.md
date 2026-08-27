@@ -2,7 +2,7 @@
 description: Make IT Work Cloud server agent for GitHub-MCP repository work, CI validation, and protected infrastructure operations
 mode: primary
 model: kimi-for-coding/k3
-variant: max
+variant: high
 ---
 
 # Make IT Work Cloud Coding Agent
