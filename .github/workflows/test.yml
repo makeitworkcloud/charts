@@ -28,34 +28,45 @@ jobs:
         if: always()
         continue-on-error: true
         run: make test 2>&1 | tee helm.log
-      - name: Report failure on pull request
+      - name: Report validation on pull request
         if: >-
           always() && github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository &&
-          (steps.hygiene.outcome == 'failure' || steps.helm.outcome == 'failure')
+          github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          VALIDATION_FAILED: ${{ steps.hygiene.outcome == 'failure' || steps.helm.outcome == 'failure' }}
         with:
           script: |
             const fs = require('fs');
-            const marker = '<!-- charts-ci-failure -->';
-            const maxLength = 12000;
-            const log = ['hygiene.log', 'helm.log']
-              .filter(fs.existsSync)
-              .map((file) => `### ${file}\n${fs.readFileSync(file, 'utf8')}`)
-              .join('\n\n')
-              .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, '***REDACTED***');
-            const excerpt = log.length > maxLength ? log.slice(-maxLength) : log;
-            const body = `${marker}
-            ## Chart CI failed
+            const marker = '<!-- charts-ci-status -->';
+            const failed = process.env.VALIDATION_FAILED === 'true';
+            const workflowUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            let body;
+            if (failed) {
+              const maxLength = 12000;
+              const log = ['hygiene.log', 'helm.log']
+                .filter(fs.existsSync)
+                .map((file) => `### ${file}\n${fs.readFileSync(file, 'utf8')}`)
+                .join('\n\n')
+                .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/g, '***REDACTED***');
+              const excerpt = log.length > maxLength ? log.slice(-maxLength) : log;
+              body = `${marker}
+              ## Chart CI failed
 
-            [View the workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+              [View the workflow run](${workflowUrl})
 
-            <details><summary>Validation output (redacted, last ${maxLength} characters)</summary>
+              <details><summary>Validation output (redacted, last ${maxLength} characters)</summary>
 
-            \`\`\`text
-            ${excerpt}
-            \`\`\`
-            </details>`;
+              \`\`\`text
+              ${excerpt}
+              \`\`\`
+              </details>`;
+            } else {
+              body = `${marker}
+              ## Chart CI passed
+
+              Repository hygiene and Helm validation passed. [View the workflow run](${workflowUrl}).`;
+            }
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
