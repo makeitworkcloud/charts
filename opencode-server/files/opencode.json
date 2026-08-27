@@ -11,6 +11,7 @@
   "mcp": {
     "apify": {"type": "remote", "url": "http://mcp-makeitwork-apify-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "argocd": {"type": "remote", "url": "http://mcp-makeitwork-argocd-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "aws": {"type": "remote", "url": "http://mcp-makeitwork-aws-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "aws-docs": {"type": "remote", "url": "http://mcp-makeitwork-aws-docs-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "context7": {"type": "remote", "url": "http://mcp-makeitwork-context7-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "github": {"type": "remote", "url": "http://mcp-makeitwork-github-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
