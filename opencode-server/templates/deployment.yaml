@@ -27,6 +27,23 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
+        - name: seed-opencode-config
+          image: docker.io/alpine/git:v2.49.1
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              cp -a /config-source/. /home/opencode/.config/opencode/
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: config
+              mountPath: /home/opencode/.config/opencode
+            - name: config-source
+              mountPath: /config-source
+              readOnly: true
         - name: seed-openai-auth
           image: docker.io/alpine/git:v2.49.1
           command: [/bin/sh, -ec]
@@ -84,7 +101,6 @@ spec:
               mountPath: /home/opencode
             - name: config
               mountPath: /home/opencode/.config/opencode
-              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -93,6 +109,8 @@ spec:
         - name: openai-auth
           secret: {secretName: {{ .Values.secrets.openaiAuth }}}
         - name: config
+          emptyDir: {}
+        - name: config-source
           configMap:
             name: {{ include "opencode-server.fullname" . }}-config
             items:
