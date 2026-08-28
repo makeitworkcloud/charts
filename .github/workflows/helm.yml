@@ -138,7 +138,6 @@ jobs:
       contains(fromJson(needs.detect.outputs.charts), 'opencode-server')
     permissions:
       contents: read
-      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -151,34 +150,12 @@ jobs:
           test -n "$version"
           printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
-        with:
-          aws-region: us-west-2
-          role-to-assume: arn:aws:iam::332355796717:role/github-actions-chart-updater
-          role-session-name: charts-opencode-gitops-updater
-
-      - name: Read GitHub App private key
-        id: app-key
-        env:
-          SECRET_ARN: arn:aws:secretsmanager:us-west-2:332355796717:secret:xnoto-s-chart-updater-github-app-private-key-qP4Qr3
-        run: |
-          set -euo pipefail
-          private_key="$(aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" --query SecretString --output text)"
-          test -n "$private_key"
-          echo "::add-mask::$private_key"
-          {
-            echo 'private-key<<EOF'
-            printf '%s\n' "$private_key"
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
-
       - name: Create scoped GitHub App token
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           app-id: "4745727"
-          private-key: ${{ steps.app-key.outputs.private-key }}
+          private-key: ${{ secrets.CHART_UPDATER_GITHUB_APP_PRIVATE_KEY }}
           owner: makeitworkcloud
           repositories: kustomize-cluster
           permission-contents: write
