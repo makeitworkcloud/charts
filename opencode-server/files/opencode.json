@@ -17,6 +17,7 @@
     "github": {"type": "remote", "url": "http://mcp-makeitwork-github-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "grafana": {"type": "remote", "url": "http://mcp-makeitwork-grafana-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "kubernetes": {"type": "remote", "url": "http://mcp-makeitwork-kubernetes-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "opencode-docs": {"type": "remote", "url": "http://mcp-opencode-docs-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "parallel-search": {"type": "remote", "url": "http://mcp-makeitwork-parallel-search-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "terraform-docs": {"type": "remote", "url": "http://mcp-makeitwork-terraform-docs-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false}
   }
