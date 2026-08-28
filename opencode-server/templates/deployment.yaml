@@ -120,5 +120,9 @@ spec:
               - key: {{ base $path }}
                 path: agents/{{ base $path }}
 {{- end }}
+{{- range $path, $_ := .Files.Glob "files/skills/*/SKILL.md" }}
+              - key: {{ trimPrefix "files/" $path | replace "/" "-" }}
+                path: {{ trimPrefix "files/" $path }}
+{{- end }}
         - name: tmp
           emptyDir: {}
