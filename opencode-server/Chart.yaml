@@ -1,6 +1,6 @@
 apiVersion: v2
 name: opencode-server
 description: OpenCode server Deployment and non-secret configuration
-version: 0.1.5
+version: 0.1.6
 appVersion: "1.18.23"
 type: application
