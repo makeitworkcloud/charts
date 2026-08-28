@@ -9,3 +9,7 @@ data:
   {{ base $path }}: |-
 {{ $.Files.Get $path | indent 4 }}
 {{- end }}
+{{- range $path, $_ := .Files.Glob "files/skills/*/SKILL.md" }}
+  {{ trimPrefix "files/" $path | replace "/" "-" }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
