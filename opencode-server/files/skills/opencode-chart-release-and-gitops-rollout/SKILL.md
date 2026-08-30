@@ -5,11 +5,12 @@ description: Use when changing charts/opencode-server, OpenCode agents, OpenCode
 
 # OpenCode chart delivery
 
-`charts/opencode-server` owns the packaged server configuration. Any content change requires a Chart.yaml version bump because OCI versions are immutable.
+`charts/opencode-server` owns the packaged server configuration. Any content change requires a `Chart.yaml` version bump because OCI chart versions are immutable.
 
-1. Update the chart and its rendered ConfigMap inputs together.
-2. Open a PR and use charts CI as validation evidence.
-3. A merge publishes the chart to GHCR but does not update the running service.
-4. Only after publication, a separate explicitly confirmed `kustomize-cluster` PR may pin the Argo CD Application to that chart version.
+1. Update the chart and every affected rendered ConfigMap or volume input together.
+2. Open a charts pull request and use its repository-hygiene, Helm-rendering, and packaging checks as validation evidence.
+3. A confirmed merge publishes the chart to GHCR. The successful main workflow then opens or updates a `kustomize-cluster` pull request that pins the OpenCode Application to the new version.
+4. Treat the generated GitOps pull request as a separate desired-state change. It requires cluster CI, review, and explicit merge confirmation; creating it does not sync Argo CD or deploy.
+5. After a confirmed GitOps merge, verify root and child Application revisions, sync and health, resource rollout, and representative OpenCode behavior separately. Do not infer those stages from publication or PR creation.
 
-Do not deploy, sync Argo CD, or modify the running service without explicit confirmation.
+Do not merge, deploy, sync Argo CD, or modify the running service without explicit confirmation.
