@@ -5,8 +5,10 @@ consumer to a newly published chart version. This step is not generic today:
 `.github/workflows/helm.yml` contains an `opencode-server`-specific job and
 script. Adding another direct-child chart does not opt it into this automation.
 
-The generated pull request changes Git desired state. It does not deploy,
-merge, sync Argo CD, or prove rollout health.
+The generated pull request changes Git desired state. The workflow enables
+GitHub auto-merge on it, so it squash-merges itself once the destination
+repository's required checks pass. The workflow does not sync Argo CD, and the
+merge does not prove rollout health; verify reconciliation separately.
 
 ## Current OpenCode contract
 
@@ -22,6 +24,7 @@ that included `opencode-server`. Its hard-coded chart-to-destination mapping is:
 | Helm source | `opencode-server` in `ghcr.io/makeitworkcloud/charts` |
 | Updated field | That source's single `targetRevision` |
 | Automation branch | `automation/opencode-server-<version>` |
+| Merge behavior | GitHub auto-merge, squash, gated on destination required checks |
 
 The script reads the version from `opencode-server/Chart.yaml`, requires
 exactly one matching Helm source, updates only its `targetRevision`, commits the
@@ -58,6 +61,20 @@ for installation scope, provisioning, and rotation.
 - The workflow commits only when `targetRevision` changes.
 - An existing open pull request for the branch is reused. If none exists, the
   workflow creates one with the version in its title and body.
+- After the pull request exists, the workflow enables GitHub auto-merge with
+  the squash method unless it is already enabled. GitHub performs the merge
+  once the destination's required checks pass under the protections managed
+  centrally by `tfroot-github`.
+- Auto-merge requires the destination repository's `allow_auto_merge` setting,
+  which `tfroot-github` manages in `gh-repositories.tf`. If the setting is
+  disabled or the App cannot merge under the destination's push restrictions,
+  the job fails after publication; the published artifact remains valid and
+  the pull request stays open for manual handling.
+- Required checks are strict, so a destination `main` commit landing between
+  check success and merge stalls the merge until the automation branch is
+  updated. The workflow does not update the branch; resolve by updating the
+  branch and letting checks rerun, or by rerunning the job after a reviewed
+  cleanup.
 
 These properties make a retry safe in the usual partial-failure cases, but a
 stale or manually modified automation branch may require a reviewed cleanup
@@ -80,7 +97,8 @@ before retrying.
 5. Keep the one-match assertion and least-privilege token scope. If the
    destination is not already in the GitHub App installation and token request,
    update `tfroot-github` through its runbook rather than adding another secret
-   source.
+   source. Confirm through `tfroot-github` whether the destination belongs in
+   the auto-merge repository list.
 6. Link the chart README to the consumer and record whether GitOps updates are
    automated or manual.
 
@@ -104,8 +122,10 @@ version branch and open pull request. If the destination already pins the
 version, verify whether a pull request is still necessary; creating a pull
 request from a branch with no diff will fail.
 
-After the pull request is created, normal `kustomize-cluster` checks, review,
-and merge remain required. Follow the
+After the pull request is created, `kustomize-cluster`'s required checks gate an
+automatic squash merge; no approval requirement applies to these automation
+pull requests. If checks fail, the pull request stays open for diagnosis. After
+the merge, follow the
 [rollout and rollback guide](https://github.com/makeitworkcloud/kustomize-cluster/blob/main/docs/rollout-and-rollback.md)
 to verify reconciliation and health or to return to a previous immutable
-version. The generated pull request itself does not deploy.
+version.
