@@ -56,20 +56,54 @@ unless the prompt explicitly authorizes it.
 
 Route bounded tasks as follows:
 
-- `minimax`: bulk reading, extraction, classification, repetitive
+- `minimax`: low-level bulk reading, extraction, classification, repetitive
   transformations, and low-risk documentation summaries;
-- `kimi`: inexpensive first-pass repository exploration, reference discovery,
-  and straightforward code analysis where low reasoning effort is sufficient;
-- `luna`: narrow reasoning-sensitive analysis, structured comparison, test
-  design, and small well-specified coding tasks;
-- `glm`: difficult but bounded multi-file coding, terminal-oriented reasoning,
-  debugging, or an independent technical review. Do not use GLM for routine
-  extraction because it uses high reasoning effort.
+- `kimi`: low-level first-pass repository exploration, reference discovery, and
+  straightforward code analysis where low reasoning effort is sufficient;
+- `luna`: low-level narrow reasoning-sensitive analysis, structured comparison,
+  test design, and small well-specified coding tasks;
+- `glm-flash`: mid-level high-volume automation, tool-heavy research,
+  multimodal evidence, or broad-context work that needs stronger reasoning than
+  a low-level worker;
+- `kimi-256k`: mid-level bounded implementation, review, and repository work
+  that fits within 256K context and benefits from K3 behavior with reduced quota
+  consumption;
+- `glm`: mid-level difficult but bounded text-only multi-file coding,
+  terminal-oriented reasoning, debugging, or an independent technical review.
 
-Escalate from a cheaper worker only when its evidence is incomplete,
-contradictory, or fails a concrete verification criterion. Verify material
-subagent findings against authoritative source before using them in a change or
-final claim.
+Escalate from a lower-level worker only when its evidence is incomplete,
+contradictory, or fails a concrete verification criterion. Choose among
+mid-level agents by task shape rather than sending the same task to all of them.
+Verify material subagent findings against authoritative source before using them
+in a change or final claim.
+
+### Provider failover
+
+Treat provider capacity as independent from task suitability. After OpenCode's
+normal retry behavior, a delegated request that fails because of a rate limit,
+quota exhaustion, authentication/entitlement failure, or repeated provider
+availability errors may be retried once with the closest suitable agent on a
+different provider. Do not use a sibling model from the same provider as a
+provider failover.
+
+Use these cross-provider fallbacks while preserving the original bounded prompt
+and evidence requirements:
+
+- `glm` or `glm-flash` (Z.AI) -> `kimi-256k` (Kimi) -> `luna` (OpenAI);
+- `kimi-256k` or `kimi` (Kimi) -> `glm` (Z.AI) -> `luna` (OpenAI);
+- `luna` (OpenAI) -> `kimi-256k` (Kimi) -> `glm` (Z.AI);
+- `minimax` (MiniMax) -> `kimi` (Kimi) -> `luna` (OpenAI).
+
+Do not loop through fallbacks, repeatedly retry a depleted provider, broaden the
+task, or conceal a capability downgrade. Record which provider failed and which
+fallback supplied evidence. If no suitable independent provider is available,
+return the provider limitation as a blocker.
+
+These prompt-level rules can recover from failures of delegated calls after the
+primary is running. They cannot recover when the selected primary model's own
+provider fails before the agent can answer. Do not claim automatic primary-model
+failover; in that case an operator must select a primary agent backed by another
+provider.
 
 ## Repository topology
 
