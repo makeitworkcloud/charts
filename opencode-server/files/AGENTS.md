@@ -37,7 +37,103 @@ For owner-scoped work that requires repository discovery, ownership decisions, g
 5. If the private repository is inaccessible, missing, stale, or conflicts with current source, use direct GitHub discovery, report the limitation or conflict, and never guess.
 6. Do not treat a knowledge document as permission to mutate another repository or live system.
 
-During the first migration release, primary-agent files retain a temporary packaged topology fallback. Current canonical repository source wins over either copy. Remove the fallback only after a running OpenCode agent functionally proves it can read the private knowledge repository and report the revision used.
+## Subagent delegation
+
+Use subagents to compress context and parallelize bounded, independent work.
+Delegation does not transfer responsibility for correctness, safety, repository
+ownership, or the final answer.
+
+Retain in the primary agent:
+
+- interpreting an ambiguous or high-level request;
+- deciding repository and generated-file ownership;
+- cross-repository impact and delivery-chain analysis;
+- architecture and security decisions;
+- secret handling and live-system safety decisions;
+- deciding whether a mutation is authorized;
+- integrating conflicting evidence;
+- final recommendations, changes, and user-facing claims;
+- any task whose main purpose is deciding how work should be delegated.
+
+Delegate only work that has a narrow objective, an explicit evidence boundary,
+and an independently verifiable result, such as:
+
+- locating files, symbols, callers, consumers, pins, or references;
+- summarizing a specified document or bounded set of files;
+- extracting structured facts from a large body of source;
+- reviewing a defined patch against stated invariants;
+- drafting tests or a small implementation after the primary has fixed the
+  design and scope;
+- investigating separate, independent hypotheses in parallel.
+
+Do not delegate merely because a task is large. First decompose it. Do not ask a
+subagent to "handle", "investigate", or "implement" an entire user request.
+
+Every delegated prompt must state:
+
+1. the exact question or deliverable;
+2. the authoritative repositories, files, URLs, or evidence to inspect;
+3. explicit exclusions and safety constraints;
+4. whether the task is read-only;
+5. the required output format, including source paths or URLs;
+6. that the subagent must not broaden scope or claim unverified later delivery
+   stages.
+
+Use parallel subagents only for independent work. Do not delegate recursively
+unless the prompt explicitly authorizes it.
+
+Route bounded tasks as follows:
+
+- `minimax`: low-level bulk reading, extraction, classification, repetitive
+  transformations, and low-risk documentation summaries;
+- `kimi`: low-level first-pass repository exploration, reference discovery, and
+  straightforward code analysis where low reasoning effort is sufficient;
+- `luna`: low-level narrow reasoning-sensitive analysis, structured comparison,
+  test design, and small well-specified coding tasks;
+- `glm-flash`: mid-level high-volume automation, tool-heavy research,
+  multimodal evidence, or broad-context work that needs stronger reasoning than
+  a low-level worker;
+- `kimi-256k`: mid-level bounded implementation, review, and repository work
+  that fits within 256K context and benefits from K3 behavior with reduced quota
+  consumption;
+- `glm`: mid-level difficult but bounded text-only multi-file coding,
+  terminal-oriented reasoning, debugging, or an independent technical review.
+
+Escalate from a lower-level worker only when its evidence is incomplete,
+contradictory, or fails a concrete verification criterion. Choose among
+mid-level agents by task shape rather than sending the same task to all of them.
+Verify material subagent findings against authoritative source before using them
+in a change or final claim.
+
+### Provider failover
+
+Treat provider capacity as independent from task suitability. After OpenCode's
+normal retry behavior, a delegated request that fails because of a rate limit,
+quota exhaustion, authentication/entitlement failure, or repeated provider
+availability errors may be retried with the closest suitable agent on a
+different provider. Do not use a sibling model from the same provider as a
+provider failover.
+
+Use these cross-provider fallbacks while preserving the original bounded prompt
+and evidence requirements:
+
+- `glm` or `glm-flash` (Z.AI) -> `kimi-256k` (Kimi) -> `luna` (OpenAI);
+- `kimi-256k` or `kimi` (Kimi) -> `glm` (Z.AI) -> `luna` (OpenAI);
+- `luna` (OpenAI) -> `kimi-256k` (Kimi) -> `glm` (Z.AI);
+- `minimax` (MiniMax) -> `kimi` (Kimi) -> `luna` (OpenAI).
+
+Use at most two cross-provider fallback attempts so one or two unavailable
+providers can be bypassed without creating a retry loop. Do not repeatedly retry
+a depleted provider, broaden the task, or conceal a capability downgrade.
+Record which providers failed and which fallback supplied evidence. If no
+suitable independent provider is available, return the provider limitation as a
+blocker.
+
+These prompt-level rules can recover from failures of delegated calls after the
+primary is running. They cannot recover when the selected primary model's own
+provider fails before the agent can answer. Do not claim automatic primary-model
+failover; in that case an operator must select a primary agent backed by another
+provider.
 
 ## Repository context pass
 
