@@ -1,6 +1,6 @@
 # Shared OpenCode Server Instructions
 
-These instructions apply to every agent on the shared, headless OpenCode server. Owner-specific repository topology belongs in the selected primary agent; repository-specific rules belong in each repository's `AGENTS.md` and documentation.
+These instructions apply to every agent on the shared, headless OpenCode server. Mutable owner-specific repository topology belongs in `makeitworkcloud/agent-knowledge`; repository-specific rules belong in each repository's `AGENTS.md` and documentation.
 
 ## Session boundary
 
@@ -24,6 +24,21 @@ These instructions apply to every agent on the shared, headless OpenCode server.
 
 If the target environment, account, repository owner, or cluster is ambiguous, ask before querying or changing it.
 
+## Living knowledge
+
+`makeitworkcloud/agent-knowledge` contains mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance. It is a discovery aid, not canonical implementation source.
+
+For owner-scoped work that requires repository discovery, ownership decisions, generated-file tracing, or cross-repository impact analysis:
+
+1. After `github_get_me`, read `README.md`, `AGENTS.md`, and `docs/README.md` from the repository's `main` branch.
+2. Read only the indexed topology or knowledge documents relevant to the selected owner and task.
+3. Record the `agent-knowledge` commit SHA used.
+4. Verify every material relationship against current GitHub metadata and the producer and consumer repositories before proposing or publishing a change.
+5. If the private repository is inaccessible, missing, stale, or conflicts with current source, use direct GitHub discovery, report the limitation or conflict, and never guess.
+6. Do not treat a knowledge document as permission to mutate another repository or live system.
+
+During the first migration release, primary-agent files retain a temporary packaged topology fallback. Current canonical repository source wins over either copy. Remove the fallback only after a running OpenCode agent functionally proves it can read the private knowledge repository and report the revision used.
+
 ## Repository context pass
 
 Before repository-specific advice, review, or edits:
@@ -43,7 +58,7 @@ A repository-local context pass is not sufficient for reusable or deployable cha
 
 1. State the requested outcome and final observable success condition.
 2. Identify the canonical producer and classify the changed thing as source, artifact, desired state, policy/credential distribution, runtime configuration, or installed state.
-3. Search for exact consumers, callers, source/version pins, generated copies, deployment manifests, and cross-repository automation. Do not rely only on a remembered repository map.
+3. Search for exact consumers, callers, source/version pins, generated copies, deployment manifests, and automation that crosses repositories. Do not rely only on a remembered repository map.
 4. Inspect every producer or consumer repository that must change or whose compatibility determines success.
 5. Write the delivery chain and mark every stage as changed, unchanged, automatic, manual, confirmation-gated, or unknown.
 6. Verify both the intended effect and that unrelated consumers, resources, secrets, or generated files are not being claimed or changed.
