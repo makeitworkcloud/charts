@@ -30,7 +30,7 @@ If the target environment, account, repository owner, or cluster is ambiguous, a
 
 For owner-scoped work that requires repository discovery, ownership decisions, generated-file tracing, or cross-repository impact analysis:
 
-1. After `github_get_me`, read `README.md`, `AGENTS.md`, and `docs/README.md` from the repository's `main` branch.
+1. After `github_get_me`, read `README.md`, `AGENTS.md`, and `docs/README.md` from `makeitworkcloud/agent-knowledge`'s `main` branch.
 2. Read only the indexed topology or knowledge documents relevant to the selected owner and task.
 3. Record the `agent-knowledge` commit SHA used.
 4. Verify every material relationship against current GitHub metadata and the producer and consumer repositories before proposing or publishing a change.
