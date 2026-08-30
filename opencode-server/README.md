@@ -14,7 +14,7 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 - `files/opencode.json` — providers, enabled MCP integrations, default agent, and global OpenCode configuration
 - `files/AGENTS.md` — shared instructions loaded by every agent
-- `files/agents/*.md` — owner-specific primary agents
+- `files/agents/*.md` — owner-specific primary agents and model-backed subagents for delegated passes
 - `files/skills/*/SKILL.md` — specialized operational workflows
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version.
