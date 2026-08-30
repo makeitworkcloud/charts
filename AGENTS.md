@@ -47,9 +47,11 @@ sensitive plan output.
 - Add `<chart>/README.md` for chart-specific ownership, values, prerequisites,
   and usage; update it when that contract changes. CI discovers direct-child
   charts automatically.
-- `opencode-server/files/opencode.json` and `opencode-server/files/agents/*.md`
-  are rendered into the chart ConfigMap. Bump `opencode-server/Chart.yaml` for
-  every content change because OCI chart versions are immutable.
+- `opencode-server/files/opencode.json`, `opencode-server/files/AGENTS.md`,
+  `opencode-server/files/agents/*.md`, and
+  `opencode-server/files/skills/*/SKILL.md` are rendered into the chart
+  ConfigMap. Bump `opencode-server/Chart.yaml` for every content change because
+  OCI chart versions are immutable.
 - After `opencode-server` is published, the current workflow opens or updates a
   `kustomize-cluster` pull request that pins the Argo CD Application to the new
   version and enables GitHub auto-merge on it. The pull request squash-merges

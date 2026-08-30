@@ -19,6 +19,12 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version.
 
+## Living knowledge
+
+Mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance belongs in the private `makeitworkcloud/agent-knowledge` repository rather than immutable chart content. Agents retrieve its index and relevant documents through the configured GitHub MCP, record the revision used, and verify material relationships against canonical repositories.
+
+The private repository is a discovery aid, not a secret store or canonical desired state. Access depends on the runtime GitHub identity. During the first migration release, the primary agents retain a temporary packaged topology fallback; remove it only after a running OpenCode agent functionally proves private-repository access.
+
 ## Prerequisites
 
 The consuming cluster supplies:
