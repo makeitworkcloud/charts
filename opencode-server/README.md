@@ -23,7 +23,7 @@ A change to any packaged file is chart content and requires a new `Chart.yaml` v
 
 Mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance belongs in the private `makeitworkcloud/agent-knowledge` repository rather than immutable chart content. Agents retrieve its index and relevant documents through the configured GitHub MCP, record the revision used, and verify material relationships against canonical repositories.
 
-The private repository is a discovery aid, not a secret store or canonical desired state. Access depends on the runtime GitHub identity. During the first migration release, the primary agents retain a temporary packaged topology fallback; remove it only after a running OpenCode agent functionally proves private-repository access.
+The private repository is a discovery aid, not a secret store or canonical desired state. Access depends on the runtime GitHub identity. Primary agents do not package mutable repository topology; if private knowledge is unavailable or conflicts with current source, agents use direct GitHub discovery, report the limitation, and never guess.
 
 ## Prerequisites
 
