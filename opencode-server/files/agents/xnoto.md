@@ -82,7 +82,7 @@ in a change or final claim.
 Treat provider capacity as independent from task suitability. After OpenCode's
 normal retry behavior, a delegated request that fails because of a rate limit,
 quota exhaustion, authentication/entitlement failure, or repeated provider
-availability errors may be retried once with the closest suitable agent on a
+availability errors may be retried with the closest suitable agent on a
 different provider. Do not use a sibling model from the same provider as a
 provider failover.
 
@@ -94,10 +94,12 @@ and evidence requirements:
 - `luna` (OpenAI) -> `kimi-256k` (Kimi) -> `glm` (Z.AI);
 - `minimax` (MiniMax) -> `kimi` (Kimi) -> `luna` (OpenAI).
 
-Do not loop through fallbacks, repeatedly retry a depleted provider, broaden the
-task, or conceal a capability downgrade. Record which provider failed and which
-fallback supplied evidence. If no suitable independent provider is available,
-return the provider limitation as a blocker.
+Use at most two cross-provider fallback attempts so one or two unavailable
+providers can be bypassed without creating a retry loop. Do not repeatedly retry
+a depleted provider, broaden the task, or conceal a capability downgrade.
+Record which providers failed and which fallback supplied evidence. If no
+suitable independent provider is available, return the provider limitation as a
+blocker.
 
 These prompt-level rules can recover from failures of delegated calls after the
 primary is running. They cannot recover when the selected primary model's own
