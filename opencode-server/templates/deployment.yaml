@@ -116,6 +116,8 @@ spec:
             items:
               - key: opencode.json
                 path: opencode.json
+              - key: AGENTS.md
+                path: AGENTS.md
 {{- range $path, $_ := .Files.Glob "files/agents/*.md" }}
               - key: {{ base $path }}
                 path: agents/{{ base $path }}

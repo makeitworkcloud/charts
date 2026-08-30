@@ -5,6 +5,8 @@ metadata:
 data:
   opencode.json: |-
 {{ .Files.Get "files/opencode.json" | indent 4 }}
+  AGENTS.md: |-
+{{ .Files.Get "files/AGENTS.md" | indent 4 }}
 {{- range $path, $_ := .Files.Glob "files/agents/*.md" }}
   {{ base $path }}: |-
 {{ $.Files.Get $path | indent 4 }}
