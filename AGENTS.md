@@ -54,5 +54,6 @@ sensitive plan output.
   OCI chart versions are immutable.
 - After `opencode-server` is published, the current workflow opens or updates a
   `kustomize-cluster` pull request that pins the Argo CD Application to the new
-  version. The pull request still requires normal checks, review, and merge; it
-  does not sync Argo CD or deploy directly.
+  version and enables GitHub auto-merge on it. The pull request squash-merges
+  once `kustomize-cluster`'s required checks pass; Argo CD reconciliation and
+  rollout health are verified separately afterward.
