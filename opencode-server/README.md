@@ -23,6 +23,8 @@ A change to any packaged file is chart content and requires a new `Chart.yaml` v
 
 Mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance belongs in the private `makeitworkcloud/agent-knowledge` repository rather than immutable chart content. Agents retrieve its index and relevant documents through the configured GitHub MCP, record the revision used, and verify material relationships against canonical repositories.
 
+Updating `agent-knowledge` is a separate documentation pull request and does not require an `opencode-server` chart release unless packaged instructions, agents, skills, or configuration change.
+
 The private repository is a discovery aid, not a secret store or canonical desired state. Access depends on the runtime GitHub identity. Primary agents do not package mutable repository topology; if private knowledge is unavailable or conflicts with current source, agents use direct GitHub discovery, report the limitation, and never guess.
 
 ## Prerequisites
@@ -47,8 +49,8 @@ Configuration is loaded when OpenCode starts. A reconciled chart update replaces
 
 1. Open a charts pull request and require repository hygiene, Helm validation, and package checks to pass.
 2. Merge only with explicit confirmation. The main workflow publishes the immutable OCI chart to `ghcr.io/makeitworkcloud/charts/opencode-server`.
-3. After publication, charts automation opens or updates a `kustomize-cluster` pull request changing the OpenCode Application's pinned `targetRevision`.
-4. Review that pull request independently. Its creation does not deploy or sync Argo CD.
-5. After an explicitly confirmed GitOps merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
+3. After publication, charts automation opens or updates a `kustomize-cluster` pull request changing the OpenCode Application's pinned `targetRevision` and enables GitHub auto-merge.
+4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
+5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
 
 See the repository guides in `docs/adding-a-chart.md` and `docs/gitops-update-automation.md`, plus the `kustomize-cluster` adding-workload and rollout guides.
