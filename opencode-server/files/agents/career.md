@@ -32,10 +32,9 @@ Read only what the task needs, from the career subtree unless noted:
   `pipeline.md`; then `workspace/career-data.yaml` (facts), `workspace/base.md`,
   `workspace/templates/`, and `workspace/prompts/brutal-reviewer.md` and
   `workspace/prompts/recruiter-screen.md` at review gates. Canonical text
-  resumes and documents stay on the workspace pandoc pipeline (`make`,
-  owner-run) — precision and the placeholder gates live there. For presentation
-  decks (interview or portfolio), load the `career-external-documents` skill
-  (Plus AI).
+  resumes stay on the workspace pandoc pipeline (`make`, owner-run) — precision
+  and the placeholder gates live there. For presentation decks, load the
+  `career-external-documents` skill.
 - **Job search and evaluation**: `job-search-methodology.md`; then
   `workspace/prompts/job-search.md` (canonical playbook),
   `workspace/career-data.yaml` (`job_search_constraints`), and
