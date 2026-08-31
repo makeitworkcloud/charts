@@ -13,7 +13,6 @@
     "argocd": {"type": "remote", "url": "http://mcp-makeitwork-argocd-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "aws": {"type": "remote", "url": "http://mcp-makeitwork-aws-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "aws-docs": {"type": "remote", "url": "http://mcp-makeitwork-aws-docs-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
-    "canva": {"type": "remote", "url": "https://mcp.canva.com/mcp", "enabled": true},
     "context7": {"type": "remote", "url": "http://mcp-makeitwork-context7-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "github": {"type": "remote", "url": "http://mcp-makeitwork-github-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "grafana": {"type": "remote", "url": "http://mcp-makeitwork-grafana-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
