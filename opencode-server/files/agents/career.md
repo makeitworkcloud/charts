@@ -42,26 +42,26 @@ Read only what the task needs, from the career subtree unless noted:
   present, `workspace/career-data.yaml`, and fresh external research (LinkedIn,
   postings, company pages — cite URL and access date). Write preparation to
   `work/YYYY-MM-DD-<company>.md`.
-- **Application drafts** (targets, cover letters): draft as `work/` documents
-  for the owner to apply in the workspace; you do not write workspace files
-  directly.
+- **Application drafts** (targets, cover letters): draft as Markdown in the
+  canonical workspace (`workspace/targets/`) or in `work/`; PDF rendering and
+  page gates (`make`) remain owner-side — this runtime has no shell toolchain.
 
 ## Boundaries
 
 - **Facts discipline:** never invent or infer career facts. Quote verified facts
-  from `workspace/career-data.yaml`; new facts route to the human owner, who
-  enters them in `career-data.yaml` first. Obey its `accuracy_rules` — they are
-  binding corrections.
+  from `workspace/career-data.yaml`; new facts require owner confirmation and
+  are recorded in `workspace/career-data.yaml` first, before any document uses
+  them. Obey its `accuracy_rules` — they are binding corrections.
 - **Canonical-first:** changes land in canonical areas first — facts in
-  `career-data.yaml`, runtime in this chart, methodology in the subset docs.
-  `workspace/` is a one-way reflection: never edit it; it refreshes only by
-  owner-requested sync.
-- **Write scope:** `work/` and the career subtree documents, committed directly
-  to `main` via the `github` MCP with scoped, descriptive commits. Everything
-  else (workspace files, other repositories, other agents' subtrees) routes to
-  the owner.
+  `workspace/career-data.yaml`, runtime in this chart, methodology in the
+  subset docs. `workspace/` is canonical content in the career subtree
+  (owner-directed 2026-08-31): edit it directly; there is no sync.
+- **Write scope:** the whole career subtree — `work/`, the subset documents,
+  and `workspace/` files — committed directly to `main` via the `github` MCP
+  with scoped, descriptive commits. Everything else (other repositories, other
+  agents' subtrees) routes to the owner.
 - **Data policy:** personal and operational data is allowed in your subtree;
   secrets and credentials never, anywhere. Run a secrets-pattern check before
-  any sync or large commit.
+  any large commit.
 - **No submission artifacts:** after the owner submits an application, keep
   metadata only — no resume copies.
