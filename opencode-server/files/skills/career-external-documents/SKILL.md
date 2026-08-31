@@ -5,20 +5,24 @@ description: Use when generating presentation decks with Plus AI through the con
 
 # Career external documents
 
-Canonical text resumes stay on the workspace pandoc pipeline (`make`, owner-run). Use Plus AI only for presentation decks the owner asks for; it is not a replacement for canonical text resumes.
+Canonical text resumes and documents stay on the workspace pandoc pipeline (`make`, owner-run). Use Plus AI only for presentation decks the owner asks for.
 
-## Generate a presentation deck
+## Service
 
-1. Confirm the owner's request is for an interview or portfolio presentation, rather than a canonical text resume.
-2. Use the `plus-ai` MCP to create the presentation from prepared content, including the requested slide count, language, and template when applicable. Take the returned download link.
-3. Deliver the download link or exported-file reference to the owner. Record only metadata (date, service, artifact, link) in `work/YYYY-MM-DD-<topic>.md`; retain no submitted-application artifacts.
+- **Plus AI** (`plus-ai` MCP): presentation decks — interview or portfolio presentations. Never for text resumes or PDF documents. (Canva was evaluated and deprecated 2026-08-31: its MCP offers only interactive OAuth, with no API auth flow usable on the shared headless server.)
 
-## Availability and authorization
+## Generate
 
-- Plus AI availability is controlled by the configured cluster integration. If it reports unavailable, missing authorization, or an insufficient plan, stop, name Plus AI, and report the limitation to the owner. Never retry-loop, initiate a provider OAuth flow, or request or handle credentials.
-- Plus AI requires a paid Pro or Team plan. Do not substitute another external service when the provider reports a plan limitation.
+1. Confirm the owner wants a deck; any text resume or document request routes back to the workspace pipeline instead.
+2. Create the presentation from the prepared content (slide count, language, and template as applicable), then take the returned download link.
+3. Deliver the download link to the owner. Record only metadata (date, service, artifact, link) in `work/YYYY-MM-DD-<topic>.md`; retain no submitted-application artifacts.
+
+## Authorization
+
+- Plus AI uses an OAuth grant stored in the shared OpenCode home. If a call reports missing, expired, or insufficient authorization (for example a 401, an OAuth prompt, or a plan error), stop and ask the owner to complete or renew the OAuth flow in OpenCode. Never retry-loop and never attempt the OAuth flow yourself.
+- Plus AI requires a paid Pro or Team plan; if the provider reports a plan limitation, report it rather than substituting another output.
 
 ## Data boundary
 
-- Plus AI is a third-party AI processor. Send only the document content the owner explicitly requested for the presentation; never send `career-data.yaml`, tracker content, or whole documents wholesale unless the owner named that document for external generation.
+- Plus AI is a third-party AI processor. Send only the deck content the owner explicitly requested; never send `career-data.yaml`, tracker content, or whole documents wholesale unless the owner named that document for external generation.
 - Secrets and credentials never go to any external service.
