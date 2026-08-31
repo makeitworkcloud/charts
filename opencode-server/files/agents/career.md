@@ -35,7 +35,7 @@ Read only what the task needs, from the career subtree unless noted:
   resumes and documents stay on the workspace pandoc pipeline (`make`,
   owner-run) — precision and the placeholder gates live there. For presentation
   decks (interview or portfolio), load the `career-external-documents` skill
-  (Plus AI).
+  (SlideSpeak).
 - **Job search and evaluation**: `job-search-methodology.md`; then
   `workspace/prompts/job-search.md` (canonical playbook),
   `workspace/career-data.yaml` (`job_search_constraints`), and
