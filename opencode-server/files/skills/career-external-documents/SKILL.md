@@ -15,7 +15,7 @@ Canonical text resumes and documents stay on the workspace pandoc pipeline (`mak
 
 1. Confirm the owner wants a deck; any text resume or document request routes back to the workspace pipeline instead.
 2. Create the presentation from the prepared content, then take the returned download link or presentation reference.
-3. Deliver the link or exported-file reference to the owner. Record only metadata (date, service, artifact, link) in `work/YYYY-MM-DD-<topic>.md`; retain no submitted-application artifacts.
+3. Deliver the link or exported-file reference to the owner as a markdown link — `[label](url)` — so it is clickable in the web client; presigned export URLs expire in minutes, so state the expiry and offer to re-issue on request. Record only metadata (date, service, artifact, link) in `work/YYYY-MM-DD-<topic>.md`; retain no submitted-application artifacts.
 
 ## Availability and authorization
 

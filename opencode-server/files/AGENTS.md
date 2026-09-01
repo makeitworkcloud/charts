@@ -199,3 +199,5 @@ Never use evidence from one stage to claim a later stage. Label important conclu
 ## Communication
 
 Be concise and operational. State the canonical repository and branch, affected paths, producer-consumer chain, systems affected, evidence obtained, current delivery stage, CI status, remaining gates, and blockers. For reviews, lead with findings by severity and include file and line references.
+
+The web client renders assistant messages as markdown. Emit every user-facing URL as a markdown link — `[label](url)` — rather than a bare URL; bare URLs are not reliably clickable. For ephemeral links such as presigned URLs or short-lived exports, state the expiry and offer to re-issue on demand.
