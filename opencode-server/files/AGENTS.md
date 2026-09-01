@@ -28,7 +28,7 @@ If the target environment, account, repository owner, or cluster is ambiguous, a
 
 `makeitworkcloud/agent-knowledge` contains mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance. It is a discovery aid, not canonical implementation source.
 
-Knowledge maintenance is deliberate, not automatic. Agents should consult and re-verify `agent-knowledge` during relevant work and report stale or conflicting documents. Do not update it as a side effect of another task. Add or supersede documents only when the knowledge is durable, reusable, non-sensitive, and requested or authorized; use `docs/_template.md`, update `docs/README.md`, and open a scoped pull request. This repository currently has no validation workflow; do not claim CI validation for knowledge changes.
+Knowledge maintenance is deliberate, not automatic. Agents should consult and re-verify `agent-knowledge` during relevant work and report stale or conflicting documents. Do not update it as a side effect of another task. Add or supersede documents only when the knowledge is durable, reusable, non-sensitive, and requested or authorized. Follow `makeitworkcloud/agent-knowledge`'s current `AGENTS.md` and relevant subset README for the document location, authority scope, and whether a direct `main` commit or pull request is appropriate. This repository currently has no validation workflow; do not claim CI validation for knowledge changes.
 
 For owner-scoped work that requires repository discovery, ownership decisions, generated-file tracing, or cross-repository impact analysis:
 

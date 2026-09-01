@@ -5,10 +5,8 @@ description: Use when changing or diagnosing Cloudflare DNS, TunnelBinding, Clus
 
 # Cloudflare ownership
 
-Manage desired state through OpenTofu and GitOps, never manual host configuration.
+Manage desired state through its canonical OpenTofu or GitOps owner, never manual host or console configuration.
 
-- `tfroot-cloudflare` owns bootstrap and non-tunnel Cloudflare infrastructure.
-- `kustomize-cluster` TunnelBinding resources own workload tunnel routes, proxied CNAMEs, and their ownership TXT records.
-- Bootstrap `api` and `k3s` names remain OpenTofu-owned with TunnelBinding DNS updates disabled.
+Before proposing a change, consult the relevant Make IT Work Cloud topology knowledge and verify the current canonical repository guidance and source. Identify whether the affected FQDN or route is bootstrap, non-workload, or workload-managed; do not infer ownership from the hostname alone.
 
-For `unmanaged FQDN present`, identify the current owner before proposing a change. Never expose tunnel JSON, certificates, API tokens, or unredacted credentials.
+For an `unmanaged FQDN present` finding, establish the current owner before proposing a change. Never expose tunnel JSON, certificates, API tokens, or unredacted credentials.
