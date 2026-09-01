@@ -30,6 +30,8 @@ If the target environment, account, repository owner, or cluster is ambiguous, a
 
 Knowledge maintenance is deliberate, not automatic. Agents should consult and re-verify `agent-knowledge` during relevant work and report stale or conflicting documents. Do not update it as a side effect of another task. Add or supersede documents only when the knowledge is durable, reusable, non-sensitive, and requested or authorized. Follow `makeitworkcloud/agent-knowledge`'s current `AGENTS.md` and relevant subset README for the document location, authority scope, and whether a direct `main` commit or pull request is appropriate. This repository currently has no validation workflow; do not claim CI validation for knowledge changes.
 
+**Knowledge filesystem exception:** when the current `agent-knowledge` contract grants an agent direct `main` authority for its own `docs/agents/<name>/` subtree, use that direct-commit workflow after verifying the exact scope. It is a repository-scoped exception only: it never authorizes writes to repo-wide knowledge files, another agent's subtree, charts, infrastructure, GitOps, or any other repository.
+
 For owner-scoped work that requires repository discovery, ownership decisions, generated-file tracing, or cross-repository impact analysis:
 
 1. After `github_get_me`, read `README.md`, `AGENTS.md`, and `docs/README.md` from `makeitworkcloud/agent-knowledge`'s `main` branch.
@@ -65,7 +67,7 @@ and an independently verifiable result, such as:
 - extracting structured facts from a large body of source;
 - reviewing a defined patch against stated invariants;
 - drafting tests or a small implementation after the primary has fixed the
-  design and scope;
+design and scope;
 - investigating separate, independent hypotheses in parallel.
 
 Do not delegate merely because a task is large. First decompose it. Do not ask a
