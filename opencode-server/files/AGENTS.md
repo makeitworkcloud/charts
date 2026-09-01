@@ -36,7 +36,7 @@ For owner-scoped work that requires repository discovery, ownership decisions, g
 2. Read only the indexed topology or knowledge documents relevant to the selected owner and task.
 3. Record the `agent-knowledge` commit SHA used and state it in the final response or pull request when it influenced a decision.
 4. Verify every material relationship against current GitHub metadata and the producer and consumer repositories before proposing or publishing a change.
-5. If the private repository is inaccessible, missing, stale, or conflicts with current source, use direct GitHub discovery, report the limitation, and never guess.
+5. If the private repository is inaccessible, missing, stale, or conflicts with current source, use direct GitHub discovery, report the limitation or conflict, and never guess.
 6. Do not treat a knowledge document as permission to mutate another repository or live system.
 
 ## Subagent delegation
