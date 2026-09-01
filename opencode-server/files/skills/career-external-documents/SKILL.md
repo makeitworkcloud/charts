@@ -1,3 +1,4 @@
+---
 name: career-external-documents
 description: Use when generating presentation decks with SlideSpeak through the configured MCP service.
 ---
