@@ -23,7 +23,7 @@ A change to any packaged file is chart content and requires a new `Chart.yaml` v
 
 Mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance belongs in the private `makeitworkcloud/agent-knowledge` repository rather than immutable chart content. Agents retrieve its index and relevant documents through the configured GitHub MCP, record the revision used, and verify material relationships against canonical repositories.
 
-Updating `agent-knowledge` is a separate documentation pull request and does not require an `opencode-server` chart release unless packaged instructions, agents, skills, or configuration change.
+Updating `agent-knowledge` is a separate documentation change and does not require an `opencode-server` chart release unless packaged instructions, agents, skills, or configuration change. Follow that repository's current `AGENTS.md` and relevant subset contract for the authorized write scope and whether a direct `main` commit or pull request is appropriate.
 
 The private repository is a discovery aid, not a secret store or canonical desired state. Access depends on the runtime GitHub identity. Primary agents do not package mutable repository topology; if private knowledge is unavailable or conflicts with current source, agents use direct GitHub discovery, report the limitation, and never guess.
 
