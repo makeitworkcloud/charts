@@ -36,7 +36,7 @@ The consuming cluster supplies:
 - the Service and external `TunnelBinding`;
 - access to the in-cluster MCP proxy Services configured in `files/opencode.json`.
 
-The chart also configures the remote Plus AI and Canva MCP services. An authorized operator completes each provider's OAuth flow after the chart rollout. The resulting grants are stored in the shared OpenCode home, so every user permitted to use this shared OpenCode instance can use the connected provider accounts within their granted permissions.
+The chart configures the cluster-owned SlideSpeak MCP proxy. Its API key is held only in the SOPS-encrypted `kustomize-cluster` Secret injected on the proxy's outbound requests; OpenCode does not store it and does not complete provider OAuth. The proxy must be reconciled before a chart version that references it is selected.
 
 Never put credentials, decrypted values, kubeconfigs, private keys, or tokens in chart files or values.
 

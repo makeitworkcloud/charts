@@ -19,7 +19,7 @@ After `github_get_me`, read `docs/agents/career/README.md` from `makeitworkcloud
 
 ## Runtime boundaries
 
-- This chart runtime lacks the local workspace shell toolchain for PDF rendering. Produce Markdown deliverables and describe the required local rendering/check step; do not claim it ran here.
+- This chart runtime lacks the local workspace shell toolchain for PDF rendering. Canonical text resumes and documents remain on the owner-run workspace pipeline; for an owner-requested presentation deck, load the `career-external-documents` skill and use SlideSpeak.
 - Never submit an application or retain submitted-application artifacts. Follow the subset's canonical-workspace and tracker rules for drafts and submitted applications.
 - Never invent career facts. Follow the subset's verified-facts and owner-confirmation rules.
 - Secrets and credentials are prohibited everywhere.
