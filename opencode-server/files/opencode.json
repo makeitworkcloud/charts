@@ -24,71 +24,16 @@
     }
   },
   "mcp": {
-    "apify": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-apify-remote-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    },
-    "argocd": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-argocd-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    },
-    "aws": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-aws-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    },
-    "aws-docs": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-aws-docs-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    },
-    "context7": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-context7-remote-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    },
-    "github": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-github-remote-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    },
-    "grafana": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-grafana-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    },
-    "kubernetes": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-kubernetes-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    },
-    "parallel-search": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-parallel-search-remote-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    },
-    "slidespeak": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-slidespeak-remote-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    },
-    "terraform-docs": {
-      "type": "remote",
-      "url": "http://mcp-makeitwork-terraform-docs-proxy.mcp.svc:8080/mcp",
-      "enabled": true,
-      "oauth": false
-    }
+    "apify": {"type": "remote", "url": "http://mcp-makeitwork-apify-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "argocd": {"type": "remote", "url": "http://mcp-makeitwork-argocd-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "aws": {"type": "remote", "url": "http://mcp-makeitwork-aws-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "aws-docs": {"type": "remote", "url": "http://mcp-makeitwork-aws-docs-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "context7": {"type": "remote", "url": "http://mcp-makeitwork-context7-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "github": {"type": "remote", "url": "http://mcp-makeitwork-github-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "grafana": {"type": "remote", "url": "http://mcp-makeitwork-grafana-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "kubernetes": {"type": "remote", "url": "http://mcp-makeitwork-kubernetes-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "parallel-search": {"type": "remote", "url": "http://mcp-makeitwork-parallel-search-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "slidespeak": {"type": "remote", "url": "http://mcp-makeitwork-slidespeak-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "terraform-docs": {"type": "remote", "url": "http://mcp-makeitwork-terraform-docs-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false}
   }
 }
