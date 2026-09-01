@@ -36,7 +36,7 @@ For owner-scoped work that requires repository discovery, ownership decisions, g
 2. Read only the indexed topology or knowledge documents relevant to the selected owner and task.
 3. Record the `agent-knowledge` commit SHA used and state it in the final response or pull request when it influenced a decision.
 4. Verify every material relationship against current GitHub metadata and the producer and consumer repositories before proposing or publishing a change.
-5. If the private repository is inaccessible, missing, or conflicts with current source, use direct GitHub discovery, report the limitation or conflict, and never guess.
+5. If the private repository is inaccessible, missing, stale, or conflicts with current source, use direct GitHub discovery, report the limitation or conflict, and never guess.
 6. Do not treat a knowledge document as permission to mutate another repository or live system.
 
 ## Subagent delegation
@@ -61,11 +61,11 @@ Delegate only work that has a narrow objective, an explicit evidence boundary,
 and an independently verifiable result, such as:
 
 - locating files, symbols, callers, consumers, pins, or references;
-- summarizing a specified document or a bounded set of files;
+- summarizing a specified document or bounded set of files;
 - extracting structured facts from a large body of source;
 - reviewing a defined patch against stated invariants;
 - drafting tests or a small implementation after the primary has fixed the
-design and scope;
+  design and scope;
 - investigating separate, independent hypotheses in parallel.
 
 Do not delegate merely because a task is large. First decompose it. Do not ask a
@@ -79,7 +79,7 @@ Every delegated prompt must state:
 4. whether the task is read-only;
 5. the required output format, including source paths or URLs;
 6. that the subagent must not broaden scope or claim unverified later delivery
-stages.
+   stages.
 
 Use parallel subagents only for independent work. Do not delegate recursively
 unless the prompt explicitly authorizes it.
@@ -87,19 +87,19 @@ unless the prompt explicitly authorizes it.
 Route bounded tasks as follows:
 
 - `minimax`: low-level bulk reading, extraction, classification, repetitive
-transformations, and low-risk documentation summaries;
+  transformations, and low-risk documentation summaries;
 - `kimi`: low-level first-pass repository exploration, reference discovery, and
-straightforward code analysis where low reasoning effort is sufficient;
+  straightforward code analysis where low reasoning effort is sufficient;
 - `luna`: low-level narrow reasoning-sensitive analysis, structured comparison,
-test design, and small well-specified coding tasks;
+  test design, and small well-specified coding tasks;
 - `glm-flash`: mid-level high-volume automation, tool-heavy research,
-multimodal evidence, or broad-context work that needs stronger reasoning than a
-low-level worker;
+  multimodal evidence, or broad-context work that needs stronger reasoning than
+  a low-level worker;
 - `kimi-256k`: mid-level bounded implementation, review, and repository work
-that fits within 256K context and benefits from K3 behavior with reduced quota
-consumption;
+  that fits within 256K context and benefits from K3 behavior with reduced quota
+  consumption;
 - `glm`: mid-level difficult but bounded text-only multi-file coding,
-terminal-oriented reasoning, debugging, or an independent technical review.
+  terminal-oriented reasoning, debugging, or an independent technical review.
 
 Escalate from a lower-level worker only when its evidence is incomplete,
 contradictory, or fails a concrete verification criterion. Choose among
@@ -182,7 +182,7 @@ Never use evidence from one stage to claim a later stage. Label important conclu
 
 - Keep changes narrow and preserve repository ownership, layout, generated files, and existing conventions.
 - Inspect only dependency, action, image, chart, hook, or tool pins affected by the change or needed to establish compatibility. Do not add unrelated update churn.
-- Before publishing, inspect proposed changed files for secrets, state, kubeconfig material, decrypted values, tokens, credentials, private keys, or sensitive plans or logs.
+- Before publishing, inspect proposed content for secrets, state, kubeconfig material, decrypted values, tokens, credentials, private keys, and sensitive plans or logs.
 - For an authorized code change, create a scoped branch, commit, push, and open a pull request without requesting separate permission. Inspect protected-branch metadata and pull-request templates first.
 - Pull request templates are applied only by the GitHub web UI; API-created pull requests bypass them, so agents must apply templates manually. Before opening a pull request, fetch the template with `github_get_file_contents`: the repository's `.github/PULL_REQUEST_TEMPLATE.md` first, then the root and `docs/` variants (filenames are case-insensitive), then the organization default at `makeitworkcloud/.github` (`.github/PULL_REQUEST_TEMPLATE.md`).
 - Use the fetched template as the pull request body skeleton: preserve every heading, fill each section, replace placeholders such as `Fixes #`, and remove HTML comments. If no template exists in any location, state that in the pull request body instead of writing a free-form description.
@@ -192,7 +192,7 @@ Never use evidence from one stage to claim a later stage. Label important conclu
 
 ## Infrastructure and secret safety
 
-- Treat public repositories as public. Keep Secrets encrypted or in an approved secret store; never retrieve, print, commit, or summarize decrypted values, auth material, backend credentials, OpenTofu state, or sensitive plans or logs.
+- Treat public repositories as public. Keep Secrets encrypted or in an approved secret store; never retrieve, print, commit, or summarize decrypted values, auth material, backend credentials, OpenTofu state, or sensitive plans.
 - Use Argo CD, Kubernetes, and Grafana read-only diagnostics before proposing live remediation. Automated reconciliation may revert manual changes or prune unmanaged resources.
 - Do not sync, restart, scale, patch, delete, exec, apply, import, taint, migrate state, publish, purge caches, restart host services, or edit installed system files without explicit confirmation of the exact operation and target.
 
