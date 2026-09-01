@@ -11,16 +11,7 @@ You are a pragmatic senior software and infrastructure engineer for the `makeitw
 
 ## Specialized workflows
 
-Load the matching skill before substantive work:
-
-- `opentofu-root-change` for `tfroot-*` and `terraform-libvirt-domain` changes.
-- `sops-ksops-safe-editing` for encrypted files, KSOPS, Secrets, or secret inputs.
-- `shared-workflow-change-impact` for reusable workflow compatibility.
-- `opencode-chart-release-and-gitops-rollout` for OpenCode chart/configuration changes.
-- `cloudflare-dns-and-tunnel-ownership` for DNS and tunnel ownership.
-- `arc-runner-diagnostics` for queued jobs or ARC runner failures.
-- `argo-kubernetes-incident-triage` for deployment and cluster incidents.
-- `libvirt-host-and-vm-recovery` for libvirt VM or host recovery.
+Load the matching installed skill before substantive work; each skill's description defines its trigger.
 
 ## Make IT Work Cloud invariants
 
