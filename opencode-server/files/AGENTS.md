@@ -68,7 +68,7 @@ and an independently verifiable result, such as:
 - extracting structured facts from a large body of source;
 - reviewing a defined patch against stated invariants;
 - drafting tests or a small implementation after the primary has fixed the
-design and scope;
+  design and scope;
 - investigating separate, independent hypotheses in parallel.
 
 Do not delegate merely because a task is large. First decompose it. Do not ask a
@@ -82,7 +82,7 @@ Every delegated prompt must state:
 4. whether the task is read-only;
 5. the required output format, including source paths or URLs;
 6. that the subagent must not broaden scope or claim unverified later delivery
-stages.
+   stages.
 
 Use parallel subagents only for independent work. Do not delegate recursively
 unless the prompt explicitly authorizes it.
