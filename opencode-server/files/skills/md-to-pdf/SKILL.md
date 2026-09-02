@@ -1,21 +1,28 @@
 # md-to-pdf
 
-Convert a Markdown document to PDF through the cluster Gotenberg service and return the bytes to the current session. Use when the owner asks for a PDF of a markdown file, letter, report, or work product.
+Convert a Markdown document to PDF through the cluster Gotenberg service and return the bytes to the current session. Use when the owner asks for a PDF of a resume, letter, report, or work product.
 
 ## Engine
 
-`http://gotenberg.gotenberg.svc:3000` — Gotenberg 8 (chromium variant), cluster-internal. The PDF arrives as the HTTP response body, so it lands directly in the session's shell with no ephemeral pod artifacts.
+`http://gotenberg.gotenberg.svc:3000` — Gotenberg 8 (Chromium variant), cluster-internal. The PDF arrives as the HTTP response body, so it lands directly in the session shell with no renderer-pod artifact to retrieve.
 
-## Boundary
+## Resume rendering boundary — preferred method
 
-- **Never use this for house resume targets** (`targets/*.md`): raw-LaTeX headers do not survive Chromium; resume PDFs render only through the owner-run local `make` pipeline (see `agent-knowledge` career `pipeline.md` → "PDF generation and storage pathways").
-- LaTeX-free markdown only: letters, summaries, work products, reference documents.
+**The preferred resume-PDF method is server-side Gotenberg rendering from a LaTeX-free Markdown body and an HTML/CSS wrapper.** The career workspace remains authoritative for verified facts, target wording, and source lifecycle; rendering does not authorize new facts or submission.
 
-## Procedure (busybox-wget compatible)
+- Never send a raw-LaTeX `targets/*.md` source directly to Chromium. Create a derived, LaTeX-free Markdown body that contains only the resume sections and verified bullets.
+- Provide an `index.html` wrapper that lays out the header, typography, page breaks, and the required `{{ toHTML "<body-file>.md" }}` marker.
+- Embed the canonical circular headshot as a `data:image/png;base64,...` URI in the wrapper. Do not rely on a temporary authenticated source URL and do not add the image as a separate multipart file; the latter has returned HTTP 400 in the deployed service.
+- Keep the PDF to two pages. Use CSS page-break controls before role headings when necessary, then verify the output mechanically and visually.
+- This replaces the former local-only rendering preference. The local Pandoc/XeLaTeX Makefile remains a legacy fallback for an owner who explicitly requests it, not the default path.
 
-1. Obtain the markdown into a file, e.g. `doc.md` (fetch via GitHub MCP and write, or generate in-session).
+## Procedure (BusyBox-wget compatible)
 
-2. Build the multipart body. The route REQUIRES an `index.html` wrapper containing the Go template marker `{{ toHTML "doc.md" }}` exactly where the rendered markdown should appear:
+1. Read the current career workspace target and facts guidance through GitHub MCP. Prepare the LaTeX-free body in a temporary file such as `resume.md`; it must not introduce facts or leave placeholders.
+
+2. Prepare `index.html`. It must contain the Go template marker `{{ toHTML "resume.md" }}` exactly where the rendered Markdown should appear. For resumes, include explicit HTML/CSS header and section styles rather than relying on browser defaults. The headshot source must be the inline data URI described above.
+
+3. Build the multipart body. The route requires the wrapper file to be named `index.html`:
 
 ```sh
 B="Md$(date +%s)dM"
@@ -24,17 +31,17 @@ B="Md$(date +%s)dM"
   printf '%s\r\n' 'Content-Disposition: form-data; name="files"; filename="index.html"'
   printf '%s\r\n' 'Content-Type: text/html'
   printf '\r\n'
-  printf '%s\n' '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>Document</title><style>body{font-family:Georgia,serif;margin:1in;color:#1a1a2e;line-height:1.5}h1,h2{border-bottom:2px solid #50fa7b;padding-bottom:4pt}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6pt 10pt}code{background:#f4f4f8}</style></head><body>{{ toHTML "doc.md" }}</body></html>'
+  cat index.html
   printf '\r\n%s\r\n' "--$B"
-  printf '%s\r\n' 'Content-Disposition: form-data; name="files"; filename="doc.md"'
+  printf '%s\r\n' 'Content-Disposition: form-data; name="files"; filename="resume.md"'
   printf '%s\r\n' 'Content-Type: text/markdown'
   printf '\r\n'
-  cat doc.md
+  cat resume.md
   printf '\r\n%s--\r\n' "--$B"
 } > mp.tmp
 ```
 
-3. Convert — the response body IS the PDF:
+4. Convert — the response body is the PDF:
 
 ```sh
 wget --header "Content-Type: multipart/form-data; boundary=$B" \
@@ -42,7 +49,12 @@ wget --header "Content-Type: multipart/form-data; boundary=$B" \
   "http://gotenberg.gotenberg.svc:3000/forms/chromium/convert/markdown"
 ```
 
-4. Verify and persist: check the header (`head -c 8 out.pdf` must show `%PDF-`), then copy to `/home/opencode/<name>.pdf` (the OpenCode PVC) so the artifact survives pod restarts and is ready for upload to object storage when that pathway is available.
+5. Verify and persist:
+
+- `head -c 8 out.pdf` must show `%PDF-`.
+- Verify two pages or fewer and inspect the rendered first page: the circular headshot must be present in the top-right header, with no placeholder or remote-image failure.
+- Persist the artifact to `/home/opencode/<name>.pdf` when it must survive a pod restart.
+- Do not claim S3 publication or give a download URL until the object upload and `HeadObject` verification have succeeded. The current `agent-pipe` BusyBox upload instruction is known to require a PUT-capable transport; `wget --method=PUT` is not supported by the deployed BusyBox image.
 
 ## Options worth knowing
 
@@ -51,12 +63,13 @@ wget --header "Content-Type: multipart/form-data; boundary=$B" \
 - Header/footer: additional `header.html`/`footer.html` files (each a full HTML document; page numbers via `<span class="pageNumber"></span>`).
 - PDF/A: `pdfa=PDF/A-2b` form field.
 
-Full form-field reference: gotenberg.dev → "Convert Markdown to PDF".
+Full form-field reference: [Gotenberg Convert Markdown to PDF](https://gotenberg.dev/docs/routes#convert-into-pdf).
 
 ## Failure modes (verified)
 
 - `400 … index.html is required` — wrapper file missing or not named `index.html`.
-- Empty ~1KB PDF — wrapper lacks the `{{ toHTML "doc.md" }}` marker (filename must match the uploaded md filename).
-- `500 … chrome_crashpad_handler` — do not "fix" by weakening the security context; the deployed env already sets writable `HOME`/`XDG_*_HOME`. If it recurs, check the workload env before changing anything else.
+- Empty ~1KB PDF — wrapper lacks the `{{ toHTML "resume.md" }}` marker (filename must match the uploaded Markdown filename).
+- `400` when attaching `profile-circle.png` as an additional multipart input — use the data URI in the wrapper instead.
+- `500 … chrome_crashpad_handler` — do not weaken the security context; the deployed environment already sets writable `HOME`/`XDG_*_HOME`. If it recurs, inspect workload environment before changing anything else.
 
 Base directory for this skill: /home/opencode/.config/opencode/skills/md-to-pdf
