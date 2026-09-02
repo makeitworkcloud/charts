@@ -5,7 +5,7 @@ These instructions apply to every agent on the shared, headless OpenCode server.
 ## Session boundary
 
 - This server has no user or Make IT Work Cloud checkout and must not access the user's workstation filesystem. Do not invent checkout paths or assume local credentials, SOPS keys, kubeconfigs, package managers, container tooling, or CLIs exist.
-- Use the configured `github` MCP exclusively for GitHub operations: writes, branches, pull requests, reviews, workflow evidence, private repositories such as `makeitworkcloud/agent-knowledge`, and freshness-critical reads. Call `github_get_me` before the first GitHub search or write in each task. Do not use `git`, `gh`, SSH, or shell commands for GitHub work. For exploratory reads of public Make IT Work Cloud repositories, start with `repo-search`; do not begin with individual GitHub file reads merely to discover source or guidance.
+- Use the configured `github` MCP exclusively for GitHub-specific operations: writes, branches, pull requests, reviews, workflow evidence, private repositories such as `makeitworkcloud/agent-knowledge`, and freshness-critical reads. Call `github_get_me` before the first GitHub search or write in each task. Do not use `git`, `gh`, SSH, or shell commands for GitHub work. For exploratory reads of public Make IT Work Cloud repositories, use `repo-search` first; GitHub file reads are not an alternate discovery path.
 - CI is the validation environment. Do not claim local checks ran or ask the user to run local `pre-commit` as a substitute for available PR checks.
 - Do not guess repository ownership, generated-file ownership, schemas, provider behavior, CI behavior, deployment state, account, region, cluster, or runtime health. Verify the claim with the appropriate current source.
 
@@ -68,7 +68,7 @@ and an independently verifiable result, such as:
 - extracting structured facts from a large body of source;
 - reviewing a defined patch against stated invariants;
 - drafting tests or a small implementation after the primary has fixed the
-  design and scope;
+design and scope;
 - investigating separate, independent hypotheses in parallel.
 
 Do not delegate merely because a task is large. First decompose it. Do not ask a
@@ -82,7 +82,7 @@ Every delegated prompt must state:
 4. whether the task is read-only;
 5. the required output format, including source paths or URLs;
 6. that the subagent must not broaden scope or claim unverified later delivery
-   stages.
+stages.
 
 Use parallel subagents only for independent work. Do not delegate recursively
 unless the prompt explicitly authorizes it.

@@ -8,18 +8,11 @@ publish changed charts as OCI artifacts to GHCR.
 
 ## Session boundary and available MCPs
 
-- Use the configured `github` MCP integration exclusively for repository and
-  GitHub operations. Do not assume a local checkout or use `git`, `gh`, SSH, or
-  workstation paths.
-- Use `argocd` and `kubernetes` MCPs immediately for read-only cluster and
-  application diagnostics. Do not sync, patch, delete, or run resource actions
-  without explicit user approval.
-- Use `context7`, `terraform-docs`, `aws-docs`, Grafana, and web research as
-  applicable for current library, provider, cloud, observability, and runtime
-  behavior. Do not guess schemas, provider behavior, CI behavior, or cluster
-  state.
-- CI is authoritative. Do not claim local Helm, OpenTofu, pre-commit, or other
-  validation ran from the shared server.
+- For public Make IT Work Cloud repository exploration on this shared server, use `repo-search` as the mandatory first read path: inspect `/repos/<repo>/current`, identify and record the adjacent hash-named worktree SHA, then use a bounded `read_multiple_files` request. Do not use GitHub file reads as an alternate discovery path.
+- Use the configured `github` MCP integration exclusively for GitHub-specific operations: writes, branches, pull requests, reviews, workflow evidence, private repositories, and freshness-critical reads. Do not assume a local checkout or use `git`, `gh`, SSH, or workstation paths.
+- Use `argocd` and `kubernetes` MCPs immediately for read-only cluster and application diagnostics. Do not sync, patch, delete, or run resource actions without explicit user approval.
+- Use `context7`, `terraform-docs`, `aws-docs`, Grafana, and web research as applicable for current library, provider, cloud, observability, and runtime behavior. Do not guess schemas, provider behavior, CI behavior, or cluster state.
+- CI is authoritative. Do not claim local Helm, OpenTofu, pre-commit, or other validation ran from the shared server.
 
 ## Workflow
 
