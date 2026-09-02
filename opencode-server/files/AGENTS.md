@@ -5,13 +5,14 @@ These instructions apply to every agent on the shared, headless OpenCode server.
 ## Session boundary
 
 - This server has no user or Make IT Work Cloud checkout and must not access the user's workstation filesystem. Do not invent checkout paths or assume local credentials, SOPS keys, kubeconfigs, package managers, container tooling, or CLIs exist.
-- Use the configured `github` MCP exclusively for repository and GitHub operations. Call `github_get_me` before the first GitHub search or write in each task. Do not use `git`, `gh`, SSH, or shell commands for GitHub work.
+- Use the configured `github` MCP exclusively for GitHub operations (writes, branches, pull requests, reviews, workflows), for private repositories such as `makeitworkcloud/agent-knowledge`, and for any repository read where freshness matters. Call `github_get_me` before the first GitHub search or write in each task. Do not use `git`, `gh`, SSH, or shell commands for GitHub work. For bulk exploration of the public makeitworkcloud repositories, prefer the `repo-search` MCP cache described in MCP routing.
 - CI is the validation environment. Do not claim local checks ran or ask the user to run local `pre-commit` as a substitute for available PR checks.
 - Do not guess repository ownership, generated-file ownership, schemas, provider behavior, CI behavior, deployment state, account, region, cluster, or runtime health. Verify the claim with the appropriate current source.
 
 ## MCP routing
 
-- **GitHub:** repository discovery and contents, branches, commits, pull requests, reviews, releases, workflows, checks, and merges. Do not use web search for repository content available through GitHub.
+- **Repo-search:** bulk enumeration and reads of the public makeitworkcloud repositories from the in-cluster git-sync cache (default-branch HEAD, up to ~2 minutes stale). Cached paths look like `/repos/<repo>/current/...`; the hash-named directory beside each `current` symlink is the synced commit SHA — cite it instead of assuming remote HEAD. `search_files` matches file and directory names only (no content grep); for content questions, bulk-read with `read_multiple_files` and scan in context. Never for writes, branches, private repositories, or freshness-critical reads.
+- **GitHub:** writes, branches, commits, pull requests, reviews, releases, workflows, checks, merges, issues, private repositories (including `makeitworkcloud/agent-knowledge`), and any repository read where freshness matters — including verifying remote HEAD via GitHub MCP before basing new work on a cached read. Do not use web search for repository content available through GitHub.
 - **Argo CD:** Application ownership, desired source revisions, sync and health, managed resources, resource trees, and Argo events. Start here for GitOps deployment incidents.
 - **Kubernetes:** cluster resources, pod state, events, logs, and resource use after identifying the owning Application. Read-only diagnosis is allowed; do not exec, patch, scale, restart, or delete without explicit confirmation.
 - **Grafana:** metrics, Loki logs, traces, alerts, incidents, and on-call correlation. Use it to supplement, not replace, Argo and Kubernetes ownership evidence.
@@ -67,7 +68,7 @@ and an independently verifiable result, such as:
 - extracting structured facts from a large body of source;
 - reviewing a defined patch against stated invariants;
 - drafting tests or a small implementation after the primary has fixed the
-design and scope;
+  design and scope;
 - investigating separate, independent hypotheses in parallel.
 
 Do not delegate merely because a task is large. First decompose it. Do not ask a
@@ -146,7 +147,7 @@ Before repository-specific advice, review, or edits:
 1. Identify the canonical repository and branch, then inspect its root with GitHub MCP.
 2. Read the root `AGENTS.md` when present. For every target file, inspect ancestor directories for narrower `AGENTS.md` files and apply them from broadest to narrowest.
 3. Read the root `README*` and relevant `CONTRIBUTING*`. List `docs/` before retrieving only documents relevant to the task or referenced by applicable guidance.
-4. Inspect task-relevant workflows, hooks, configuration, and representative source or manifests.
+4. Inspect task-relevant workflows, hooks, configuration, and representative source or manifests. For exploration spanning many files in a public makeitworkcloud repository, read through the `repo-search` cache instead of per-file GitHub calls, and confirm the cached SHA matches remote HEAD via GitHub MCP before creating a branch from it.
 5. State which guidance and documentation were consulted and which were absent or inaccessible.
 6. Report conflicts among documentation, current code, CI, and live evidence rather than silently choosing one.
 
