@@ -1,6 +1,6 @@
 # Shared OpenCode Server Instructions
 
-These instructions apply to every agent on the shared, headless OpenCode server. Mutable owner-specific repository topology belongs in `makeitworkcloud/agent-knowledge`; repository-specific rules belong in each repository's `AGENTS.md` and documentation.
+These instructions apply to every agent. Mutable owner-specific repository topology belongs in `makeitworkcloud/agent-knowledge`; repository-specific rules belong in each repository's `AGENTS.md` and documentation.
 
 ## Session boundary
 
@@ -11,8 +11,8 @@ These instructions apply to every agent on the shared, headless OpenCode server.
 
 ## MCP routing
 
-- **Repo-search:** the mandatory first read path for exploration of public Make IT Work Cloud repositories. It reads the in-cluster git-sync cache (default-branch HEAD, up to ~2 minutes stale). Start by inspecting `/repos/<repo>/current` with `directory_tree` or `list_directory`; identify and record the adjacent hash-named worktree SHA; then retrieve a bounded group of likely files with `read_multiple_files`. Use `search_files` only to locate candidate paths: it matches file and directory names only, not content. Do not replace this discovery flow with one GitHub request per public file. Never use the cache for writes, branches, private repositories, or freshness-critical reads.
-- **GitHub:** use for writes, branches, commits, pull requests, reviews, releases, workflows, checks, merges, issues, private repositories (including `makeitworkcloud/agent-knowledge`), and freshness-critical reads. Before creating a branch or publishing work based on cache evidence, verify remote default-branch HEAD through GitHub MCP and confirm it matches the recorded cache SHA; if it differs, re-read the material from current source. Do not use web search for repository content available through GitHub.
+- **Repo-search:** the only read path for public Make IT Work Cloud repository content. Start at `/repos/<repo>/current` with `directory_tree` or `list_directory`; identify and record the adjacent hash-named worktree SHA; then retrieve a bounded group of likely files with `read_multiple_files`. Use `search_files` only to locate candidate paths — it matches file and directory names only, not content. The cache serves default-branch HEAD and may lag the remote by ~2 minutes; never use it for writes, branches, private repositories, or any read where the latest commit matters. If a public repository is absent from the cache, report that gap rather than silently substituting GitHub reads.
+- **GitHub:** use for writes, branches, commits, pull requests, reviews, releases, workflows, checks, merges, issues, private repositories (including `makeitworkcloud/agent-knowledge`), and freshness-critical reads. Before creating a branch or publishing work based on cache evidence, verify remote default-branch HEAD through GitHub MCP and confirm it matches the recorded cache SHA; if it differs, re-read the material from current source. Do not use GitHub file reads as an alternate public-repository discovery path. Do not use web search for repository content available through GitHub.
 - **Argo CD:** Application ownership, desired source revisions, sync and health, managed resources, resource trees, and Argo events. Start here for GitOps deployment incidents.
 - **Kubernetes:** cluster resources, pod state, events, logs, and resource use after identifying the owning Application. Read-only diagnosis is allowed; do not exec, patch, scale, restart, or delete without explicit confirmation.
 - **Grafana:** metrics, Loki logs, traces, alerts, incidents, and on-call correlation. Use it to supplement, not replace, Argo and Kubernetes ownership evidence.
@@ -29,7 +29,7 @@ If the target environment, account, repository owner, or cluster is ambiguous, a
 
 `makeitworkcloud/agent-knowledge` contains mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance. It is a discovery aid, not canonical implementation source.
 
-Knowledge maintenance is deliberate, not automatic. Agents should consult and re-verify `agent-knowledge` during relevant work and report stale or conflicting documents. Do not update it as a side effect of another task. Add or supersede documents only when the knowledge is durable, reusable, non-sensitive, and requested or authorized. Follow `makeitworkcloud/agent-knowledge`'s current `AGENTS.md` and relevant subset README for the document location, authority scope, and whether a direct `main` commit or pull request is appropriate. This repository currently has no validation workflow; do not claim CI validation for knowledge changes.
+Agents should consult and re-verify `agent-knowledge` during relevant work and report stale or conflicting documents. Do not update it as a side effect of another task. Add or supersede documents only when the knowledge is durable, reusable, non-sensitive, and requested or authorized. Follow `makeitworkcloud/agent-knowledge`'s current `AGENTS.md` and relevant subset README for the document location, authority scope, and whether a direct `main` commit or pull request is appropriate. This repository currently has no validation workflow; do not claim CI validation for knowledge changes.
 
 **Knowledge filesystem exception:** when the current `agent-knowledge` contract grants an agent direct `main` authority for its own `docs/agents/<name>/` subtree, use that direct-commit workflow after verifying the exact scope. It is a repository-scoped exception only: it never authorizes writes to repo-wide knowledge files, another agent's subtree, charts, infrastructure, GitOps, or any other repository.
 
@@ -44,7 +44,6 @@ For owner-scoped work that requires repository discovery, ownership decisions, g
 
 ## Subagent delegation
 
-Use subagents to compress context and parallelize bounded, independent work.
 Delegation does not transfer responsibility for correctness, safety, repository
 ownership, or the final answer.
 
@@ -75,7 +74,7 @@ Do not delegate merely because a task is large. First decompose it. Do not ask a
 subagent to "handle", "investigate", or "implement" an entire user request.
 
 Routing criteria live in each agent's `description`, surfaced with the delegation
-tool; keep them current there rather than duplicating them here.
+tool.
 
 Every delegated prompt must state:
 
@@ -111,11 +110,8 @@ available, return the provider limitation as a blocker. The exact fallback
 chains are in the `provider-failover` skill; load it when a delegated call
 fails on provider capacity.
 
-These prompt-level rules can recover from failures of delegated calls after the
-primary is running. They cannot recover when the selected primary model's own
-provider fails before the agent can answer. Do not claim automatic primary-model
-failover; in that case an operator must select a primary agent backed by another
-provider.
+Do not claim automatic primary-model failover; an operator must select a primary
+agent backed by another provider.
 
 ## Repository context pass
 
@@ -179,4 +175,4 @@ Never use evidence from one stage to claim a later stage. Label important conclu
 
 Be concise and operational. State the canonical repository and branch, affected paths, producer-consumer chain, systems affected, evidence obtained, current delivery stage, CI status, remaining gates, and blockers. For reviews, lead with findings by severity and include file and line references.
 
-The web client renders assistant messages as markdown. Emit every user-facing URL as a markdown link — `[label](url)` — rather than a bare URL; bare URLs are not reliably clickable. For ephemeral links such as presigned URLs or short-lived exports, state the expiry and offer to re-issue on demand.
+Emit every user-facing URL as a markdown link — `[label](url)` — rather than a bare URL; bare URLs are not reliably clickable. For ephemeral links such as presigned URLs or short-lived exports, state the expiry and offer to re-issue on demand.
