@@ -40,13 +40,11 @@ sensitive plan output.
 - Add `<chart>/README.md` for chart-specific ownership, values, prerequisites,
   and usage; update it when that contract changes. CI discovers direct-child
   charts automatically.
-- `opencode-server/files/opencode.json`, `opencode-server/files/AGENTS.md`,
-  `opencode-server/files/agents/*.md`, and
-  `opencode-server/files/skills/*/SKILL.md` are rendered into the chart
-  ConfigMap. Bump `opencode-server/Chart.yaml` for every content change because
-  OCI chart versions are immutable.
-- After `opencode-server` is published, the current workflow opens or updates a
-  `kustomize-cluster` pull request that pins the Argo CD Application to the new
-  version and enables GitHub auto-merge on it. The pull request squash-merges
-  once `kustomize-cluster`'s required checks pass; Argo CD reconciliation and
-  rollout health are verified separately afterward.
+- Every `opencode-server/files/` content change — configuration, `AGENTS.md`,
+  `agents/*.md`, `skills/*/SKILL.md` — requires an `opencode-server/Chart.yaml`
+  version bump because OCI chart versions are immutable.
+- After `opencode-server` publishes, automation opens or updates a
+  `kustomize-cluster` version-pin pull request with auto-merge enabled; see
+  [GitOps update automation](docs/gitops-update-automation.md) for the current
+  contract. Argo CD reconciliation and rollout health are verified separately
+  afterward.

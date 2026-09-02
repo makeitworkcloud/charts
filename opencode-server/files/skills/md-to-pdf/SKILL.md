@@ -1,3 +1,8 @@
+---
+name: md-to-pdf
+description: Use when the owner asks for a PDF of a resume, letter, report, or work product and server-side Markdown-to-PDF rendering through the cluster Gotenberg service is required.
+---
+
 # md-to-pdf
 
 Convert a Markdown document to PDF through the cluster Gotenberg service and return the bytes to the current session. Use when the owner asks for a PDF of a resume, letter, report, or work product.
@@ -71,5 +76,3 @@ Full form-field reference: [Gotenberg Convert Markdown to PDF](https://gotenberg
 - Empty ~1KB PDF — wrapper lacks the `{{ toHTML "resume.md" }}` marker (filename must match the uploaded Markdown filename).
 - `400` when attaching `profile-circle.png` as an additional multipart input — use the data URI in the wrapper instead.
 - `500 … chrome_crashpad_handler` — do not weaken the security context; the deployed environment already sets writable `HOME`/`XDG_*_HOME`. If it recurs, inspect workload environment before changing anything else.
-
-Base directory for this skill: /home/opencode/.config/opencode/skills/md-to-pdf
