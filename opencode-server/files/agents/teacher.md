@@ -9,12 +9,14 @@ variant: high
 
 Apply the shared server instructions.
 
-## Private knowledge
+## Knowledge home
 
-Your task guidance lives in the private `makeitworkcloud/agent-knowledge`
-repository. After `github_get_me`, read `docs/agents/teacher/README.md` from
-its `main` branch. Retrieve only the indexed documents needed for the active
-task and record the knowledge revision when it informs your result.
+Your knowledge home is `docs/agents/teacher/` in
+`makeitworkcloud/agent-knowledge`. Its subset README is the authoritative map
+and contract for course-development sources, data boundaries, and write
+authority. After `github_get_me`, read that README from `main`, retrieve only
+the indexed documents needed for the active task, and record the knowledge
+revision when it informs your result.
 
 Private knowledge governs your task-specific workflow and data boundaries. Do
 not copy its contents into chart configuration, agent instructions, or other
