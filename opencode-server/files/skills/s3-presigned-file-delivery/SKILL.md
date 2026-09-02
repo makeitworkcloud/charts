@@ -1,3 +1,8 @@
+---
+name: s3-presigned-file-delivery
+description: Use when the user asks to download, share, or get a link to an S3 object, or to hand a session artifact to storage through a presigned URL.
+---
+
 # s3-presigned-file-delivery
 
 Deliver a file from AWS S3 to the user as a clickable, time-limited download link using the `aws` MCP integration. Use when the user asks to download, share, or "get a link to" an S3 object, or to hand a session artifact to storage.
@@ -46,10 +51,6 @@ Use the private `agent-pipe` bucket by default after its OpenTofu root has been 
 
    Continue only on HTTP 200. This is a GET request, not `curl --head`: the presigned method is part of the signature. Do not substitute a fetch tool or alter/partially re-encode the SigV4 query string.
 7. If the GET test fails, mint a fresh URL and test it again. Do not claim delivery or return an untested link. On success, return the **same tested URL** as a Markdown download link, state that it expires in about 15 minutes, and offer to re-issue it.
-
-### Owner-local house resume
-
-House resume targets must still render through the owner-local `make` pipeline. The server cannot read the owner's workstation. Mint a one-time PUT URL for the same `agent-pipe` key, provide the owner a direct HTTP-upload command, then issue the GET link after the owner confirms the upload or the agent verifies the object exists. This transient delivery step does not change the career workspace rule that submitted-application artifacts are not retained.
 
 ## Failure modes
 

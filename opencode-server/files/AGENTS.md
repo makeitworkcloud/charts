@@ -5,7 +5,7 @@ These instructions apply to every agent on the shared, headless OpenCode server.
 ## Session boundary
 
 - This server has no user or Make IT Work Cloud checkout and must not access the user's workstation filesystem. Do not invent checkout paths or assume local credentials, SOPS keys, kubeconfigs, package managers, container tooling, or CLIs exist.
-- Use the configured `github` MCP exclusively for GitHub-specific operations: writes, branches, pull requests, reviews, workflow evidence, private repositories such as `makeitworkcloud/agent-knowledge`, and freshness-critical reads. Call `github_get_me` before the first GitHub search or write in each task. Do not use `git`, `gh`, SSH, or shell commands for GitHub work. For exploratory reads of public Make IT Work Cloud repositories, use `repo-search` first; GitHub file reads are not an alternate discovery path.
+- Use the configured `github` MCP exclusively for GitHub-specific operations: writes, branches, pull requests, reviews, workflow evidence, private repositories such as `makeitworkcloud/agent-knowledge`, and freshness-critical reads. Call `github_get_me` before the first GitHub search or write in each task. Do not use `git`, `gh`, SSH, or shell commands for GitHub work; public-repository exploration follows the Repo-search contract below.
 - CI is the validation environment. Do not claim local checks ran or ask the user to run local `pre-commit` as a substitute for available PR checks.
 - Do not guess repository ownership, generated-file ownership, schemas, provider behavior, CI behavior, deployment state, account, region, cluster, or runtime health. Verify the claim with the appropriate current source.
 
@@ -74,6 +74,9 @@ and an independently verifiable result, such as:
 Do not delegate merely because a task is large. First decompose it. Do not ask a
 subagent to "handle", "investigate", or "implement" an entire user request.
 
+Routing criteria live in each agent's `description`, surfaced with the delegation
+tool; keep them current there rather than duplicating them here.
+
 Every delegated prompt must state:
 
 1. the exact question or deliverable;
@@ -87,23 +90,6 @@ Every delegated prompt must state:
 Use parallel subagents only for independent work. Do not delegate recursively
 unless the prompt explicitly authorizes it.
 
-Route bounded tasks as follows:
-
-- `minimax`: low-level bulk reading, extraction, classification, repetitive
-  transformations, and low-risk documentation summaries;
-- `kimi`: low-level first-pass repository exploration, reference discovery, and
-  straightforward code analysis where low reasoning effort is sufficient;
-- `luna`: low-level narrow reasoning-sensitive analysis, structured comparison,
-  test design, and small well-specified coding tasks;
-- `glm-flash`: mid-level high-volume automation, tool-heavy research,
-  multimodal evidence, or broad-context work that needs stronger reasoning than
-  a low-level worker;
-- `kimi-256k`: mid-level bounded implementation, review, and repository work
-  that fits within 256K context and benefits from K3 behavior with reduced quota
-  consumption;
-- `glm`: mid-level difficult but bounded text-only multi-file coding,
-  terminal-oriented reasoning, debugging, or an independent technical review.
-
 Escalate from a lower-level worker only when its evidence is incomplete,
 contradictory, or fails a concrete verification criterion. Choose among
 mid-level agents by task shape rather than sending the same task to all of them.
@@ -116,23 +102,14 @@ Treat provider capacity as independent from task suitability. After OpenCode's
 normal retry behavior, a delegated request that fails because of a rate limit,
 quota exhaustion, authentication/entitlement failure, or repeated provider
 availability errors may be retried with the closest suitable agent on a
-different provider. Do not use a sibling model from the same provider as a
-provider failover.
-
-Use these cross-provider fallbacks while preserving the original bounded prompt
-and evidence requirements:
-
-- `glm` or `glm-flash` (Z.AI) -> `kimi-256k` (Kimi) -> `luna` (OpenAI);
-- `kimi-256k` or `kimi` (Kimi) -> `glm` (Z.AI) -> `luna` (OpenAI);
-- `luna` (OpenAI) -> `kimi-256k` (Kimi) -> `glm` (Z.AI);
-- `minimax` (MiniMax) -> `kimi` (Kimi) -> `luna` (OpenAI).
-
-Use at most two cross-provider fallback attempts so one or two unavailable
-providers can be bypassed without creating a retry loop. Do not repeatedly retry
-a depleted provider, broaden the task, or conceal a capability downgrade.
-Record which providers failed and which fallback supplied evidence. If no
-suitable independent provider is available, return the provider limitation as a
-blocker.
+different provider — never a sibling model of the same provider, at most two
+cross-provider fallback attempts, preserving the original bounded prompt and
+evidence requirements. Record which providers failed and which fallback
+supplied evidence; do not retry a depleted provider, broaden the task, or
+conceal a capability downgrade. If no suitable independent provider is
+available, return the provider limitation as a blocker. The exact fallback
+chains are in the `provider-failover` skill; load it when a delegated call
+fails on provider capacity.
 
 These prompt-level rules can recover from failures of delegated calls after the
 primary is running. They cannot recover when the selected primary model's own
@@ -144,10 +121,10 @@ provider.
 
 Before repository-specific advice, review, or edits:
 
-1. Identify the canonical repository and branch. For a public Make IT Work Cloud repository, inspect the cached root and source layout through `repo-search` first and record its worktree SHA. Use GitHub MCP to inspect the root only for a private repository or when freshness is material.
+1. Identify the canonical repository and branch. For a public Make IT Work Cloud repository, follow the Repo-search contract (MCP routing) and record the worktree SHA. Use GitHub MCP to inspect the root only for a private repository or when freshness is material.
 2. Read the root `AGENTS.md` when present, then inspect ancestor directories for narrower `AGENTS.md` files and apply them from broadest to narrowest. Use cached reads for public exploratory work and GitHub reads for private or freshness-critical guidance.
 3. Read the root `README*` and relevant `CONTRIBUTING*`. List `docs/` before retrieving only documents relevant to the task or referenced by applicable guidance.
-4. Inspect task-relevant workflows, hooks, configuration, and representative source or manifests. For a public Make IT Work Cloud repository, batch these exploratory reads through `repo-search` rather than making one GitHub request per file. Before creating a branch, verify that the cached SHA still matches remote default-branch HEAD through GitHub MCP; otherwise re-read the changed material from current source.
+4. Inspect task-relevant workflows, hooks, configuration, and representative source or manifests. For a public Make IT Work Cloud repository, batch these exploratory reads through `repo-search`. Before creating a branch, verify the cached SHA still matches remote default-branch HEAD (MCP routing: GitHub) and re-read any changed material from current source.
 5. State which guidance and documentation were consulted and which were absent or inaccessible.
 6. Report conflicts among documentation, current code, CI, and live evidence rather than silently choosing one.
 
@@ -187,8 +164,7 @@ Never use evidence from one stage to claim a later stage. Label important conclu
 - Inspect only dependency, action, image, chart, hook, or tool pins affected by the change or needed to establish compatibility. Do not add unrelated update churn.
 - Before publishing, inspect proposed content for secrets, state, kubeconfig material, decrypted values, tokens, credentials, private keys, and sensitive plans or logs.
 - For an authorized code change, create a scoped branch, commit, push, and open a pull request without requesting separate permission. Inspect protected-branch metadata and pull-request templates first.
-- Pull request templates are applied only by the GitHub web UI; API-created pull requests bypass them, so agents must apply templates manually. Before opening a pull request, fetch the template with `github_get_file_contents`: the repository's `.github/PULL_REQUEST_TEMPLATE.md` first, then the root and `docs/` variants (filenames are case-insensitive), then the organization default at `makeitworkcloud/.github` (`.github/PULL_REQUEST_TEMPLATE.md`).
-- Use the fetched template as the pull request body skeleton: preserve every heading, fill each section, replace placeholders such as `Fixes #`, and remove HTML comments. If no template exists in any location, state that in the pull request body instead of writing a free-form description.
+- Pull request templates are applied only by the GitHub web UI; API-created pull requests bypass them. Before opening a pull request, load the `pull-request-template` skill and build the body from the repository's template exactly as it prescribes. If no template exists in any location, state that in the pull request body instead of writing a free-form description.
 - Explicit user confirmation is required before merging, publishing, dispatching a workflow, deploying, mutating a live system, or taking a destructive action. Never bypass branch protections or required checks.
 - After creating or updating a pull request, monitor check runs and commit statuses until terminal. Diagnose failures from checks, workflow configuration, changed files, and available CI output; make only the narrowest safe fix on the same branch. Never weaken or dismiss a required check.
 - When no checks exist or required evidence is inaccessible, report that concrete limitation rather than claiming validation.
