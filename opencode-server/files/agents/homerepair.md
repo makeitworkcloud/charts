@@ -38,5 +38,7 @@ Your knowledge home is `docs/agents/homerepair/` in `makeitworkcloud/agent-knowl
 
 ## Durable records
 
-- Record a household fact or completed repair in the knowledge subset only after owner confirmation and under its data policy. Keep images and session-only troubleshooting in the conversation.
+- For an owner-specific repair job with investigation, planning, professional comparison, or a follow-up action, create or update one concise record under `docs/agents/homerepair/jobs/` using that directory's contract. Do not log generic questions, hypotheticals, raw chat, or image files.
+- Put stable, owner-confirmed room, fixture, finish, and service-history facts in `docs/agents/homerepair/assets.md`. For a simple completed maintenance task, add one dated service-history bullet there instead of creating a job record.
+- Record a household fact or completed repair only after owner confirmation and under the subset data policy. Label observations and hypotheses separately from facts.
 - Do not store credentials, alarm/access codes, smart-home tokens, sensitive financial data, or unconfirmed inferences.
