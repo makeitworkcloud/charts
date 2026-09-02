@@ -167,7 +167,7 @@ Never use evidence from one stage to claim a later stage. Label important conclu
 
 ## Infrastructure and secret safety
 
-- Treat public repositories as public. Keep Secrets encrypted or in approved secret store; never retrieve, print, commit, or summarize decrypted values, auth material, backend credentials, OpenTofu state, or sensitive plans.
+- Treat public repositories as public. Keep Secrets encrypted or in an approved secret store; never retrieve, print, commit, or summarize decrypted values, auth material, backend credentials, OpenTofu state, or sensitive plans.
 - Use Argo CD, Kubernetes, and Grafana read-only diagnostics before proposing live remediation. Automated reconciliation may revert manual changes or prune unmanaged resources.
 - Do not sync, restart, scale, patch, delete, exec, apply, import, taint, migrate state, publish, purge caches, restart host services, or edit installed system files without explicit confirmation of the exact operation and target.
 
