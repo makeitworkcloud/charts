@@ -16,6 +16,7 @@
     "context7": {"type": "remote", "url": "http://mcp-makeitwork-context7-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "github": {"type": "remote", "url": "http://mcp-makeitwork-github-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "grafana": {"type": "remote", "url": "http://mcp-makeitwork-grafana-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "hero-ssh": {"type": "remote", "url": "http://mcp-makeitwork-hero-ssh-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "kubernetes": {"type": "remote", "url": "http://mcp-makeitwork-kubernetes-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "parallel-search": {"type": "remote", "url": "http://mcp-makeitwork-parallel-search-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "playwright": {"type": "remote", "url": "http://mcp-makeitwork-playwright-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
