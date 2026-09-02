@@ -38,7 +38,14 @@ Use the private `agent-pipe` bucket by default after its OpenTofu root has been 
 
    Use `kubernetes_pods_exec`; do not run a generic session shell or route the signed URL through a fetch tool, which may re-encode its SigV4 query string.
 5. Verify with `aws s3api head-object --bucket agent-pipe --key <key>`; do not print object bytes in the conversation.
-6. Mint a GET URL with `expires_in: 900` and return it as a Markdown download link. State that it expires in about 15 minutes and offer to re-issue it.
+6. Mint a GET URL with `expires_in: 900`, then test that **exact, unchanged** URL with the same curl helper before returning it:
+
+   ```text
+   curl --fail --show-error --silent --output /dev/null --write-out "%{http_code}" <presigned-get-url>
+   ```
+
+   Continue only on HTTP 200. This is a GET request, not `curl --head`: the presigned method is part of the signature. Do not substitute a fetch tool or alter/partially re-encode the SigV4 query string.
+7. If the GET test fails, mint a fresh URL and test it again. Do not claim delivery or return an untested link. On success, return the **same tested URL** as a Markdown download link, state that it expires in about 15 minutes, and offer to re-issue it.
 
 ### Owner-local house resume
 
@@ -47,6 +54,7 @@ House resume targets must still render through the owner-local `make` pipeline. 
 ## Failure modes
 
 - Fetch tools return 400: they re-encoded the query string and broke SigV4. The link is valid for browsers/curl/wget — hand it to the user, don't re-fetch through URL-rewriting tools.
+- `InvalidToken` on a newly minted GET URL: do not infer that the object is missing or alter the URL. Mint a fresh GET URL and perform the exact curl GET test before returning it. A successful PUT or `HeadObject` does not prove a GET URL is usable.
 - 403 on upload or download: the signing role lacks the corresponding object permission, even though URL signing itself may succeed.
 - HEAD fails against a GET-signed URL: the method is part of the signature.
 - Links cannot be revoked before expiry; keep TTLs short.
