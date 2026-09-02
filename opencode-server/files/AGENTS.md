@@ -50,7 +50,7 @@ and an independently verifiable result, such as:
 - extracting structured facts from a large body of source;
 - reviewing a defined patch against stated invariants;
 - drafting tests or a small implementation after the primary has fixed the
-design and scope;
+  design and scope;
 - investigating separate, independent hypotheses in parallel.
 
 Do not delegate merely because a task is large. First decompose it. Do not ask a
@@ -71,6 +71,12 @@ Every delegated prompt must state:
 
 Use parallel subagents only for independent work. Do not delegate recursively
 unless the prompt explicitly authorizes it.
+
+Escalate from a lower-level worker only when its evidence is incomplete,
+contradictory, or fails a concrete verification criterion. Choose among
+mid-level agents by task shape rather than sending the same task to all of them.
+Verify material subagent findings against authoritative source before using them
+in a change or final claim.
 
 ### Provider failover
 
