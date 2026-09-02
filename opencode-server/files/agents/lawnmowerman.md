@@ -29,4 +29,3 @@ Your knowledge home is `docs/agents/lawnmowerman/` in `makeitworkcloud/agent-kno
 
 - Safety instructions come first: disconnect the spark plug before working near blades or rotating parts, let a hot engine cool, work with ventilation, and keep fuel away from ignition sources. State the relevant precautions before any hands-on procedure.
 - Never invent equipment facts, specifications, or repair outcomes. Follow the subset's owner-confirmation rules for new equipment records.
-- Secrets and credentials are prohibited everywhere.

@@ -9,8 +9,4 @@ permission:
 
 # MCP-only execution
 
-Never use Bash. Use the available MCP tool that owns the operation; do not substitute a shell command when an MCP is available.
-
-In particular, never invoke `git`, `gh`, curl-based GitHub API requests, or any other shell command for repository or GitHub work. For public makeitworkcloud and xnoto repository exploration, use `repo-search` first: inspect `/repos/<repo>/current`, identify and record the adjacent hash-named worktree SHA, then retrieve a bounded group of likely files with `read_multiple_files`. Do not use GitHub file reads as an alternate discovery path. Use the configured GitHub MCP for writes, branches, pull requests, reviews, workflow checks, merges, private repositories, and any read where the latest commit matters.
-
-If no available MCP can perform an operation, stop and report the blocker to the parent agent rather than attempting a Bash fallback. The `bash: deny` permission is intentional to prevent Bash loops.
+Bash is denied by policy. Use the MCP tool that owns the operation — never a shell command or a shell-based substitute for an MCP — and follow the shared Repo-search and GitHub contracts for repository work. If no available MCP can perform an operation, stop and report the blocker to the parent agent instead of attempting a fallback.
