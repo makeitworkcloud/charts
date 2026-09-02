@@ -16,38 +16,8 @@ jobs:
     if: >-
       contains(github.event.comment.body, '/oc') ||
       contains(github.event.comment.body, '/opencode')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Stage OpenCode runner configuration
-        env:
-          CONFIG_DIR: ${{ runner.temp }}/opencode-config
-        run: |
-          set -euo pipefail
-          rm -rf "$CONFIG_DIR"
-          mkdir -p "$CONFIG_DIR"
-          cp .github/opencode/opencode.json .github/opencode/AGENTS.md "$CONFIG_DIR"/
-          cp -R opencode-server/files/agents opencode-server/files/skills "$CONFIG_DIR"/
-          printf 'OPENCODE_CONFIG_DIR=%s\n' "$CONFIG_DIR" >> "$GITHUB_ENV"
-
-      - name: Install pinned OpenCode runtime
-        run: |
-          set -euo pipefail
-          curl -fsSL https://raw.githubusercontent.com/anomalyco/opencode/ef2880f379129aa048be9e9353e30aa168d42c17/install |
-            bash -s -- --version 1.18.23 --no-modify-path
-          printf '%s\n' "$HOME/.opencode/bin" >> "$GITHUB_PATH"
-
-      - name: Run OpenCode
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-          MODEL: kimi-for-coding/k3
-          MENTIONS: /opencode,/oc
-          SHARE: "false"
-          USE_GITHUB_TOKEN: "true"
-        run: opencode github run
+    uses: makeitworkcloud/shared-workflows/.github/workflows/opencode.yml@73444d2177762549d8c476dc612f23811e0a2180
+    with:
+      config-source-path: opencode-server/files
+    secrets:
+      KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
