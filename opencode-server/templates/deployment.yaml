@@ -99,6 +99,8 @@ spec:
           volumeMounts:
             - name: home
               mountPath: /home/opencode
+            - name: artifacts
+              mountPath: /artifacts
             - name: config
               mountPath: /home/opencode/.config/opencode
             - name: tmp
@@ -106,6 +108,8 @@ spec:
       volumes:
         - name: home
           persistentVolumeClaim: {claimName: {{ .Values.persistence.existingClaim }}}
+        - name: artifacts
+          persistentVolumeClaim: {claimName: {{ .Values.persistence.artifactsExistingClaim }}}
         - name: openai-auth
           secret: {secretName: {{ .Values.secrets.openaiAuth }}}
         - name: config

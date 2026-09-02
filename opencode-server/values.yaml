@@ -6,6 +6,7 @@ image:
 
 persistence:
   existingClaim: opencode-home
+  artifactsExistingClaim: opencode-artifacts
 
 secrets:
   kimi: opencode-kimi

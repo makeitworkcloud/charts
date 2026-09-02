@@ -53,8 +53,8 @@ wget --header "Content-Type: multipart/form-data; boundary=$B" \
 
 - `head -c 8 out.pdf` must show `%PDF-`.
 - Verify two pages or fewer and inspect the rendered first page: the circular headshot must be present in the top-right header, with no placeholder or remote-image failure.
-- Persist the artifact to `/home/opencode/<name>.pdf` when it must survive a pod restart.
-- Do not claim S3 publication or give a download URL until the object upload and `HeadObject` verification have succeeded. The current `agent-pipe` BusyBox upload instruction is known to require a PUT-capable transport; `wget --method=PUT` is not supported by the deployed BusyBox image.
+- Persist an artifact that must survive a pod restart to `/artifacts/<name>.pdf`. This PVC is isolated from the OpenCode home and is the only filesystem visible to the upload helper.
+- Do not claim S3 publication or give a download URL until the object upload and `HeadObject` verification have succeeded. The current agent-pipe transport uses the separate, credential-free curl uploader Pod; follow `s3-presigned-file-delivery` for the confirmation-gated upload procedure.
 
 ## Options worth knowing
 

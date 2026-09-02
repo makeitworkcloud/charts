@@ -32,6 +32,7 @@ The private repository is a discovery aid, not a secret store or canonical desir
 The consuming cluster supplies:
 
 - the existing OpenCode home PVC;
+- a separate artifact PVC named through `persistence.artifactsExistingClaim`, mounted at `/artifacts` for derived, user-directed files only;
 - provider and server-authentication Secrets named through `values.yaml`;
 - the Service and external `TunnelBinding`;
 - access to the in-cluster MCP proxy Services configured in `files/opencode.json`.
@@ -44,6 +45,8 @@ Never put credentials, decrypted values, kubeconfigs, private keys, or tokens in
 
 - Deployment with an init container that seeds immutable chart configuration into an `emptyDir`
 - ConfigMap containing OpenCode configuration, agents, and skills
+
+The chart mounts the cluster-owned artifact PVC only into the OpenCode container. A separate cluster-owned uploader Deployment mounts that PVC read-only and has no AWS credentials; it receives a short-lived presigned PUT URL only for explicit, user-approved artifact delivery.
 
 Configuration is loaded when OpenCode starts. A reconciled chart update replaces the pod through the ConfigMap checksum annotation; it is not hot-reloaded into an existing process.
 
