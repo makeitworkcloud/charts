@@ -25,17 +25,20 @@ Use the private `agent-pipe` bucket by default after its OpenTofu root has been 
 
 ## Procedure
 
-### In-session artifact already on the OpenCode PVC
+### In-session artifact on the isolated artifacts PVC
 
-1. Mint a PUT URL for `agent-pipe` and the chosen `deliveries/...` key with `expires_in: 900`.
-2. Upload the generated file with a direct HTTP PUT; the AWS CLI MCP cannot read a local file path. For a server-generated artifact, use the session shell with the exact URL unmodified:
+1. Confirm the artifact is a user-directed, non-secret file under `/artifacts/`; the uploader Pod cannot access the OpenCode home PVC.
+2. Mint a PUT URL for `agent-pipe` and the chosen `deliveries/...` key with `expires_in: 900`.
+3. **Obtain explicit user confirmation** for the exact artifact path and S3 key before the PUT. This is a live S3 mutation.
+4. List Pods in namespace `opencode` using label `app=agent-pipe-uploader`, then run the upload in its `curl` container with the generated URL unmodified:
 
-   ```sh
-   wget --method=PUT --body-file="/home/opencode/<file>" -q -O /dev/null "<presigned-put-url>"
+   ```text
+   curl --fail --show-error --silent --request PUT --upload-file /artifacts/<filename> <presigned-put-url>
    ```
 
-3. Verify with `aws s3api head-object --bucket agent-pipe --key <key>`; do not print object bytes in the conversation.
-4. Mint a GET URL with `expires_in: 900` and return it as a Markdown download link. State that it expires in about 15 minutes and offer to re-issue it.
+   Use `kubernetes_pods_exec`; do not run a generic session shell or route the signed URL through a fetch tool, which may re-encode its SigV4 query string.
+5. Verify with `aws s3api head-object --bucket agent-pipe --key <key>`; do not print object bytes in the conversation.
+6. Mint a GET URL with `expires_in: 900` and return it as a Markdown download link. State that it expires in about 15 minutes and offer to re-issue it.
 
 ### Owner-local house resume
 
