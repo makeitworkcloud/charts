@@ -12,7 +12,7 @@ These instructions apply to every agent. Mutable owner-specific repository topol
 ## MCP routing
 
 - **Repo-search:** the only read path for public Make IT Work Cloud repository content. Start at `/repos/<repo>/current` with `directory_tree` or `list_directory`; identify and record the adjacent hash-named worktree SHA; then retrieve a bounded group of likely files with `read_multiple_files`. Use `search_files` only to locate candidate paths — it matches file and directory names only, not content. The cache serves default-branch HEAD and may lag the remote by ~2 minutes; never use it for writes, branches, private repositories, or any read where the latest commit matters. If a public repository is absent from the cache, report that gap rather than silently substituting GitHub reads.
-- **GitHub:** use for writes, branches, commits, pull requests, reviews, releases, workflows, checks, merges, issues, private repositories (including `makeitworkcloud/agent-knowledge`), and freshness-critical reads. Before creating a branch or publishing work based on cache evidence, verify remote default-branch HEAD through GitHub MCP and confirm it matches the recorded cache SHA; if it differs, re-read the material from current source. Do not use GitHub file reads as an alternate public-repository discovery path. Do not use web search for repository content available through GitHub.
+- **GitHub:** use for writes, branches, commits, pull requests, reviews, releases, workflows, checks, merges, issues, private repositories (including `agent-knowledge`), and freshness-critical reads. Before creating a branch or publishing work based on cache evidence, verify remote default-branch HEAD through GitHub MCP and confirm it matches the recorded cache SHA; if it differs, re-read the material from current source. Do not use GitHub file reads as an alternate public-repository discovery path. Do not use web search for repository content available through GitHub.
 - **Argo CD:** Application ownership, desired source revisions, sync and health, managed resources, resource trees, and Argo events. Start here for GitOps deployment incidents.
 - **Kubernetes:** cluster resources, pod state, events, logs, and resource use after identifying the owning Application. Read-only diagnosis is allowed; do not exec, patch, scale, restart, or delete without explicit confirmation.
 - **Grafana:** metrics, Loki logs, traces, alerts, incidents, and on-call correlation. Use it to supplement, not replace, Argo and Kubernetes ownership evidence.
@@ -29,7 +29,13 @@ If the target environment, account, repository owner, or cluster is ambiguous, a
 
 `makeitworkcloud/agent-knowledge` contains mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance. It is a discovery aid, not canonical implementation source.
 
-Agents should consult and re-verify `agent-knowledge` during relevant work and report stale or conflicting documents. Do not update it as a side effect of another task. Add or supersede documents only when the knowledge is durable, reusable, non-sensitive, and requested or authorized. Follow `makeitworkcloud/agent-knowledge`'s current `AGENTS.md` and relevant subset README for the document location, authority scope, and whether a direct `main` commit or pull request is appropriate. This repository currently has no validation workflow; do not claim CI validation for knowledge changes.
+Agents must assess whether to maintain `agent-knowledge` before completing any task that uses it or establishes durable, reusable, non-sensitive facts. A knowledge update is warranted when verified work adds or corrects repository ownership, producer-consumer or generated-file relationships, release or delivery chains, durable operating guidance, or a reusable troubleshooting conclusion.
+
+When an update is warranted, agents must author it during the same task in their authorized `docs/agents/<name>/` subtree, after verifying current authoritative sources. Do not write merely to satisfy the assessment, and do not write assumptions, transient incident details, duplicated mutable configuration, secrets, credentials, decrypted values, state, kubeconfig material, sensitive plans, or raw live-system output. If the appropriate location is outside the agent's authority, report the specific ownership blocker rather than editing a repo-wide document or another agent's subtree.
+
+Follow `makeitworkcloud/agent-knowledge`'s current `AGENTS.md` and relevant subset README for document placement, authority scope, source conventions, and whether a direct `main` commit or pull request is appropriate. This repository currently has no validation workflow; do not claim CI validation for knowledge changes.
+
+Before the final response, report exactly one outcome: `Knowledge updated` with the path and commit or pull request; `Knowledge not updated` with the specific reason; or `Knowledge update proposed but blocked` with the ownership or evidence gap.
 
 **Knowledge filesystem exception:** when the current `agent-knowledge` contract grants an agent direct `main` authority for its own `docs/agents/<name>/` subtree, use that direct-commit workflow after verifying the exact scope. It is a repository-scoped exception only: it never authorizes writes to repo-wide knowledge files, another agent's subtree, charts, infrastructure, GitOps, or any other repository.
 
@@ -67,7 +73,7 @@ and an independently verifiable result, such as:
 - extracting structured facts from a large body of source;
 - reviewing a defined patch against stated invariants;
 - drafting tests or a small implementation after the primary has fixed the
-  design and scope;
+design and scope;
 - investigating separate, independent hypotheses in parallel.
 
 Do not delegate merely because a task is large. First decompose it. Do not ask a
@@ -84,7 +90,7 @@ Every delegated prompt must state:
 4. whether the task is read-only;
 5. the required output format, including source paths or URLs;
 6. that the subagent must not broaden scope or claim unverified later delivery
-   stages.
+stages.
 
 Use parallel subagents only for independent work. Do not delegate recursively
 unless the prompt explicitly authorizes it.
