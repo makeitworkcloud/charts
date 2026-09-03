@@ -1,0 +1,168 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opencode-sms-bridge.fullname" . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    ignore-check.kube-linter.io/unset-cpu-requirements: "single-node policy"
+    ignore-check.kube-linter.io/unset-memory-requirements: "single-node policy"
+    secret.reloader.stakater.com/reload: {{ join "," (list .Values.secrets.routing .Values.secrets.shared .Values.secrets.worker .Values.secrets.opencodeServerAuth) | quote }}
+  labels:
+    {{- include "opencode-sms-bridge.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ include "opencode-sms-bridge.fullname" . }}
+  template:
+    metadata:
+      annotations:
+        checksum/opencode-sms-bridge-config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "opencode-sms-bridge.labels" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ingress
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          env:
+            - name: BRIDGE_MODE
+              value: ingress
+            - name: ROUTING_CONFIG_PATH
+              value: /etc/opencode-sms-bridge/routing.json
+            - name: STATE_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.secrets.shared }}, key: state-encryption-key}
+            - name: SENDER_HASH_KEY
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.secrets.shared }}, key: sender-hash-key}
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.secrets.shared }}, key: twilio-auth-token}
+            - name: CANONICAL_WEBHOOK_URL
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: CANONICAL_WEBHOOK_URL}
+            - name: STATE_PATH
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: STATE_PATH}
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: state
+              mountPath: /state
+            - name: routing
+              mountPath: /etc/opencode-sms-bridge
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+        - name: worker
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          env:
+            - name: BRIDGE_MODE
+              value: worker
+            - name: ROUTING_CONFIG_PATH
+              value: /etc/opencode-sms-bridge/routing.json
+            - name: STATE_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.secrets.shared }}, key: state-encryption-key}
+            - name: SENDER_HASH_KEY
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.secrets.shared }}, key: sender-hash-key}
+            - name: TWILIO_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.secrets.shared }}, key: twilio-auth-token}
+            - name: TWILIO_API_KEY_SID
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.secrets.worker }}, key: twilio-api-key-sid}
+            - name: TWILIO_API_KEY_SECRET
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.secrets.worker }}, key: twilio-api-key-secret}
+            - name: OPENCODE_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.secrets.opencodeServerAuth }}, key: password}
+            - name: CANONICAL_WEBHOOK_URL
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: CANONICAL_WEBHOOK_URL}
+            - name: STATE_PATH
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: STATE_PATH}
+            - name: TWILIO_MEDIA_ALLOWED_HOSTS
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: TWILIO_MEDIA_ALLOWED_HOSTS}
+            - name: MAX_MEDIA_BYTES
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: MAX_MEDIA_BYTES}
+            - name: MAX_AUDIO_SECONDS
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: MAX_AUDIO_SECONDS}
+            - name: OPENCODE_IMAGE_PARTS_ENABLED
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: OPENCODE_IMAGE_PARTS_ENABLED}
+            - name: WHISPER_URL
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: WHISPER_URL}
+            - name: WHISPER_MODEL
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: WHISPER_MODEL}
+            - name: OPENCODE_API_BASE_URL
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: OPENCODE_API_BASE_URL}
+            - name: OPENCODE_SERVER_USERNAME
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: OPENCODE_SERVER_USERNAME}
+          livenessProbe:
+            exec:
+              command:
+                - python3
+                - -c
+                - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/healthz', timeout=2)
+          readinessProbe:
+            exec:
+              command:
+                - python3
+                - -c
+                - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/healthz', timeout=2)
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: state
+              mountPath: /state
+            - name: routing
+              mountPath: /etc/opencode-sms-bridge
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim }}
+        - name: routing
+          secret:
+            secretName: {{ .Values.secrets.routing }}
+            items:
+              - key: routing.json
+                path: routing.json
+        - name: tmp
+          emptyDir: {}

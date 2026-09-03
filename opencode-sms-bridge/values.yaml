@@ -1,0 +1,29 @@
+fullnameOverride: opencode-sms-bridge
+
+image:
+  repository: ghcr.io/makeitworkcloud/opencode-sms-bridge
+  # GitOps must replace this with the immutable image commit SHA after publication.
+  tag: latest
+
+persistence:
+  existingClaim: opencode-sms-bridge-state
+
+secrets:
+  routing: opencode-sms-bridge-routing
+  shared: opencode-sms-bridge-shared
+  worker: opencode-sms-bridge-worker
+  opencodeServerAuth: opencode-server-auth
+
+config:
+  canonicalWebhookUrl: https://sms-opencode.makeitwork.cloud/twilio/inbound
+  statePath: /state/opencode-sms-bridge.db
+  mediaAllowedHosts:
+    - api.twilio.com
+  maxMediaBytes: 5242880
+  maxAudioSeconds: 120
+  imagePartsEnabled: false
+  # Set only after a local Whisper-compatible service is selected and validated.
+  whisperUrl: ""
+  whisperModel: base
+  opencodeApiBaseUrl: http://opencode.opencode.svc:4096
+  opencodeUsername: opencode

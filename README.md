@@ -9,6 +9,7 @@ directory containing `Chart.yaml` is an independently versioned chart.
 | --- | --- |
 | `agent-pipe-uploader/` | Internal presigned-S3 artifact uploader Service and Deployment |
 | `opencode-server/` | OpenCode Deployment and non-secret configuration |
+| `opencode-sms-bridge/` | Signed Twilio SMS/MMS bridge Deployment for fixed OpenCode mobile agents |
 
 ## Guides
 
