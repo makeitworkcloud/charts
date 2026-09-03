@@ -38,3 +38,7 @@ Application. Its OCI version is immutable. The initial GitOps consumer change
 must remove the legacy `agent-pipe-uploader.yaml` resource in the same reviewed
 revision so the existing `opencode` Application remains the sole owner of the
 Deployment during the migration.
+
+The chart intentionally retains the legacy `app=agent-pipe-uploader` Deployment
+selector. Kubernetes selectors are immutable, so changing it would make the
+GitOps migration fail instead of rolling the existing workload in place.
