@@ -9,6 +9,12 @@
   "enabled_providers": ["kimi-for-coding", "minimax-coding-plan", "openai", "zai-coding-plan"],
   "provider": {"kimi-for-coding": {"options": {"apiKey": "{env:KIMI_API_KEY}"}}},
   "permission": {
+    "external_directory": {"/artifacts/*": "allow"},
+    "glob": {"/artifacts/*": "allow"},
+    "grep": {"/artifacts/*": "allow"},
+    "list": {"/artifacts/*": "allow"},
+    "read": {"/artifacts/*": "allow"},
+    "edit": {"/artifacts/*": "allow"},
     "agent-pipe_download_artifact": "ask",
     "agent-pipe_inspect_artifact": "allow",
     "agent-pipe_upload_artifact": "ask",
