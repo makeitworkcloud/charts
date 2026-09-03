@@ -6,6 +6,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
     ignore-check.kube-linter.io/unset-cpu-requirements: "single-node policy"
     ignore-check.kube-linter.io/unset-memory-requirements: "single-node policy"
+    secret.reloader.stakater.com/reload: {{ .Values.secrets.openaiAuth | quote }}
 spec:
   replicas: 1
   selector:
@@ -49,10 +50,36 @@ spec:
           command: [/bin/sh, -ec]
           args:
             - |
-              mkdir -p /home/opencode/.local/share/opencode
-              if [ ! -f /home/opencode/.local/share/opencode/auth.json ]; then
-                cp /secrets/openai/auth.json /home/opencode/.local/share/opencode/auth.json
-                chmod 600 /home/opencode/.local/share/opencode/auth.json
+              auth_dir=/home/opencode/.local/share/opencode
+              auth_file="$auth_dir/auth.json"
+              revision_file=/secrets/openai/auth-seed-revision
+              marker_file="$auth_dir/.auth-seed-revision"
+
+              mkdir -p "$auth_dir"
+              test -s /secrets/openai/auth.json
+              if [ -f "$revision_file" ] && [ ! -s "$revision_file" ]; then
+                echo "OpenAI auth seed revision must not be empty" >&2
+                exit 1
+              fi
+
+              seed_auth() {
+                umask 077
+                cp /secrets/openai/auth.json "$auth_file.tmp"
+                chmod 600 "$auth_file.tmp"
+                mv "$auth_file.tmp" "$auth_file"
+                if [ -f "$revision_file" ]; then
+                  cp "$revision_file" "$marker_file.tmp"
+                  chmod 600 "$marker_file.tmp"
+                  mv "$marker_file.tmp" "$marker_file"
+                else
+                  rm -f "$marker_file"
+                fi
+              }
+
+              if [ ! -s "$auth_file" ]; then
+                seed_auth
+              elif [ -f "$revision_file" ] && { [ ! -f "$marker_file" ] || ! cmp -s "$revision_file" "$marker_file"; }; then
+                seed_auth
               fi
           securityContext:
             allowPrivilegeEscalation: false

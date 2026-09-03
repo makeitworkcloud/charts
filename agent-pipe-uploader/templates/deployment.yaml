@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "agent-pipe-uploader.fullname" . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    ignore-check.kube-linter.io/unset-cpu-requirements: "single-node policy"
+    ignore-check.kube-linter.io/unset-memory-requirements: "single-node policy"
+  labels:
+    {{- include "agent-pipe-uploader.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "agent-pipe-uploader.labels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/agent-pipe-uploader-config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "agent-pipe-uploader.labels" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: uploader
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          command: [python3, /opt/uploader/uploader.py]
+          env:
+            - name: ALLOWED_S3_HOSTS
+              value: {{ join "," .Values.upload.allowedHosts | quote }}
+            - name: S3_KEY_PREFIX
+              value: {{ .Values.upload.keyPrefix | quote }}
+            - name: MAX_UPLOAD_BYTES
+              value: {{ .Values.upload.maxBytes | quote }}
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: artifacts
+              mountPath: /artifacts
+              readOnly: true
+            - name: uploader
+              mountPath: /opt/uploader
+              readOnly: true
+      volumes:
+        - name: artifacts
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.existingClaim }}
+            readOnly: true
+        - name: uploader
+          configMap:
+            name: {{ include "agent-pipe-uploader.fullname" . }}-config
