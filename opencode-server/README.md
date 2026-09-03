@@ -41,12 +41,27 @@ The chart configures the cluster-owned SlideSpeak MCP proxy. Its API key is held
 
 Never put credentials, decrypted values, kubeconfigs, private keys, or tokens in chart files or values.
 
+## OpenAI OAuth seed rotation
+
+The cluster-owned `opencode-openai-auth` Secret may contain an optional,
+non-sensitive `auth-seed-revision` key alongside its encrypted `auth.json`.
+The init container records that revision on the persistent home PVC and replaces
+`auth.json` atomically only when the revision changes or no credential exists.
+This preserves OAuth refresh-token rotation across ordinary pod restarts.
+
+The Deployment opts into Reloader for that named Secret. The consuming cluster
+must configure Reloader to watch the `opencode` namespace. During an intentional
+credential rotation, update the encrypted `auth.json` and increment
+`auth-seed-revision` in the same GitOps revision. Do not add the revision until
+a fresh credential is ready: a revision change deliberately replaces the
+persisted OAuth grant.
+
 ## Rendered resources
 
 - Deployment with an init container that seeds immutable chart configuration into an `emptyDir`
 - ConfigMap containing OpenCode configuration, agents, and skills
 
-The chart mounts the cluster-owned artifact PVC only into the OpenCode container. A separate cluster-owned uploader Deployment mounts that PVC read-only and has no AWS credentials; it receives a short-lived presigned PUT URL only for explicit, user-approved artifact delivery.
+The chart mounts the cluster-owned artifact PVC only into the OpenCode container. The independent `agent-pipe-uploader` chart mounts that PVC read-only and has no AWS credentials; it exposes the cluster-internal presigned-upload API for explicit, user-approved artifact delivery.
 
 Configuration is loaded when OpenCode starts. A reconciled chart update replaces the pod through the ConfigMap checksum annotation; it is not hot-reloaded into an existing process.
 

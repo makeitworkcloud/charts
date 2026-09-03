@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "agent-pipe-uploader.fullname" . }}-config
+  labels:
+    {{- include "agent-pipe-uploader.labels" . | nindent 4 }}
+data:
+  uploader.py: |
+    import http.client
+    import json
+    import os
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from pathlib import Path
+    from urllib.parse import parse_qs, unquote, urlsplit
+
+    ARTIFACTS_DIR = Path("/artifacts").resolve()
+    ALLOWED_HOSTS = frozenset(
+        host.strip().lower()
+        for host in os.environ["ALLOWED_S3_HOSTS"].split(",")
+        if host.strip()
+    )
+    KEY_PREFIX = "/" + os.environ["S3_KEY_PREFIX"].lstrip("/")
+    MAX_BYTES = int(os.environ["MAX_UPLOAD_BYTES"])
+    MAX_REQUEST_BYTES = 16 * 1024
+    REQUIRED_SIGV4_PARAMETERS = (
+        "X-Amz-Algorithm",
+        "X-Amz-Credential",
+        "X-Amz-Expires",
+        "X-Amz-Signature",
+    )
+
+    class RequestError(Exception):
+        def __init__(self, status, message):
+            self.status = status
+            self.message = message
+
+    def artifact_path(value):
+        if not isinstance(value, str) or not value:
+            raise RequestError(400, "artifact must be a non-empty relative path")
+        candidate = (ARTIFACTS_DIR / value).resolve()
+        if ARTIFACTS_DIR not in candidate.parents or not candidate.is_file():
+            raise RequestError(404, "artifact not found")
+        return candidate
+
+    def presigned_target(value):
+        if not isinstance(value, str):
+            raise RequestError(400, "url must be a string")
+        parsed = urlsplit(value)
+        if (
+            parsed.scheme != "https"
+            or parsed.port not in (None, 443)
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.fragment
+            or parsed.hostname is None
+            or parsed.hostname.lower() not in ALLOWED_HOSTS
+        ):
+            raise RequestError(400, "url is not an allowed S3 HTTPS endpoint")
+        if not unquote(parsed.path).startswith(KEY_PREFIX):
+            raise RequestError(400, "url is outside the allowed S3 key prefix")
+        parameters = parse_qs(parsed.query, keep_blank_values=True)
+        if (
+            parameters.get("X-Amz-Algorithm") != ["AWS4-HMAC-SHA256"]
+            or any(not parameters.get(name) for name in REQUIRED_SIGV4_PARAMETERS[1:])
+        ):
+            raise RequestError(400, "url is not an S3 SigV4 presigned URL")
+        target = parsed.path or "/"
+        if parsed.query:
+            target += "?" + parsed.query
+        return parsed.hostname, target
+
+    def upload(source, host, target):
+        size = source.stat().st_size
+        if size > MAX_BYTES:
+            raise RequestError(413, "artifact exceeds the configured upload limit")
+        connection = http.client.HTTPSConnection(host, timeout=60)
+        try:
+            connection.putrequest("PUT", target, skip_host=True, skip_accept_encoding=True)
+            connection.putheader("Host", host)
+            connection.putheader("Content-Length", str(size))
+            connection.endheaders()
+            with source.open("rb") as artifact:
+                while chunk := artifact.read(1024 * 1024):
+                    connection.send(chunk)
+            response = connection.getresponse()
+            response.read()
+        except OSError as error:
+            raise RequestError(502, "upload connection failed") from error
+        finally:
+            connection.close()
+        if not 200 <= response.status < 300:
+            raise RequestError(502, f"S3 returned HTTP {response.status}")
+        return size
+
+    class Handler(BaseHTTPRequestHandler):
+        server_version = "agent-pipe-uploader"
+
+        def log_message(self, format, *args):
+            # Request bodies contain short-lived presigned URLs; never log them.
+            return
+
+        def send_json(self, status, payload):
+            body = json.dumps(payload, separators=(",", ":")).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self):
+            if self.path == "/healthz":
+                self.send_json(200, {"status": "ok"})
+            else:
+                self.send_json(404, {"error": "not found"})
+
+        def do_POST(self):
+            if self.path != "/v1/upload":
+                self.send_json(404, {"error": "not found"})
+                return
+            try:
+                length = int(self.headers.get("Content-Length", ""))
+                if length < 1 or length > MAX_REQUEST_BYTES:
+                    raise RequestError(400, "request body size is invalid")
+                payload = json.loads(self.rfile.read(length))
+                source = artifact_path(payload.get("artifact"))
+                host, target = presigned_target(payload.get("url"))
+                size = upload(source, host, target)
+                self.send_json(201, {"status": "uploaded", "bytes": size})
+            except (ValueError, json.JSONDecodeError):
+                self.send_json(400, {"error": "request body must be JSON"})
+            except RequestError as error:
+                self.send_json(error.status, {"error": error.message})
+
+    if __name__ == "__main__":
+        ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()

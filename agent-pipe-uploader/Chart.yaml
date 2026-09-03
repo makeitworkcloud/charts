@@ -1,0 +1,6 @@
+apiVersion: v2
+name: agent-pipe-uploader
+description: Internal presigned-S3 artifact uploader for OpenCode agents
+type: application
+version: 0.1.0
+appVersion: "1"
