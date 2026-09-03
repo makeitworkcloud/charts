@@ -32,24 +32,12 @@ Use the private `agent-pipe` bucket by default after its OpenTofu root has been 
 
 ### In-session artifact on the isolated artifacts PVC
 
-1. Confirm the artifact is a user-directed, non-secret file under `/artifacts/`; the uploader Pod cannot access the OpenCode home PVC.
+1. Confirm the artifact is a user-directed, non-secret file under `/artifacts/`; the `agent-pipe` MCP service cannot access the OpenCode home PVC.
 2. Mint a PUT URL for `agent-pipe` and the chosen `deliveries/...` key with `expires_in: 900`.
 3. **Obtain explicit user confirmation** for the exact artifact path and S3 key before the PUT. This is a live S3 mutation.
-4. List Pods in namespace `opencode` using label `app=agent-pipe-uploader`, then run the upload in its `curl` container with the generated URL unmodified:
-
-   ```text
-   curl --fail --show-error --silent --request PUT --upload-file /artifacts/<filename> <presigned-put-url>
-   ```
-
-   Use `kubernetes_pods_exec`; do not run a generic session shell or route the signed URL through a fetch tool, which may re-encode its SigV4 query string.
+4. Call `agent-pipe_upload_artifact` with profile `agent-pipe`, the artifact's relative path, and the generated URL unmodified. The OpenCode permission prompt is required; do not approve the action without the user's explicit confirmation.
 5. Verify with `aws s3api head-object --bucket agent-pipe --key <key>`; do not print object bytes in the conversation.
-6. Mint a GET URL with `expires_in: 900`, then test that **exact, unchanged** URL with the same curl helper before returning it:
-
-   ```text
-   curl --fail --show-error --silent --output /dev/null --write-out "%{http_code}" <presigned-get-url>
-   ```
-
-   Continue only on HTTP 200. This is a GET request, not `curl --head`: the presigned method is part of the signature. Do not substitute a fetch tool or alter/partially re-encode the SigV4 query string.
+6. Mint a GET URL with `expires_in: 900`, then call `agent-pipe_verify_download` with profile `agent-pipe` and that exact, unchanged URL. Continue only on a successful result. This is a GET request, not a HEAD request; do not substitute a fetch tool or alter/re-encode the SigV4 query string.
 7. If the GET test fails, mint a fresh URL and test it again. Do not claim delivery or return an untested link. On success, return the **same tested URL** as a Markdown download link, state that it expires in about 15 minutes, and offer to re-issue it.
 
 ## Failure modes

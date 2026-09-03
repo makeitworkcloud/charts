@@ -8,7 +8,14 @@
   },
   "enabled_providers": ["kimi-for-coding", "minimax-coding-plan", "openai", "zai-coding-plan"],
   "provider": {"kimi-for-coding": {"options": {"apiKey": "{env:KIMI_API_KEY}"}}},
+  "permission": {
+    "agent-pipe_download_artifact": "ask",
+    "agent-pipe_inspect_artifact": "allow",
+    "agent-pipe_upload_artifact": "ask",
+    "agent-pipe_verify_download": "allow"
+  },
   "mcp": {
+    "agent-pipe": {"type": "remote", "url": "http://agent-pipe-uploader.opencode.svc:8080/mcp", "enabled": true, "oauth": false},
     "apify": {"type": "remote", "url": "http://mcp-makeitwork-apify-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "argocd": {"type": "remote", "url": "http://mcp-makeitwork-argocd-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "aws": {"type": "remote", "url": "http://mcp-makeitwork-aws-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
