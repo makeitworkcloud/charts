@@ -9,7 +9,7 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    {{- include "agent-pipe-uploader.labels" . | nindent 4 }}
+    app: {{ include "agent-pipe-uploader.fullname" . }}
   ports:
     - name: http
       port: {{ .Values.service.port }}

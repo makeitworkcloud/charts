@@ -12,7 +12,7 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      {{- include "agent-pipe-uploader.labels" . | nindent 6 }}
+      app: {{ include "agent-pipe-uploader.fullname" . }}
   template:
     metadata:
       annotations:
