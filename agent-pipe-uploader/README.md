@@ -1,25 +1,28 @@
 # Agent Pipe uploader chart
 
 This chart owns the internal `agent-pipe-uploader` Deployment and ClusterIP
-Service. It is deliberately independent of `opencode-server`.
+Service. It is deliberately independent of `opencode-server` and exposes a
+Streamable HTTP MCP endpoint at `/mcp`.
 
 ## Contract
 
 The service listens only inside the cluster at
-`http://agent-pipe-uploader.opencode.svc:8080` and has no TunnelBinding, AWS
-credentials, or Kubernetes ServiceAccount token. It mounts only the existing,
-cluster-owned artifact PVC read-only.
+`http://agent-pipe-uploader.opencode.svc:8080/mcp` and has no TunnelBinding,
+AWS credentials, or Kubernetes ServiceAccount token. It mounts only the
+existing, cluster-owned artifact PVC; it can write a newly downloaded artifact
+there but never mounts the OpenCode home PVC.
 
-`POST /v1/upload` accepts this JSON request:
+The MCP surface exposes `inspect_artifact`, `upload_artifact`,
+`verify_download`, and `download_artifact`. Every remote transfer uses a
+caller-supplied signed HTTPS URL. Each entry under `profiles` restricts its
+allowed endpoints, object prefixes, authorization query parameters, and size
+limit. The default `agent-pipe` profile permits only the private bucket's
+approved regional hostname and `deliveries/` prefix.
 
-```json
-{"artifact":"report.pdf","url":"<presigned-S3-PUT-URL>"}
-```
-
-The uploader rejects paths outside `/artifacts`, files over `upload.maxBytes`,
-non-HTTPS URLs, URLs without S3 SigV4 query parameters, hosts outside
-`upload.allowedHosts`, and object keys outside `upload.keyPrefix`. It does not
-log request bodies or return the presigned URL.
+The service rejects paths outside `/artifacts`, files over a profile's limit,
+non-HTTPS URLs, URLs without the profile's required authorization parameters,
+hosts outside a profile's `allowedHosts`, and object keys outside its
+`pathPrefixes`. It does not log signed URLs or return them in results.
 
 The presigned URL remains a bearer capability. Callers must obtain explicit
 user approval before requesting an upload and must not send sensitive artifacts

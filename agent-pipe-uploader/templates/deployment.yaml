@@ -30,14 +30,13 @@ spec:
       containers:
         - name: uploader
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
-          command: [python3, /opt/uploader/uploader.py]
           env:
-            - name: ALLOWED_S3_HOSTS
-              value: {{ join "," .Values.upload.allowedHosts | quote }}
-            - name: S3_KEY_PREFIX
-              value: {{ .Values.upload.keyPrefix | quote }}
-            - name: MAX_UPLOAD_BYTES
-              value: {{ .Values.upload.maxBytes | quote }}
+            - name: MCP_ALLOWED_HOSTS
+              value: {{ join "," .Values.mcp.allowedHosts | quote }}
+            - name: PROFILE_CONFIG_PATH
+              value: /etc/agent-pipe/profiles.json
+            - name: HOME
+              value: /tmp
             - name: PYTHONDONTWRITEBYTECODE
               value: "1"
           ports:
@@ -55,15 +54,17 @@ spec:
           volumeMounts:
             - name: artifacts
               mountPath: /artifacts
+            - name: profiles
+              mountPath: /etc/agent-pipe
               readOnly: true
-            - name: uploader
-              mountPath: /opt/uploader
-              readOnly: true
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: artifacts
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.existingClaim }}
-            readOnly: true
-        - name: uploader
+        - name: profiles
           configMap:
             name: {{ include "agent-pipe-uploader.fullname" . }}-config
+        - name: tmp
+          emptyDir: {}
