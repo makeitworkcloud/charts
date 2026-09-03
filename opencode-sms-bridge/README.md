@@ -1,6 +1,6 @@
 # OpenCode SMS bridge chart
 
-This chart deploys the portable, single-replica `opencode-sms-bridge` Pod: a public signed-webhook ingress container and a private queue worker container. It is not a Twilio-account or cluster-integration chart.
+This chart deploys the portable, single-replica `opencode-sms-bridge` Pod: a public signed-webhook ingress container and a private queue worker container. It routes each destination number to one of four existing primary OpenCode agents: `lawnmowerman`, `grillmaster`, `homesteader`, or `homerepair`. It is not a Twilio-account or cluster-integration chart.
 
 ## Ownership
 
@@ -12,10 +12,12 @@ The Pod uses `Recreate` because the SQLite queue/session store is intentionally 
 
 The GitOps consumer must provide these Secrets in the `opencode` namespace:
 
-- `opencode-sms-bridge-routing` with `routing.json`, containing the Twilio account identifier, initial approved sender set, and exactly four fixed destination-to-`*-sms` agent mappings;
+- `opencode-sms-bridge-routing` with `routing.json`, containing the Twilio account identifier, initial approved sender set, and exactly four fixed destination-to-primary-agent mappings: one each for `lawnmowerman`, `grillmaster`, `homesteader`, and `homerepair`;
 - `opencode-sms-bridge-shared` with the webhook-validation token, Fernet state-encryption key, and independent sender-HMAC key;
 - `opencode-sms-bridge-worker` with a least-privilege Twilio API Key SID/secret for outbound replies; and
 - the existing `opencode-server-auth` Secret for the worker's private OpenCode HTTP request.
+
+Only a signed request from an approved source number is queued or answered. The bridge invokes the existing primary agent IDs, so they retain their normal OpenCode permissions, MCPs, skills, and shared instructions. The source allowlist is an ingress identity gate, not standing authorization; the existing explicit-confirmation requirements govern individual mutations.
 
 Use an immutable published image SHA in `image.tag`; `latest` is only the source-chart default and must never be selected by the GitOps consumer.
 
