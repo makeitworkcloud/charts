@@ -17,4 +17,4 @@ upload:
     - agent-pipe.s3.amazonaws.com
     - agent-pipe.s3.us-west-2.amazonaws.com
   keyPrefix: deliveries/
-  maxBytes: 104857600
+  maxBytes: "104857600"
