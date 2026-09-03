@@ -7,6 +7,9 @@ description: Use when the user asks to download, share, or get a link to an S3 o
 
 Deliver a file from AWS S3 to the user as a clickable, time-limited download link using the `aws` MCP integration. Use when the user asks to download, share, or "get a link to" an S3 object, or to hand a session artifact to storage.
 
+Apply the `cloud-artifact-transfer` skill's transfer boundaries and approval
+rules. This skill adds the `agent-pipe` S3 profile and delivery-specific policy.
+
 ## Default delivery bucket
 
 Use the private `agent-pipe` bucket by default after its OpenTofu root has been applied and functional access has been verified. It is for short-lived, non-secret agent-to-user artifacts only — PDFs, reports, and other user-requested outputs — under the `deliveries/` prefix.
