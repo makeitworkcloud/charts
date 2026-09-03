@@ -2,7 +2,7 @@ fullnameOverride: agent-pipe-uploader
 
 image:
   repository: ghcr.io/makeitworkcloud/agent-pipe-uploader
-  tag: latest
+  tag: 26ae411bffa3f30e58c6e15a9b21fc940f627588
 
 persistence:
   existingClaim: opencode-artifacts
