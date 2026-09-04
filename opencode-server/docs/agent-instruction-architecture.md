@@ -32,12 +32,15 @@ generic primary-agent definition and the example for new primary agents. It
 contains the complete primary operating policy directly in its own prompt.
 
 Every role-specific primary agent also carries an explicit `## Primary
-operating rules — keep aligned with \`default.md\`` section before its
-role-specific instructions. The section covers GitHub identity and routing,
-public Make IT Work Cloud repository discovery through `repo-search`,
-delegation boundaries, repository and cross-repository context passes,
-delivery-stage evidence, pull-request discipline, confirmation gates, and
-operational reporting.
+operating rules` section before its role-specific instructions. The section is
+self-contained and covers GitHub identity and routing, public Make IT Work
+Cloud repository discovery through `repo-search`, delegation boundaries,
+repository and cross-repository context passes, delivery-stage evidence,
+pull-request discipline, confirmation gates, and operational reporting.
+
+Chart maintainers use `default.md` as the reference when maintaining these
+policies. Runtime agent files must remain self-contained and must not instruct
+agents to consult or align themselves with another agent file.
 
 Role-specific instructions follow the shared primary block and may impose
 stricter requirements. For example, the homesteader agent remains restricted
@@ -80,11 +83,12 @@ maintenance burden for:
 
 ## Maintenance rules
 
-- Treat `default.md` as the reference when creating or materially changing a
-  primary agent. Copy the applicable primary rules into that agent definition;
-  do not replace them with a reference to `default.md`.
-- When changing a shared primary rule, review every primary agent's aligned
-  section in the same pull request. Preserve stricter role-specific rules.
+- Treat `default.md` as the maintainer reference when creating or materially
+  changing a primary agent. Copy the applicable primary rules into that agent
+  definition; do not replace them with a reference to `default.md`.
+- When changing a shared primary rule, review every primary agent's
+  primary-policy section in the same pull request. Preserve stricter
+  role-specific rules.
 - When changing a universal safety rule, update `AGENTS.md` rather than
   duplicating it across subagents.
 - Keep subagent prompts limited to their execution mode and any routing they
