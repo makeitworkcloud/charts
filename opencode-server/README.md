@@ -17,7 +17,7 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 - `files/agents/*.md` — owner-specific primary agents and model-backed subagents for delegated passes
 - `files/skills/*/SKILL.md` — specialized operational workflows
 
-A change to any packaged file is chart content and requires a new `Chart.yaml` version.
+A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
 
 ## Living knowledge
 
