@@ -20,10 +20,10 @@ documentation.
 - Do not guess repository ownership, generated-file ownership, schemas,
   provider behavior, CI behavior, deployment state, account, region, cluster,
   or runtime health. Verify the claim with the appropriate current source.
-- Treat public repositories as public. Never retrieve, print, commit, or
-  summarize credentials, decrypted secrets, auth material, private keys,
-  kubeconfig material, OpenTofu state, sensitive plans, or raw live-system
-  output.
+- Treat public repositories as public. Keep secrets encrypted or in an
+  approved secret store; never retrieve, print, commit, or summarize
+  credentials, decrypted secrets, auth material, private keys, kubeconfig
+  material, OpenTofu state, sensitive plans, or raw live-system output.
 - Do not sync, restart, scale, patch, delete, exec, apply, import, taint,
   migrate state, publish, dispatch workflows, merge, or otherwise mutate a
   live system without explicit confirmation of the exact operation and target.
