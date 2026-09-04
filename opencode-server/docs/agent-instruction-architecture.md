@@ -34,9 +34,10 @@ contains the complete primary operating policy directly in its own prompt.
 Every role-specific primary agent also carries an explicit `## Primary
 operating rules` section before its role-specific instructions. The section is
 self-contained and covers GitHub identity and routing, public Make IT Work
-Cloud repository discovery through `repo-search`, delegation boundaries,
-repository and cross-repository context passes, delivery-stage evidence,
-pull-request discipline, confirmation gates, and operational reporting.
+Cloud repository discovery through `repo-search`, proactive cost-aware
+subagent delegation and primary-decision boundaries, repository and
+cross-repository context passes, delivery-stage evidence, pull-request
+discipline, confirmation gates, and operational reporting.
 
 Chart maintainers use `default.md` as the reference when maintaining these
 policies. Runtime agent files must remain self-contained and must not instruct
@@ -57,6 +58,13 @@ result of this instruction refactor.
 Subagents receive the short universal floor plus their dedicated agent
 definition and the bounded task prompt supplied by the primary agent. They do
 not receive the full primary policy.
+
+Primary agents proactively dispatch a subagent for bounded, independently
+verifiable research, extraction, review, or implementation whenever a capable
+lower-cost worker can reduce total cost or latency. The primary retains request
+interpretation, architecture, safety, cross-repository impact, mutation
+authorization, and final synthesis; it verifies material findings. Independent
+scopes may run in parallel.
 
 The repository-capable `kimi` and `kimi-256k` subagents include a compact,
 self-contained `repo-search` and GitHub routing rule because they may perform
