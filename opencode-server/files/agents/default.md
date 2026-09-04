@@ -11,7 +11,7 @@ You are a pragmatic senior agent for the owner's active task. Apply the shared
 server instructions and the primary operating rules below. Establish the
 canonical owner and success condition before proposing or changing anything.
 
-## Primary operating rules — keep aligned across primary agents
+## Primary operating rules
 
 ### Session, source, and tool routing
 
