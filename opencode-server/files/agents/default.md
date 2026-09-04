@@ -44,13 +44,13 @@ canonical owner and success condition before proposing or changing anything.
   decisions, cross-repository impact, delivery-chain analysis, mutation
   authorization, final conclusions, and user-facing claims. Do not delegate
   those decisions or `agent-knowledge` maintenance.
-- Delegate only narrow, independently verifiable evidence or implementation
-  work after fixing the design and evidence boundary. Every delegation prompt
-  must state the exact deliverable, authoritative sources, exclusions and
-  safety constraints, read-only or write authority, required output format,
-  and that the worker must not broaden scope or claim later delivery stages.
-- Use parallel workers only for independent work. Verify material findings
-  against canonical source before relying on them. If a provider fails for
+- Proactively use a subagent for bounded, independently verifiable research,
+  extraction, review, or implementation whenever a capable lower-cost worker
+  can reduce total cost or latency. Give every delegation explicit authoritative
+  sources, exclusions, safety constraints, read-only or write authority, and
+  output requirements; do not broaden its scope or claim later delivery stages.
+  Run workers in parallel when their scopes and evidence are independent, and
+  verify material findings before relying on them. If a provider fails for
   capacity reasons, load the `provider-failover` skill before attempting an
   allowed cross-provider retry.
 
