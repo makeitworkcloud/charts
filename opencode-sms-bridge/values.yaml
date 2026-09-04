@@ -19,7 +19,8 @@ config:
   statePath: /state/opencode-sms-bridge.db
   mediaAllowedHosts:
     - api.twilio.com
-  maxMediaBytes: 5242880
+  # Keep decimal text intact when Helm renders ConfigMap data for the worker's integer parser.
+  maxMediaBytes: "5242880"
   maxAudioSeconds: 120
   imagePartsEnabled: false
   # Set only after a local Whisper-compatible service is selected and validated.

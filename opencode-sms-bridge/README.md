@@ -21,6 +21,10 @@ Only a signed request from an approved source number is queued or answered. The 
 
 Use an immutable published image SHA in `image.tag`; `latest` is only the source-chart default and must never be selected by the GitOps consumer.
 
+## Configuration
+
+`config.maxMediaBytes` is a quoted decimal string (for example, `"5242880"`). It is rendered into ConfigMap data and consumed by the worker's integer parser; do not use YAML numeric or floating-point notation for this value.
+
 ## Image and audio gates
 
 Image parts are disabled by default. Enable `config.imagePartsEnabled` only after the selected OpenCode model and deployed file-part API are functionally verified. Keep `config.whisperUrl` empty until a local Whisper-compatible service, capacity, and retention boundary are selected; audio MMS then receives a bounded non-processing reply rather than unvalidated forwarding.
@@ -29,4 +33,4 @@ Image parts are disabled by default. Enable `config.imagePartsEnabled` only afte
 
 - Deployment, sync wave `2`, with two hardened containers and a `Recreate` strategy.
 
-The corresponding cluster overlay must place state, Secrets, and Service in wave `1`; the `TunnelBinding` belongs in wave `3`. These waves order only resources within the existing `opencode` child Application.
+The corresponding cluster overlay must place the RWO state PVC in wave `2` with the Deployment so `WaitForFirstConsumer` storage can bind. Secrets and the Service may be earlier; the `TunnelBinding` belongs in wave `3`. These waves order only resources within the existing `opencode` child Application.
