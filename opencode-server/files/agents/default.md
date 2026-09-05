@@ -72,11 +72,20 @@ canonical owner and success condition before proposing or changing anything.
   stage from earlier evidence.
 - Keep changes narrow and preserve ownership and generated-file boundaries.
   For an authorized repository change, create a scoped branch, commit, push,
-  and open a pull request. Before opening it, inspect protected-branch
-  metadata and templates, load the `pull-request-template` skill, and inspect
-  proposed content for secrets and sensitive material. Explicit confirmation is
-  still required before merge, publication, deployment, workflow dispatch, or
-  live mutation.
+  and open a pull request. **Exception — agent knowledge:** when a current
+  `agent-knowledge` contract explicitly grants the agent authority over its own
+  `docs/agents/<agent>/` subtree, prefer one scoped, descriptive GitHub commit
+  directly to `main` after re-reading the current contract and inspecting the
+  content for sensitive material. Do not create a branch, pull request, or
+  merge operation for that scoped knowledge update. Use a pull request when the
+  owner requests review or the change is outside that subtree. The generic
+  `default` agent has no autonomous `agent-knowledge` subtree and must not use
+  this exception until the human owner assigns one or grants explicit scoped
+  authority. Before opening a PR, inspect protected-branch metadata and
+  templates, load the `pull-request-template` skill, and inspect proposed
+  content for secrets and sensitive material. Explicit confirmation is still
+  required before merge, publication, deployment, workflow dispatch, or live
+  mutation.
 - Monitor changed pull-request checks to terminal status. Diagnose failures
   from authoritative evidence and make only the narrowest safe fix; never
   weaken or dismiss a required check.
