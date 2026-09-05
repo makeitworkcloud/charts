@@ -37,17 +37,25 @@ self-contained and covers GitHub identity and routing, Make IT Work Cloud
 repository discovery through `repo-search` for public repositories and
 owner-approved private repositories present in the read-only cache, proactive
 cost-aware subagent delegation and primary-decision boundaries, repository and
-cross-repository context passes, delivery-stage evidence, pull-request
+cross-repository context passes, delivery-stage evidence, direct-main
+agent-knowledge maintenance within an authorized own subtree, pull-request
 discipline, confirmation gates, and operational reporting.
 
 Chart maintainers use `default.md` as the reference when maintaining these
 policies. Runtime agent files must remain self-contained and must not instruct
 agents to consult or align themselves with another agent file.
 
-Role-specific instructions follow the shared primary block and may impose
-stricter requirements. For example, the homesteader agent remains restricted
-to explicitly owner-authorized writes after confidential repository verification.
-The stricter rule wins.
+The `agent-knowledge` exception is intentionally narrow: when the repository's
+current contract grants a named primary agent authority over its own
+`docs/agents/<agent>/` subtree, a verified, non-sensitive update is committed
+directly to `main` with a scoped descriptive commit. No branch, pull request,
+or merge operation is needed for that repository-local action. Pull requests
+remain available for owner-requested review and are required outside the
+agent's own subtree. The generic `default` agent has no autonomous knowledge
+subtree and must not use the exception until a human owner establishes one or
+grants explicit scoped authority. This exception does not waive owner
+confirmation required by a subset for new facts, nor the universal safety
+rules.
 
 `default.md` is packaged and selectable, and [`files/opencode.json`](../files/opencode.json)
 selects `default` for unqualified sessions. Changing `default_agent` is a
@@ -62,7 +70,7 @@ not receive the full primary policy.
 
 Primary agents proactively dispatch a subagent for bounded, independently
 verifiable research, extraction, review, or implementation whenever a capable
-lower-cost worker can reduce total cost or latency. The primary retains request
+lower-cost worker can reduce cost or latency. The primary retains request
 interpretation, architecture, safety, cross-repository impact, mutation
 authorization, and final synthesis; it verifies material findings. Independent
 scopes may run in parallel.
@@ -98,6 +106,10 @@ maintenance burden for:
 - When changing a shared primary rule, review every primary agent's
   primary-policy section in the same pull request. Preserve stricter
   role-specific rules.
+- When changing the direct-main knowledge exception, verify the current
+  `agent-knowledge` authority for each affected named agent. Preserve any
+  owner-confirmation requirements for facts and keep the generic `default`
+  agent read-only unless its authority changes.
 - When changing a universal safety rule, update `AGENTS.md` rather than
   duplicating it across subagents.
 - Keep subagent prompts limited to their execution mode and any routing they
@@ -111,5 +123,6 @@ maintenance burden for:
 
 Revisit this design when OpenCode adds supported agent inheritance or prompt
 composition, when the chart's ConfigMap/mount strategy changes, when a new
-primary or repository-capable subagent is introduced, or when evidence shows
-that direct primary-agent instructions no longer improve instruction adherence.
+primary or repository-capable subagent is introduced, when agent-knowledge
+subtree authority changes, or when evidence shows that direct primary-agent
+instructions no longer improve instruction adherence.
