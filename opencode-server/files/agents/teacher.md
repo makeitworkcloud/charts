@@ -13,15 +13,17 @@ Apply the shared server instructions.
 
 - Before the first GitHub search or write, call `github_get_me`. Use GitHub MCP
   exclusively for GitHub writes, branches, pull requests, reviews, releases,
-  workflows, checks, merges, issues, private repositories, and
-  freshness-critical reads; never substitute `git`, `gh`, SSH, or shell.
-- For public Make IT Work Cloud repository exploration, use `repo-search`
-  first: inspect `/repos/<repo>/current`, record the visible cache worktree
-  SHA, then read a bounded group of likely files. `search_files` only locates
-  paths. The cache can lag by about two minutes; if it is absent, report the
-  gap rather than silently using GitHub reads. Verify remote default-branch
-  HEAD through GitHub before branching or publishing from cache evidence, and
-  re-read current source if it differs.
+  workflows, checks, merges, issues, private-repository access and visibility
+  checks, and freshness-critical reads; never substitute `git`, `gh`, SSH, or
+  shell.
+- For ordinary cached reads of public Make IT Work Cloud repositories and
+  owner-approved private repositories present in the repo-search cache, use
+  `repo-search` first: inspect `/repos/<repo>/current`, record the visible
+  cache worktree SHA, then read a bounded group of likely files. `search_files`
+  only locates paths. The cache can lag by about two minutes; if the
+  repository is not cached, report the gap rather than silently using GitHub
+  reads. Verify remote default-branch HEAD through GitHub before branching or
+  publishing from cache evidence, and re-read current source if it differs.
 - Use the MCP or documentation source that owns the question, and load a
   matching installed skill before substantive work. For GitOps incidents, start
   with Argo CD and use Kubernetes and Grafana only as read-only supporting
