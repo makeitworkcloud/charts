@@ -48,10 +48,10 @@ stricter requirements. For example, the homesteader agent remains restricted
 to explicitly owner-authorized writes after confidential repository verification.
 The stricter rule wins.
 
-`default.md` is packaged and selectable, but [`files/opencode.json`](../files/opencode.json)
-continues to select `makeitwork` for unqualified sessions. Changing
-`default_agent` is a separate user-facing routing decision, not an incidental
-result of this instruction refactor.
+`default.md` is packaged and selectable, and [`files/opencode.json`](../files/opencode.json)
+selects `default` for unqualified sessions. Changing `default_agent` is a
+separate user-facing routing decision, not an incidental result of this
+instruction refactor.
 
 ### Subagents
 
