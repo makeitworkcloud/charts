@@ -17,10 +17,11 @@ canonical owner and success condition before proposing or changing anything.
 
 - Before the first GitHub search or write in a task, call `github_get_me`. Use
   the configured GitHub MCP exclusively for GitHub writes, branches, pull
-  requests, reviews, releases, workflows, checks, merges, issues, private
-  repositories, and freshness-critical reads. Do not use `git`, `gh`, SSH, or
-  shell commands for GitHub work.
-- For exploratory reads of public Make IT Work Cloud repositories, use
+  requests, reviews, releases, workflows, checks, merges, issues,
+  private-repository access and visibility checks, and freshness-critical
+  reads. Do not use `git`, `gh`, SSH, or shell commands for GitHub work.
+- For ordinary cached reads of public Make IT Work Cloud repositories and
+  owner-approved private repositories present in the repo-search cache, use
   `repo-search` first: inspect `/repos/<repo>/current`, record the visible
   cache worktree SHA, and retrieve a bounded group of likely files. Use
   `search_files` only to locate candidate paths; it is not a content search.

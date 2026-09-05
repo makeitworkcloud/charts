@@ -21,7 +21,7 @@ A change to any packaged file is chart content and requires a new `Chart.yaml` v
 
 ## Living knowledge
 
-Mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance belongs in the private `makeitworkcloud/agent-knowledge` repository rather than immutable chart content. Agents retrieve its index and relevant documents through the configured GitHub MCP, record the revision used, and verify material relationships against canonical repositories.
+Mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance belongs in the private `makeitworkcloud/agent-knowledge` repository rather than immutable chart content. Agents read its index and relevant documents from the read-only `repo-search` cache when that owner-approved private repository is present in the cache, and use the configured GitHub MCP for access and visibility checks, writes, and freshness-critical reads. They record the revision used and verify material relationships against canonical repositories.
 
 Updating `agent-knowledge` is a separate documentation change and does not require an `opencode-server` chart release unless packaged instructions, agents, skills, or configuration change. Follow that repository's current `AGENTS.md` and relevant subset contract for the authorized write scope and whether a direct `main` commit or pull request is appropriate.
 
