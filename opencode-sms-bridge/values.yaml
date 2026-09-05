@@ -19,6 +19,9 @@ config:
   statePath: /state/opencode-sms-bridge.db
   mediaAllowedHosts:
     - api.twilio.com
+  # Set only after a Twilio Messaging Service exists and its sender pool is associated with an approved campaign.
+  # This non-secret identifier is passed to the worker through the ConfigMap; empty preserves direct from_ sending.
+  messagingServiceSid: ""
   # Keep decimal text intact when Helm renders ConfigMap data for the worker's integer parser.
   maxMediaBytes: "5242880"
   maxAudioSeconds: 120
