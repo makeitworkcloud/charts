@@ -108,6 +108,9 @@ spec:
             - name: TWILIO_MEDIA_ALLOWED_HOSTS
               valueFrom:
                 configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: TWILIO_MEDIA_ALLOWED_HOSTS}
+            - name: TWILIO_MESSAGING_SERVICE_SID
+              valueFrom:
+                configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: TWILIO_MESSAGING_SERVICE_SID}
             - name: MAX_MEDIA_BYTES
               valueFrom:
                 configMapKeyRef: {name: {{ include "opencode-sms-bridge.fullname" . }}-config, key: MAX_MEDIA_BYTES}

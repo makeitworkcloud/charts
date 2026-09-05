@@ -8,6 +8,7 @@ data:
   CANONICAL_WEBHOOK_URL: {{ .Values.config.canonicalWebhookUrl | quote }}
   STATE_PATH: {{ .Values.config.statePath | quote }}
   TWILIO_MEDIA_ALLOWED_HOSTS: {{ join "," .Values.config.mediaAllowedHosts | quote }}
+  TWILIO_MESSAGING_SERVICE_SID: {{ .Values.config.messagingServiceSid | quote }}
   MAX_MEDIA_BYTES: {{ .Values.config.maxMediaBytes | quote }}
   MAX_AUDIO_SECONDS: {{ .Values.config.maxAudioSeconds | quote }}
   OPENCODE_IMAGE_PARTS_ENABLED: {{ .Values.config.imagePartsEnabled | quote }}

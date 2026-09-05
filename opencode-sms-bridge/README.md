@@ -25,6 +25,8 @@ Use an immutable published image SHA in `image.tag`; `latest` is only the source
 
 `config.maxMediaBytes` is a quoted decimal string (for example, `"5242880"`). It is rendered into ConfigMap data and consumed by the worker's integer parser; do not use YAML numeric or floating-point notation for this value.
 
+`config.messagingServiceSid` is a non-secret Twilio Messaging Service identifier. Keep it empty until Terraform has created the service and the operator has associated its sender pool with an approved A2P campaign. The chart passes it only to the worker through the ConfigMap. A non-empty value makes a compatible bridge image submit outbound replies through the Messaging Service; an empty value preserves direct `from_` sending for rollback. Never place API keys or other credentials in this value.
+
 ## Image and audio gates
 
 Image parts are disabled by default. Enable `config.imagePartsEnabled` only after the selected OpenCode model and deployed file-part API are functionally verified. Keep `config.whisperUrl` empty until a local Whisper-compatible service, capacity, and retention boundary are selected; audio MMS then receives a bounded non-processing reply rather than unvalidated forwarding.
