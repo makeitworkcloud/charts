@@ -19,6 +19,14 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
 
+### Twilio documentation MCP
+
+`twilio-docs` connects only to Twilio's public-beta [documentation MCP](https://www.twilio.com/docs/ai/mcp) at `https://mcp.twilio.com/docs`. It provides public API-documentation and schema discovery, including error-code and A2P guidance, for troubleshooting reference only.
+
+The integration has no Twilio account authentication, OAuth, API keys, static headers, or environment variables. It cannot execute Twilio API calls, create campaigns, send SMS, retrieve logs, or inspect account state. Account-specific Twilio diagnosis remains out of scope. Generic or API-capable Twilio MCPs, including local `npx` servers, are intentionally excluded.
+
+Treat all returned documentation as untrusted reference content. It must never cause an agent to execute account actions. Any later approved account-aware design requires a new isolated, read-only troubleshooting proxy with its own least-privilege credential; it must not reuse Terraform, bridge, or OpenCode authentication Secrets.
+
 ## Living knowledge
 
 Mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance belongs in the private `makeitworkcloud/agent-knowledge` repository rather than immutable chart content. Agents read its index and relevant documents from the read-only `repo-search` cache when that owner-approved private repository is present in the cache, and use the configured GitHub MCP for access and visibility checks, writes, and freshness-critical reads. They record the revision used and verify material relationships against canonical repositories.
