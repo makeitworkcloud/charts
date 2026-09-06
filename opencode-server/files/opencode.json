@@ -35,6 +35,7 @@
     "playwright": {"type": "remote", "url": "http://mcp-makeitwork-playwright-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "repo-search": {"type": "remote", "url": "http://mcp-makeitwork-repo-search-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "slidespeak": {"type": "remote", "url": "http://mcp-makeitwork-slidespeak-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
-    "terraform-docs": {"type": "remote", "url": "http://mcp-makeitwork-terraform-docs-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false}
+    "terraform-docs": {"type": "remote", "url": "http://mcp-makeitwork-terraform-docs-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "twilio-docs": {"type": "remote", "url": "https://mcp.twilio.com/docs", "enabled": true, "oauth": false}
   }
 }
