@@ -80,6 +80,24 @@ self-contained `repo-search` and GitHub routing rule because they may perform
 bounded repository passes. Other subagents receive their authoritative sources,
 read/write authority, and routing requirements in the delegation prompt.
 
+Specialized SDLC reviewer subagents extend the `recruiter-resume-reviewer`
+pattern to delivery work. `adversarial-code-reviewer`, `qa-engineer`,
+`release-engineer`, and `infra-security-reviewer` are read-only (`edit` and
+`bash` denied), declare required inputs and return `HOLD` or `BLOCKED` when one
+is absent, review in a fresh context independent of the authoring session, and
+emit a ranked-findings verdict the parent must resolve or explicitly waive
+before proceeding.
+
+Code-touching primary agents (`default`, `makeitwork`, `xnoto`, `career`, and
+`teacher`) carry a pre-pull-request review gate in their primary policy:
+non-trivial changes are dispatched to the adversarial reviewer — with the
+infrastructure-security reviewer for infrastructure-affecting changes — before
+the pull request is opened. The lifestyle primaries (`grillmaster`,
+`homerepair`, `homesteader`, `lawnmowerman`) intentionally do not carry the gate
+because they do not author code, chart, or workflow changes; they still reach
+these reviewers discretionally through description-based routing, as does all
+other unspecialized work.
+
 ## Why direct definitions intentionally duplicate policy
 
 OpenCode Markdown agent files define independent agent prompts; a file named
