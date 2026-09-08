@@ -88,15 +88,25 @@ is absent, review in a fresh context independent of the authoring session, and
 emit a ranked-findings verdict the parent must resolve or explicitly waive
 before proceeding.
 
+`docs-writer` applies the same discipline to standalone repository
+documentation: read-only, required inputs with a `BLOCKED` result when absent,
+and every technical claim grounded in parent-supplied source, with ungrounded
+claims flagged as UNVERIFIED rather than invented. It returns complete
+ready-to-commit file contents and the parent performs the commit. It does not
+write `agent-knowledge` subtrees — those remain primary-owned — and does not
+draft agent instruction, policy, or skill files.
+
 Code-touching primary agents (`default`, `makeitwork`, `xnoto`, `career`, and
 `teacher`) carry a pre-pull-request review gate in their primary policy:
 non-trivial changes are dispatched to the adversarial reviewer — with the
 infrastructure-security reviewer for infrastructure-affecting changes — before
-the pull request is opened. The lifestyle primaries (`grillmaster`,
-`homerepair`, `homesteader`, `lawnmowerman`) intentionally do not carry the gate
-because they do not author code, chart, or workflow changes; they still reach
-these reviewers discretionally through description-based routing, as does all
-other unspecialized work.
+the pull request is opened, and `qa-engineer`, `release-engineer`, or
+`docs-writer` are dispatched conditionally for validation, release, or
+documentation risk. The lifestyle primaries (`grillmaster`, `homerepair`,
+`homesteader`, `lawnmowerman`) intentionally do not carry the gate because they
+do not author code, chart, or workflow changes; they still reach these
+subagents discretionally through description-based routing, as does all other
+unspecialized work.
 
 ## Why direct definitions intentionally duplicate policy
 
