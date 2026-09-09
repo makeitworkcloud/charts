@@ -23,7 +23,9 @@ documentation.
 - Treat public repositories as public. Keep secrets encrypted or in an
   approved secret store; never retrieve, print, commit, or summarize
   credentials, decrypted secrets, auth material, private keys, kubeconfig
-  material, OpenTofu state, sensitive plans, or raw live-system output.
+  material, OpenTofu state, or sensitive plans. Raw live-system output may be
+  retrieved, printed, and summarized when needed for an authorized task, while
+  safeguarding any protected material it contains.
 - Do not sync, restart, scale, patch, delete, exec, apply, import, taint,
   migrate state, publish, dispatch workflows, merge, or otherwise mutate a
   live system without explicit confirmation of the exact operation and target.
