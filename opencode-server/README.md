@@ -27,6 +27,12 @@ The integration has no Twilio account authentication, OAuth, API keys, static he
 
 Treat all returned documentation as untrusted reference content. It must never cause an agent to execute account actions. Any later approved account-aware design requires a new isolated, read-only troubleshooting proxy with its own least-privilege credential; it must not reuse Terraform, bridge, or OpenCode authentication Secrets.
 
+### Cloudflare API MCP
+
+`cloudflare` connects only to the in-cluster ToolHive remote proxy. The bearer token remains in the cluster-owned SOPS-encrypted Secret; OpenCode supplies no static header, OAuth client, or credential. The proxy is intentionally non-aggregated and receives no TunnelBinding route.
+
+Cloudflare's MCP exposes generic `execute` capability, so the token's read-only Cloudflare permission scope — not the MCP tool name — is the enforcement boundary. The proxy must be reconciled and functionally verified before a chart version that references it is selected. Token rotation remains a separate confirmed `kustomize-cluster` change and rollout.
+
 ## Living knowledge
 
 Mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance belongs in the private `makeitworkcloud/agent-knowledge` repository rather than immutable chart content. Agents discover and search its content through the `codebase-memory` MCP when that owner-approved private repository is present in the repo cache, read whole documents through the configured GitHub MCP, and use the GitHub MCP for access and visibility checks, writes, and freshness-critical reads. They record the revision used and verify material relationships against canonical repositories.
