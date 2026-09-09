@@ -35,10 +35,9 @@ Every role-specific primary agent also carries an explicit `## Primary
 operating rules` section before its role-specific instructions. The section is
 self-contained and covers GitHub identity and routing, Make IT Work Cloud
 repository discovery through the `codebase-memory` graph index for public
-repositories and
-owner-approved private repositories present in the read-only cache, proactive
-cost-aware subagent delegation and primary-decision boundaries, repository and
-cross-repository context passes, delivery-stage evidence, direct-main
+repositories and owner-approved private repositories present in the read-only
+cache, proactive cost-aware subagent delegation and primary-decision boundaries,
+repository and cross-repository context passes, delivery-stage evidence, direct-main
 agent-knowledge maintenance within an authorized own subtree, pull-request
 discipline, confirmation gates, and operational reporting.
 
@@ -57,11 +56,6 @@ subtree and must not use the exception until a human owner establishes one or
 grants explicit scoped authority. This exception does not waive owner
 confirmation required by a subset for new facts, nor the universal safety
 rules.
-
-`default.md` is packaged and selectable, and [`files/opencode.json`](../files/opencode.json)
-selects `default` for unqualified sessions. Changing `default_agent` is a
-separate user-facing routing decision, not an incidental result of this
-instruction refactor.
 
 ### Subagents
 
@@ -89,6 +83,15 @@ is absent, review in a fresh context independent of the authoring session, and
 emit a ranked-findings verdict the parent must resolve or explicitly waive
 before proceeding.
 
+`pr-approver` is a separate, read-only post-pull-request aggregate gate. After
+all relevant checks reach terminal status, it verifies the exact head SHA,
+prior-review disposition, necessary comments and exceptions, explicit user
+approval for new bespoke maintained content, and test/documentation adequacy.
+It is the final subagent before the parent requests explicit owner confirmation.
+Its `PASS` is not a GitHub approval, merge authority, or a substitute for owner
+confirmation; any later head, check, waiver, or delivery-evidence change
+requires repeating it as the final gate.
+
 `docs-writer` applies the same discipline to standalone repository
 documentation: read-only, required inputs with a `BLOCKED` result when absent,
 and every technical claim grounded in parent-supplied source, with ungrounded
@@ -104,10 +107,11 @@ infrastructure-security reviewer for infrastructure-affecting changes — before
 the pull request is opened, and `qa-engineer`, `release-engineer`, or
 `docs-writer` are dispatched conditionally for validation, release, or
 documentation risk. The lifestyle primaries (`grillmaster`, `homerepair`,
-`homesteader`, `lawnmowerman`) intentionally do not carry the gate because they
-do not author code, chart, or workflow changes; they still reach these
-subagents discretionally through description-based routing, as does all other
-unspecialized work.
+`homesteader`, `lawnmowerman`) intentionally do not carry the pre-pull-request
+gate because they do not author code, chart, or workflow changes; they still
+reach these subagents discretionally through description-based routing. Every
+primary carries the `pr-approver` final-gate policy for any pull request it
+creates; no primary may treat the gate as merge authority.
 
 ## Why direct definitions intentionally duplicate policy
 
@@ -142,7 +146,10 @@ maintenance burden for:
 - When changing a universal safety rule, update `AGENTS.md` rather than
   duplicating it across subagents.
 - Keep subagent prompts limited to their execution mode and any routing they
-  cannot safely infer from the bounded delegation prompt.
+  cannot safely infer from the bounded delegation prompt. For `pr-approver`,
+  preserve the exact-head and terminal-check requirements, final-subagent
+  ordering, explicit approval requirement for bespoke content, and separate
+  owner-confirmation gate.
 - Any change below `opencode-server/files/` is immutable chart content and
   requires a fresh `Chart.yaml` version. PR checks validate authored chart
   content; only an explicitly approved merge can publish it and start the

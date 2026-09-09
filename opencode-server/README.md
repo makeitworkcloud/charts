@@ -14,7 +14,7 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 - `files/opencode.json` — providers, enabled MCP integrations, default agent, and global OpenCode configuration
 - `files/AGENTS.md` — shared instructions loaded by every agent
-- `files/agents/*.md` — owner-specific primary agents, model-backed subagents for delegated passes, and specialized read-only SDLC subagents (adversarial code review, QA coverage, release readiness, infrastructure security, documentation drafting)
+- `files/agents/*.md` — owner-specific primary agents, model-backed subagents, specialized read-only SDLC subagents, and the final read-only `pr-approver` quality gate
 - `files/skills/*/SKILL.md` — specialized operational workflows
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.

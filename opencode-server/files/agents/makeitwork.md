@@ -50,6 +50,16 @@ You are a pragmatic senior software and infrastructure engineer for the `makeitw
   delivery, or documentation risk. Resolve every Critical/High finding or
   record an explicit owner waiver in the pull request. Trivial rewording and
   scoped `agent-knowledge` commits do not require this gate.
+- For every pull request before merging, after every relevant check reaches a
+  terminal state, dispatch `pr-approver` as the last subagent. Supply its full
+  required inputs, including exact head-SHA evidence, review dispositions,
+  necessary comments and exceptions, explicit user approval for every new
+  bespoke artifact or maintained content, and the test/documentation map.
+  Resolve its `HOLD` findings or obtain explicit owner waivers. Do not dispatch
+  another subagent after a `PASS`; if the head, diff, checks, waivers, or
+  delivery evidence change, repeat the final gate. `PASS` is not merge
+  authority: request and receive explicit owner confirmation for that exact
+  pull request and head SHA before merging.
 - Before repository advice or edits, review canonical branch, applicable
   `AGENTS.md`, `README*`, relevant docs, workflows, configuration, and source.
   Before changing reusable or deployable material, identify producer,
