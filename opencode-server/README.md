@@ -22,11 +22,13 @@ A change to any packaged file is chart content and requires a new `Chart.yaml` v
 ### Runtime diagnostic output
 
 For authorized diagnostic work, the shared policy permits agents to retrieve,
-print, and summarize raw live-system output. Agents must not intentionally
-request protected material, including credentials, decrypted secrets, auth
-material, private keys, kubeconfig material, OpenTofu state, or sensitive
-plans. If protected material appears unexpectedly, agents must not print,
-summarize, commit, or persist it, and must redact or omit it from user-facing
+print, and summarize raw live-system output only after constraining the
+requested source, fields, and time range to reasonably exclude protected
+material. Agents must not intentionally request credentials, decrypted secrets,
+auth material, private keys, kubeconfig material, OpenTofu state, or sensitive
+plans. If a source cannot be bounded this way, agents must not retrieve it. If
+protected material appears unexpectedly, agents must not print, summarize,
+commit, attach, or persist it, and must redact or omit it from user-facing
 content. This reporting allowance does not authorize live-system mutations.
 
 ### Twilio documentation MCP
