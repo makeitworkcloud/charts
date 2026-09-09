@@ -19,6 +19,14 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
 
+### Runtime diagnostic output
+
+For authorized diagnostic work, the shared policy permits agents to retrieve,
+print, and summarize raw live-system output. Agents must not expose protected
+material within that output, including credentials, decrypted secrets, auth
+material, private keys, kubeconfig material, OpenTofu state, or sensitive
+plans. This reporting allowance does not authorize live-system mutations.
+
 ### Twilio documentation MCP
 
 `twilio-docs` connects only to Twilio's public-beta [documentation MCP](https://www.twilio.com/docs/ai/mcp) at `https://mcp.twilio.com/docs`. It provides public API-documentation and schema discovery, including error-code and A2P guidance, for troubleshooting reference only.
