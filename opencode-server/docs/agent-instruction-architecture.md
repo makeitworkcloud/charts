@@ -35,12 +35,12 @@ Every role-specific primary agent also carries an explicit `## Primary
 operating rules` section before its role-specific instructions. The section is
 self-contained and covers GitHub identity and routing, Make IT Work Cloud
 repository discovery through the `codebase-memory` graph index for public
-repositories and owner-approved private repositories present in the read-only
-cache, proactive cost-aware subagent delegation and primary-decision
-boundaries, repository and cross-repository context passes, delivery-stage
-evidence, direct-main agent-knowledge maintenance within an authorized own
-subtree, pull-request discipline, confirmation gates, and operational
-reporting.
+repositories and
+owner-approved private repositories present in the read-only cache, proactive
+cost-aware subagent delegation and primary-decision boundaries, repository and
+cross-repository context passes, delivery-stage evidence, direct-main
+agent-knowledge maintenance within an authorized own subtree, pull-request
+discipline, confirmation gates, and operational reporting.
 
 Chart maintainers use `default.md` as the reference when maintaining these
 policies. Runtime agent files must remain self-contained and must not instruct
@@ -78,9 +78,8 @@ scopes may run in parallel.
 
 The repository-capable `kimi` and `kimi-256k` subagents include a compact,
 self-contained `codebase-memory` and GitHub routing rule because they may
-perform bounded repository passes. Other subagents receive their authoritative
-sources, read/write authority, and routing requirements in the delegation
-prompt.
+perform bounded repository passes. Other subagents receive their authoritative sources,
+read/write authority, and routing requirements in the delegation prompt.
 
 Specialized SDLC reviewer subagents extend the `recruiter-resume-reviewer`
 pattern to delivery work. `adversarial-code-reviewer`, `qa-engineer`,
