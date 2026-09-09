@@ -81,16 +81,20 @@ pattern to delivery work. `adversarial-code-reviewer`, `qa-engineer`,
 `bash` denied), declare required inputs and return `HOLD` or `BLOCKED` when one
 is absent, review in a fresh context independent of the authoring session, and
 emit a ranked-findings verdict the parent must resolve or explicitly waive
-before proceeding.
+before proceeding. `qa-engineer` owns the detailed test-coverage and
+documentation-adequacy assessment: it maps changed behavior to checks, decides
+whether a contract needs documentation, and gives the parent an exact test or
+documentation plan. `docs-writer` remains the read-only drafter for standalone
+documentation.
 
 `pr-approver` is a separate, read-only post-pull-request aggregate gate. After
 all relevant checks reach terminal status, it verifies the exact head SHA,
 prior-review disposition, necessary comments and exceptions, explicit user
-approval for new bespoke maintained content, and test/documentation adequacy.
-It is the final subagent before the parent requests explicit owner confirmation.
-Its `PASS` is not a GitHub approval, merge authority, or a substitute for owner
-confirmation; any later head, check, waiver, or delivery-evidence change
-requires repeating it as the final gate.
+approval for new bespoke maintained content, and closure of the current
+`qa-engineer` assessment. It is the final subagent before the parent requests
+explicit owner confirmation. Its `PASS` is not a GitHub approval, merge
+authority, or a substitute for owner confirmation; any later head, check,
+waiver, or delivery-evidence change requires repeating it as the final gate.
 
 `docs-writer` applies the same discipline to standalone repository
 documentation: read-only, required inputs with a `BLOCKED` result when absent,
@@ -146,10 +150,11 @@ maintenance burden for:
 - When changing a universal safety rule, update `AGENTS.md` rather than
   duplicating it across subagents.
 - Keep subagent prompts limited to their execution mode and any routing they
-  cannot safely infer from the bounded delegation prompt. For `pr-approver`,
-  preserve the exact-head and terminal-check requirements, final-subagent
-  ordering, explicit approval requirement for bespoke content, and separate
-  owner-confirmation gate.
+  cannot safely infer from the bounded delegation prompt. For `qa-engineer`,
+  preserve its ownership of test and documentation adequacy assessment. For
+  `pr-approver`, preserve the exact-head and terminal-check requirements,
+  final-subagent ordering, explicit approval requirement for bespoke content,
+  QA-assessment closure, and separate owner-confirmation gate.
 - Any change below `opencode-server/files/` is immutable chart content and
   requires a fresh `Chart.yaml` version. PR checks validate authored chart
   content; only an explicitly approved merge can publish it and start the
