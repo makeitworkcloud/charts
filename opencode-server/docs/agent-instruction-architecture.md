@@ -38,13 +38,22 @@ repository discovery through the `codebase-memory` graph index for public
 repositories and
 owner-approved private repositories present in the read-only cache, proactive
 cost-aware subagent delegation and primary-decision boundaries, repository and
-cross-repository context passes, delivery-stage evidence, direct-main
-agent-knowledge maintenance within an authorized own subtree, pull-request
-discipline, confirmation gates, and operational reporting.
+cross-repository context passes, delivery-stage evidence, comment and
+bespoke-content preferences, direct-main agent-knowledge maintenance within an
+authorized own subtree, pull-request discipline, confirmation gates, and
+operational reporting.
 
 Chart maintainers use `default.md` as the reference when maintaining these
 policies. Runtime agent files must remain self-contained and must not instruct
 agents to consult or align themselves with another agent file.
+
+Primary agents prefer self-explanatory code and canonical documentation. A
+comment is retained or added only when it documents a non-obvious, durable
+rationale unavailable from them, such as an approved security, compatibility,
+standards, or ownership exception. They prefer vendor- or canonical-owner-
+maintained solutions; a new self-maintained artifact is a last resort that
+requires an alternatives assessment, clear producer-consumer and maintenance
+impact, and explicit owner approval before it is created.
 
 The `agent-knowledge` exception is intentionally narrow: when the repository's
 current contract grants a named primary agent authority over its own
@@ -93,15 +102,6 @@ whether a contract needs documentation, and gives the parent an exact test or
 documentation plan. `docs-writer` remains the read-only drafter for standalone
 documentation.
 
-`pr-approver` is a separate, read-only post-pull-request aggregate gate. After
-all relevant checks reach terminal status, it verifies the exact head SHA,
-prior-review disposition, necessary comments and exceptions, explicit user
-approval for new bespoke maintained content, and closure of the current
-`qa-engineer` assessment. It is the final subagent before the parent requests
-explicit owner confirmation. Its `PASS` is not a GitHub approval, merge
-authority, or a substitute for owner confirmation; any later head, check,
-waiver, or delivery-evidence change requires repeating it as the final gate.
-
 `docs-writer` applies the same discipline to standalone repository
 documentation: read-only, required inputs with a `BLOCKED` result when absent,
 and every technical claim grounded in parent-supplied source, with ungrounded
@@ -119,9 +119,8 @@ the pull request is opened, and `qa-engineer`, `release-engineer`, or
 documentation risk. The lifestyle primaries (`grillmaster`, `homerepair`,
 `homesteader`, `lawnmowerman`) intentionally do not carry the pre-pull-request
 gate because they do not author code, chart, or workflow changes; they still
-reach these subagents discretionally through description-based routing. Every
-primary carries the `pr-approver` final-gate policy for any pull request it
-creates; no primary may treat the gate as merge authority.
+reach these subagents discretionally through description-based routing, as does
+all other unspecialized work.
 
 ## Why direct definitions intentionally duplicate policy
 
@@ -157,10 +156,7 @@ maintenance burden for:
   duplicating it across subagents.
 - Keep subagent prompts limited to their execution mode and any routing they
   cannot safely infer from the bounded delegation prompt. For `qa-engineer`,
-  preserve its ownership of test and documentation adequacy assessment. For
-  `pr-approver`, preserve the exact-head and terminal-check requirements,
-  final-subagent ordering, explicit approval requirement for bespoke content,
-  QA-assessment closure, and separate owner-confirmation gate.
+  preserve its ownership of test and documentation adequacy assessment.
 - Any change below `opencode-server/files/` is immutable chart content and
   requires a fresh `Chart.yaml` version. PR checks validate authored chart
   content; only an explicitly approved merge can publish it and start the
