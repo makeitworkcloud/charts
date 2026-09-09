@@ -35,9 +35,10 @@ Every role-specific primary agent also carries an explicit `## Primary
 operating rules` section before its role-specific instructions. The section is
 self-contained and covers GitHub identity and routing, Make IT Work Cloud
 repository discovery through the `codebase-memory` graph index for public
-repositories and owner-approved private repositories present in the read-only
-cache, proactive cost-aware subagent delegation and primary-decision boundaries,
-repository and cross-repository context passes, delivery-stage evidence, direct-main
+repositories and
+owner-approved private repositories present in the read-only cache, proactive
+cost-aware subagent delegation and primary-decision boundaries, repository and
+cross-repository context passes, delivery-stage evidence, direct-main
 agent-knowledge maintenance within an authorized own subtree, pull-request
 discipline, confirmation gates, and operational reporting.
 
@@ -56,6 +57,11 @@ subtree and must not use the exception until a human owner establishes one or
 grants explicit scoped authority. This exception does not waive owner
 confirmation required by a subset for new facts, nor the universal safety
 rules.
+
+`default.md` is packaged and selectable, and [`files/opencode.json`](../files/opencode.json)
+selects `default` for unqualified sessions. Changing `default_agent` is a
+separate user-facing routing decision, not an incidental result of this
+instruction refactor.
 
 ### Subagents
 
