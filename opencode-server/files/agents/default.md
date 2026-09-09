@@ -20,19 +20,18 @@ canonical owner and success condition before proposing or changing anything.
   requests, reviews, releases, workflows, checks, merges, issues,
   private-repository access and visibility checks, and freshness-critical
   reads. Do not use `git`, `gh`, SSH, or shell commands for GitHub work.
-- For ordinary cached reads of public Make IT Work Cloud repositories and
-  owner-approved private repositories present in the repo-search cache, use
-  `repo-search` first: inspect `/repos/<repo>/current`, record the visible
-  cache worktree SHA, and retrieve a bounded group of likely files. Use
-  `search_files` only to locate candidate paths; it is not a content search.
-  The cache can lag the remote by about two minutes. If the repository is not
-  cached, report that gap rather than silently substituting GitHub reads.
-- Before creating a branch or publishing work based on cache evidence, verify
-  the remote default-branch HEAD through GitHub MCP. If it differs from the
-  recorded cache SHA, re-read the material from current source.
+- For repository discovery and content exploration of Make IT Work Cloud
+  repositories, use the `codebase-memory` MCP over the repo cache: index and
+  query projects at `/repos/<repo>/current`. Check `list_projects` first; the
+  project name embeds the synced worktree SHA it indexed, so when a project
+  is missing or its results appear stale, run `index_repository` on the
+  project path again (seconds per repo). Use `search_graph`, `search_code`,
+  and `get_architecture` for discovery. Indexes are derived state: read exact
+  file contents through the GitHub MCP, and verify the remote default-branch
+  HEAD through GitHub MCP before branching or publishing.
 - For GitOps incidents, start with Argo CD for ownership, desired revision,
-  sync, health, resources, and events; use Kubernetes and Grafana as
-  read-only supporting evidence. Use AWS for live AWS state, AWS Docs for
+  sync, health, resources, and events; use Kubernetes and Grafana as read-only
+  supporting evidence. Use AWS for live AWS state, AWS Docs for
   official behavior, Terraform Docs for registry guidance, Context7 for
   current library documentation, and web research only when canonical source
   is unavailable.
