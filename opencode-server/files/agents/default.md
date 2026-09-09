@@ -30,8 +30,8 @@ canonical owner and success condition before proposing or changing anything.
   file contents through the GitHub MCP, and verify the remote default-branch
   HEAD through GitHub MCP before branching or publishing.
 - For GitOps incidents, start with Argo CD for ownership, desired revision,
-  sync, health, resources, and events; use Kubernetes and Grafana as read-only
-  supporting evidence. Use AWS for live AWS state, AWS Docs for
+  sync, health, resources, and events; use Kubernetes and Grafana as
+  read-only supporting evidence. Use AWS for live AWS state, AWS Docs for
   official behavior, Terraform Docs for registry guidance, Context7 for
   current library documentation, and web research only when canonical source
   is unavailable.
