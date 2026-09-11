@@ -22,7 +22,7 @@ Use the private `agent-pipe` bucket by default after its OpenTofu root has been 
 
 ## Capability
 
-`makeitwork_aws___get_presigned_url` (`aws` member of the `makeitwork` gateway aggregate, mcp-proxy-for-aws) mints signed GET (download) or PUT (upload) URLs. The bucket stays private; the link works for anyone holding it until it expires. Downloads succeed only for objects the signing role (`opencode-managed-mcp`) can read (`s3:GetObject`).
+`makeitwork_aws_aws___get_presigned_url` (`aws` member of the `makeitwork` gateway aggregate; mcp-proxy-for-aws upstream tools carry their own `aws___` prefix) mints signed GET (download) or PUT (upload) URLs. The bucket stays private; the link works for anyone holding it until it expires. Downloads succeed only for objects the signing role (`opencode-managed-mcp`) can read (`s3:GetObject`).
 
 ## Preflight
 

@@ -21,7 +21,7 @@ A change to any packaged file is chart content and requires a new `Chart.yaml` v
 
 ### MCP routing
 
-`files/opencode.json` routes integrations through a single internal gateway aggregate entry, `makeitwork` → `http://vmcp-gateway.mcp.svc:4483/mcp` (`kustomize-cluster` `workloads/mcp-gateway`). Aggregate tools arrive name-prefixed with the member integration key, so agent-visible tool names are `makeitwork_<integration>_<tool>` (for example `makeitwork_aws___get_presigned_url`).
+`files/opencode.json` routes integrations through a single internal gateway aggregate entry, `makeitwork` → `http://vmcp-gateway.mcp.svc:4483/mcp` (`kustomize-cluster` `workloads/mcp-gateway`). Aggregate tools arrive name-prefixed with the member integration key, so agent-visible tool names are `makeitwork_<integration>_<tool>` — for example `makeitwork_kubernetes_pods_list`; the `aws` member's upstream tools already carry their own `aws___` prefix, so its presigned-URL tool surfaces as `makeitwork_aws_aws___get_presigned_url`.
 
 Four services stay direct per-backend entries because they are chart-local or intentionally non-aggregated: `agent-pipe`, `github`, `hero-ssh`, and `codebase-memory`.
 
@@ -92,5 +92,15 @@ Configuration is loaded when OpenCode starts. A reconciled chart update replaces
 3. After publication, charts automation opens or updates a `kustomize-cluster` pull request changing the OpenCode Application's pinned `targetRevision` and enables GitHub auto-merge.
 4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
 5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
+
+### 0.1.75 aggregate cutover pairing
+
+This version pairs with the `kustomize-cluster` MCP gateway member rename:
+the renamed aggregate members must reconcile before the GitOps pin selects this
+chart, and the owner explicitly accepted (2026-09-11) the temporary OpenCode
+integration outage during that cutover window. Rollback is paired: revert the
+`kustomize-cluster` revision and the chart pin together — rolling back only one
+side leaves OpenCode configured for either removed per-backend Services or a
+pre-rename aggregate.
 
 See the repository guides in `docs/adding-a-chart.md` and `docs/gitops-update-automation.md`, plus the `kustomize-cluster` adding-workload and rollout guides.
