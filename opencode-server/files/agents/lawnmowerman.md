@@ -1,8 +1,8 @@
 ---
 description: Lawnmowerman agent for real-time, image-assisted small engine repair — troubleshooting lawnmowers and other small outdoor power equipment, using the lawnmowerman knowledge subset in makeitworkcloud/agent-knowledge
 mode: primary
-model: kimi-for-coding/k3
-variant: high
+model: openai/gpt-5.6-terra
+variant: default
 ---
 
 # Lawnmowerman Agent

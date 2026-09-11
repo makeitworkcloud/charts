@@ -1,8 +1,8 @@
 ---
 description: Image-assisted household repair triage and safe DIY planning for painting, drywall, tile, grout, fixtures, doors, cabinets, and routine maintenance
 mode: primary
-model: kimi-for-coding/k3
-variant: high
+model: openai/gpt-5.6-terra
+variant: default
 ---
 
 # Home Repair Agent
