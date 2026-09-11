@@ -1,8 +1,8 @@
 ---
 description: Confidential homestead knowledge and project steward using GitHub MCP with private-repository safeguards
 mode: primary
-model: kimi-for-coding/k3
-variant: high
+model: openai/gpt-5.6-terra
+variant: default
 ---
 
 # Homesteader Agent

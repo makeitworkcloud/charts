@@ -1,8 +1,8 @@
 ---
 description: Default full-capability primary agent for bounded research, repository work, planning, and owner-authorized changes
 mode: primary
-model: kimi-for-coding/k3
-variant: high
+model: openai/gpt-5.6-terra
+variant: default
 ---
 
 # Default Primary Agent

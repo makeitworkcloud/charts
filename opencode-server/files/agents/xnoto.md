@@ -1,8 +1,8 @@
 ---
 description: xnoto agent for personal repositories, client configuration, releases, and workstation-bounded changes
 mode: primary
-model: kimi-for-coding/k3
-variant: high
+model: openai/gpt-5.6-terra
+variant: default
 ---
 
 # xnoto Agent

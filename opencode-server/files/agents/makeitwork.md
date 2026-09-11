@@ -1,8 +1,8 @@
 ---
 description: Make IT Work Cloud agent for organization repositories, GitOps, CI validation, and protected infrastructure changes
 mode: primary
-model: kimi-for-coding/k3
-variant: high
+model: openai/gpt-5.6-terra
+variant: default
 ---
 
 # Make IT Work Cloud Agent

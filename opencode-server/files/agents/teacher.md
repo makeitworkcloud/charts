@@ -1,8 +1,8 @@
 ---
 description: Owner-specific agent that retrieves task guidance from a private knowledge subset
 mode: primary
-model: kimi-for-coding/k3
-variant: high
+model: openai/gpt-5.6-terra
+variant: default
 ---
 
 # Teacher Agent
