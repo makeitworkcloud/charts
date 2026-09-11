@@ -13,9 +13,12 @@ permission:
   list: deny
   external_directory: deny
   task: deny
+  todowrite: deny
+  question: deny
   webfetch: deny
   websearch: deny
   lsp: deny
+  skill: deny
   doom_loop: deny
 ---
 
