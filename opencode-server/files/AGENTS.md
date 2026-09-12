@@ -11,9 +11,11 @@ documentation.
   user's workstation filesystem. Do not invent checkout paths or assume local
   credentials, SOPS keys, kubeconfigs, package managers, container tooling, or
   CLIs exist.
-- Use the configured MCP tool that owns an operation. Do not use shell, SSH,
-  or another service as a substitute when the task or tool contract specifies
-  an MCP route.
+- OpenCode connects directly to its configured in-cluster MCP backend proxy
+  Services. The `vmcp-gateway` aggregate is for external consumers and is not
+  an OpenCode MCP client endpoint. Use the configured MCP tool that owns an
+  operation; do not use shell, SSH, or another service as a substitute when
+  the tool contract specifies an MCP route.
 - CI is the validation environment. Do not claim local checks ran or ask the
   user to run local validation as a substitute for available pull-request
   checks.
