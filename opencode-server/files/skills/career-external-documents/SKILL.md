@@ -9,7 +9,7 @@ Canonical text resumes and documents stay on the workspace pandoc pipeline (`mak
 
 ## Service
 
-- **SlideSpeak** (`slidespeak` member of the `makeitwork` gateway MCP): presentation decks — interview or portfolio presentations. Never for text resumes or PDF documents. Canva and Plus AI are deferred because their hosted MCP integrations require interactive OAuth, which is unsuitable for this shared headless server.
+- **SlideSpeak** (`slidespeak` direct ClusterIP proxy client): presentation decks — interview or portfolio presentations. Never for text resumes or PDF documents. Canva and Plus AI are deferred because their hosted MCP integrations require interactive OAuth, which is unsuitable for this shared headless server.
 
 ## Generate
 
@@ -19,7 +19,7 @@ Canonical text resumes and documents stay on the workspace pandoc pipeline (`mak
 
 ## Availability and authorization
 
-- SlideSpeak authentication is provided by the cluster-owned remote-proxy member behind the gateway aggregate. If a call reports an unavailable service, authentication failure, or plan limitation, stop and report it to the owner. Never retry-loop, initiate provider OAuth, or request or handle credentials.
+- SlideSpeak authentication is provided by the cluster-owned direct proxy Service. If a call reports an unavailable service, authentication failure, or plan limitation, stop and report it to the owner. Never retry-loop, initiate provider OAuth, or request or handle credentials.
 - Do not substitute another external service when SlideSpeak reports a limitation.
 
 ## Data boundary
