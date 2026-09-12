@@ -93,14 +93,8 @@ Configuration is loaded when OpenCode starts. A reconciled chart update replaces
 4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
 5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
 
-### 0.1.75 aggregate cutover pairing
+### Historical 0.1.75 aggregate cutover
 
-This version pairs with the `kustomize-cluster` MCP gateway member rename:
-the renamed aggregate members must reconcile before the GitOps pin selects this
-chart, and the owner explicitly accepted (2026-09-11) the temporary OpenCode
-integration outage during that cutover window. Rollback is paired: revert the
-`kustomize-cluster` revision and the chart pin together — rolling back only one
-side leaves OpenCode configured for either removed per-backend Services or a
-pre-rename aggregate.
+Version 0.1.75 paired with the former `kustomize-cluster` gateway-member rename and is retained only as historical rollout context. The current direct-proxy design supersedes that aggregate route: OpenCode must use the direct client URLs in `files/opencode.json`, and `vmcp-gateway` must remain external-only.
 
 See the repository guides in `docs/adding-a-chart.md` and `docs/gitops-update-automation.md`, plus the `kustomize-cluster` adding-workload and rollout guides.
