@@ -5,7 +5,7 @@ description: Use when the user asks to download, share, or get a link to an S3 o
 
 # s3-presigned-file-delivery
 
-Deliver a file from AWS S3 to the user as a clickable, time-limited download link using the `aws` integration of the `makeitwork` gateway aggregate. Use when the user asks to download, share, or "get a link to" an S3 object, or to hand a session artifact to storage.
+Deliver a file from AWS S3 to the user as a clickable, time-limited download link using the direct `aws` ClusterIP proxy client. Use when the user asks to download, share, or "get a link to" an S3 object, or to hand a session artifact to storage.
 
 Apply the `cloud-artifact-transfer` skill's transfer boundaries and approval
 rules. This skill adds the `agent-pipe` S3 profile and delivery-specific policy.
@@ -22,11 +22,11 @@ Use the private `agent-pipe` bucket by default after its OpenTofu root has been 
 
 ## Capability
 
-`makeitwork_aws_aws___get_presigned_url` (`aws` member of the `makeitwork` gateway aggregate; mcp-proxy-for-aws upstream tools carry their own `aws___` prefix) mints signed GET (download) or PUT (upload) URLs. The bucket stays private; the link works for anyone holding it until it expires. Downloads succeed only for objects the signing role (`opencode-managed-mcp`) can read (`s3:GetObject`).
+`aws_aws___get_presigned_url` on the direct `aws` ClusterIP proxy client mints signed GET (download) or PUT (upload) URLs. The AWS upstream tool name retains its `aws___` prefix; direct OpenCode tool names never use the `makeitwork_` aggregate prefix. The bucket stays private; the link works for anyone holding it until it expires. Downloads succeed only for objects the signing role (`opencode-managed-mcp`) can read (`s3:GetObject`).
 
 ## Preflight
 
-1. Confirm the AWS account and target region through the `makeitwork` gateway's `aws` integration; never infer either from a bucket name.
+1. Confirm the AWS account and target region through the direct `aws` integration; never infer either from a bucket name.
 2. Verify `agent-pipe` exists and its Public Access Block has all four protections enabled. If the bucket or the managed-role permissions are absent, report the infrastructure gate; do not fall back to a public bucket.
 3. Use a collision-resistant key such as `deliveries/<session-id>/<filename>`. Do not use a user name, application name, or sensitive data in an object key.
 4. Inspect the source and object metadata for sensitivity before delivery. A presigned link can be shared by anyone holding it until it expires.
@@ -36,11 +36,11 @@ Use the private `agent-pipe` bucket by default after its OpenTofu root has been 
 ### In-session artifact on the isolated artifacts PVC
 
 1. Confirm the artifact is a user-directed, non-secret file under `/artifacts/`; the `agent-pipe` MCP service cannot access the OpenCode home PVC.
-2. Mint a PUT URL for `agent-pipe` and the chosen `deliveries/...` key with `expires_in: 900`.
+2. Mint a PUT URL with `aws_aws___get_presigned_url` for `agent-pipe` and the chosen `deliveries/...` key with `expires_in: 900`.
 3. **Obtain explicit user confirmation** for the exact artifact path and S3 key before the PUT. This is a live S3 mutation.
 4. Call `agent-pipe_upload_artifact` with profile `agent-pipe`, the artifact's relative path, and the generated URL unmodified. The OpenCode permission prompt is required; do not approve the action without the user's explicit confirmation.
-5. Verify with `aws s3api head-object --bucket agent-pipe --key <key>`; do not print object bytes in the conversation.
-6. Mint a GET URL with `expires_in: 900`, then call `agent-pipe_verify_download` with profile `agent-pipe` and that exact, unchanged URL. Continue only on a successful result. This is a GET request, not a HEAD request; do not substitute a fetch tool or alter/re-encode the SigV4 query string.
+5. Verify with `aws_aws___run_script` using `HeadObject` for the bucket and key; do not print object bytes in the conversation.
+6. Mint a GET URL with `aws_aws___get_presigned_url` with `expires_in: 900`, then call `agent-pipe_verify_download` with profile `agent-pipe` and that exact, unchanged URL. Continue only on a successful result. This is a GET request, not a HEAD request; do not substitute a fetch tool or alter/re-encode the SigV4 query string.
 7. If the GET test fails, mint a fresh URL and test it again. Do not claim delivery or return an untested link. On success, return the **same tested URL** as a Markdown download link, state that it expires in about 15 minutes, and offer to re-issue it.
 
 ## Failure modes

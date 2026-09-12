@@ -8,19 +8,15 @@ publish changed charts as OCI artifacts to GHCR.
 
 ## Session boundary and available MCPs
 
-- MCP integrations on this shared server arrive through one internal gateway
-  aggregate entry, `makeitwork` (`http://vmcp-gateway.mcp.svc:4483/mcp`, owned
-  by `kustomize-cluster` `workloads/mcp-gateway`). Aggregate tools are exposed
-  as `makeitwork_<integration>_<tool>` — for example
-  `makeitwork_kubernetes_pods_list`, and
-  `makeitwork_aws_aws___get_presigned_url` because the `aws` member's upstream
-  tools already carry their own `aws___` prefix. Current members include
-  `apify`, `argocd`, `aws`, `aws-docs`, `cloudflare`, `context7`, `gcp`,
-  `grafana`, `kubernetes`, `parallel-search`, `playwright`, `slidespeak`,
-  `terraform-docs`, and `twilio-docs`.
-- Four integrations stay direct per-backend entries because they are
-  chart-local or intentionally non-aggregated: `agent-pipe`, `github`,
-  `hero-ssh`, and `codebase-memory`.
+- OpenCode is an in-cluster MCP client. It connects directly to the configured
+  ClusterIP Services: `agent-pipe`; the 14 ToolHive backend proxies `apify`,
+  `argocd`, `aws`, `aws-docs`, `cloudflare`, `context7`, `gcp`, `grafana`,
+  `kubernetes`, `parallel-search`, `playwright`, `slidespeak`,
+  `terraform-docs`, and `twilio-docs`; and the direct `codebase-memory`,
+  `github`, and `hero-ssh` proxies. Direct tool names do not use a
+  `makeitwork_` aggregate prefix.
+- `vmcp-gateway` is reserved for external consumers only. Do not configure it
+  as an OpenCode MCP client or expose duplicate aggregate and direct entries.
 - For Make IT Work Cloud repository exploration on this shared server, use the
   direct `codebase-memory` MCP as the first discovery path: index and query
   projects at `/repos/<repo>/current`, re-indexing when a project is missing or
@@ -30,11 +26,11 @@ publish changed charts as OCI artifacts to GHCR.
   operations: writes, branches, pull requests, reviews, workflow evidence,
   private repositories, and freshness-critical reads. Do not assume a local
   checkout or use `git`, `gh`, SSH, or workstation paths.
-- Use the aggregate's `argocd` and `kubernetes` tools immediately for read-only
+- Use the direct `argocd` and `kubernetes` tools immediately for read-only
   cluster and application diagnostics. Do not sync, patch, delete, or run
   resource actions without explicit user approval.
-- Use the aggregate's `context7`, `terraform-docs`, `aws-docs`, and `grafana`
-  tools, and web research as applicable for current library, provider, cloud,
+- Use the direct `context7`, `terraform-docs`, `aws-docs`, and `grafana` tools,
+  and web research as applicable for current library, provider, cloud,
   observability, and runtime behavior. Do not guess schemas, provider behavior,
   CI behavior, or cluster state.
 - CI is authoritative. Do not claim local Helm, OpenTofu, pre-commit, or other

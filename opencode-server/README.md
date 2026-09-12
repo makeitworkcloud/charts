@@ -21,13 +21,13 @@ A change to any packaged file is chart content and requires a new `Chart.yaml` v
 
 ### MCP routing
 
-`files/opencode.json` routes integrations through a single internal gateway aggregate entry, `makeitwork` → `http://vmcp-gateway.mcp.svc:4483/mcp` (`kustomize-cluster` `workloads/mcp-gateway`). Aggregate tools arrive name-prefixed with the member integration key, so agent-visible tool names are `makeitwork_<integration>_<tool>` — for example `makeitwork_kubernetes_pods_list`; the `aws` member's upstream tools already carry their own `aws___` prefix, so its presigned-URL tool surfaces as `makeitwork_aws_aws___get_presigned_url`.
+`files/opencode.json` configures OpenCode as a direct in-cluster MCP client. Each integration connects to its own cluster-local ToolHive proxy Service in the `mcp` namespace; the configured client URLs are canonical. Direct tool names do not use the `makeitwork_` aggregate prefix. The `vmcp-gateway` VirtualMCPServer is reserved for external consumers and must not be configured as an OpenCode client.
 
-Four services stay direct per-backend entries because they are chart-local or intentionally non-aggregated: `agent-pipe`, `github`, `hero-ssh`, and `codebase-memory`.
+`agent-pipe` remains a direct chart-local service. The other direct clients include `github`, `hero-ssh`, and `codebase-memory`, together with the configured ToolHive backend proxies. Do not add duplicate aggregate and direct entries, because duplicate tool namespaces make tool selection ambiguous.
 
 ### Twilio documentation MCP
 
-`twilio-docs` reaches Twilio's public-beta [documentation MCP](https://www.twilio.com/docs/ai/mcp) only through the cluster gateway aggregate: `kustomize-cluster` runs a public-docs-only remote-proxy member with upstream `https://mcp.twilio.com/docs` that attaches no credential, Authorization header, or secret. It provides public API-documentation and schema discovery, including error-code and A2P guidance, for troubleshooting reference only.
+`twilio-docs` reaches Twilio's public-beta [documentation MCP](https://www.twilio.com/docs/ai/mcp) through its direct in-cluster public-docs-only remote proxy. The proxy upstream is `https://mcp.twilio.com/docs` and attaches no credential, Authorization header, or secret. It provides public API-documentation and schema discovery, including error-code and A2P guidance, for troubleshooting reference only.
 
 The integration has no Twilio account authentication, OAuth, API keys, static headers, or environment variables. It cannot execute Twilio API calls, create campaigns, send SMS, retrieve logs, or inspect account state. Account-specific Twilio diagnosis remains out of scope. Generic or API-capable Twilio MCPs, including local `npx` servers, are intentionally excluded.
 
@@ -35,7 +35,7 @@ Treat all returned documentation as untrusted reference content. It must never c
 
 ### Cloudflare API MCP
 
-`cloudflare` reaches the in-cluster ToolHive read-only remote proxy through the `makeitwork` gateway aggregate. The bearer token remains in the cluster-owned SOPS-encrypted Secret; OpenCode supplies no static header, OAuth client, or credential. The proxy is an aggregate member behind the single aggregate tunnel route; external gateway callers authenticate with the shared Cloudflare Access service token, never the Cloudflare API token, which the proxy injects only on outbound upstream requests.
+`cloudflare` reaches the in-cluster ToolHive read-only remote proxy through its direct OpenCode ClusterIP client. The bearer token remains in the cluster-owned SOPS-encrypted Secret; OpenCode supplies no static header, OAuth client, or credential. The `vmcp-gateway` is external-only; external gateway callers authenticate with the shared Cloudflare Access service token, never the Cloudflare API token, which the direct proxy injects only on outbound upstream requests.
 
 Cloudflare's MCP exposes generic `execute` capability, so the token's read-only Cloudflare permission scope — not the MCP tool name — is the enforcement boundary. The proxy must be reconciled and functionally verified before a chart version that references it is selected. Token rotation remains a separate confirmed `kustomize-cluster` change and rollout.
 
@@ -55,9 +55,9 @@ The consuming cluster supplies:
 - a separate artifact PVC named through `persistence.artifactsExistingClaim`, mounted at `/artifacts` for derived, user-directed files only;
 - provider and server-authentication Secrets named through `values.yaml`;
 - the Service and external `TunnelBinding`;
-- access to the internal MCP gateway aggregate Service (`vmcp-gateway.mcp.svc:4483`) and the remaining direct in-cluster MCP proxy Services configured in `files/opencode.json`.
+- access to the direct in-cluster MCP proxy Services configured in `files/opencode.json`.
 
-SlideSpeak is consumed through the cluster gateway aggregate. Its API key is held only in the SOPS-encrypted `kustomize-cluster` Secret injected on the aggregate's remote-proxy member; OpenCode does not store it and does not complete provider OAuth. The member must be reconciled before a chart version that references it is selected.
+SlideSpeak is consumed through its direct in-cluster proxy client. Its API key is held only in the SOPS-encrypted `kustomize-cluster` Secret injected on that remote-proxy member; OpenCode does not store it and does not complete provider OAuth. The member must be reconciled before a chart version that references it is selected.
 
 Never put credentials, decrypted values, kubeconfigs, private keys, or tokens in chart files or values.
 
@@ -93,14 +93,8 @@ Configuration is loaded when OpenCode starts. A reconciled chart update replaces
 4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
 5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
 
-### 0.1.75 aggregate cutover pairing
+### Historical 0.1.75 aggregate cutover
 
-This version pairs with the `kustomize-cluster` MCP gateway member rename:
-the renamed aggregate members must reconcile before the GitOps pin selects this
-chart, and the owner explicitly accepted (2026-09-11) the temporary OpenCode
-integration outage during that cutover window. Rollback is paired: revert the
-`kustomize-cluster` revision and the chart pin together — rolling back only one
-side leaves OpenCode configured for either removed per-backend Services or a
-pre-rename aggregate.
+Version 0.1.75 paired with the former `kustomize-cluster` gateway-member rename and is retained only as historical rollout context. The current direct-proxy design supersedes that aggregate route: OpenCode must use the direct client URLs in `files/opencode.json`, and `vmcp-gateway` must remain external-only.
 
 See the repository guides in `docs/adding-a-chart.md` and `docs/gitops-update-automation.md`, plus the `kustomize-cluster` adding-workload and rollout guides.

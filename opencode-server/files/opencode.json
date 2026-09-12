@@ -22,9 +22,22 @@
   },
   "mcp": {
     "agent-pipe": {"type": "remote", "url": "http://agent-pipe-uploader.opencode.svc:8080/mcp", "enabled": true, "oauth": false},
+    "apify": {"type": "remote", "url": "http://mcp-apify-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "argocd": {"type": "remote", "url": "http://mcp-argocd-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "aws": {"type": "remote", "url": "http://mcp-aws-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "aws-docs": {"type": "remote", "url": "http://mcp-aws-docs-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "cloudflare": {"type": "remote", "url": "http://mcp-cloudflare-read-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "codebase-memory": {"type": "remote", "url": "http://mcp-makeitwork-codebase-memory-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "context7": {"type": "remote", "url": "http://mcp-context7-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "gcp": {"type": "remote", "url": "http://mcp-gcp-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "github": {"type": "remote", "url": "http://mcp-makeitwork-github-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "grafana": {"type": "remote", "url": "http://mcp-grafana-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
     "hero-ssh": {"type": "remote", "url": "http://mcp-makeitwork-hero-ssh-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
-    "makeitwork": {"type": "remote", "url": "http://vmcp-gateway.mcp.svc:4483/mcp", "enabled": true, "oauth": false}
+    "kubernetes": {"type": "remote", "url": "http://mcp-kubernetes-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "parallel-search": {"type": "remote", "url": "http://mcp-parallel-search-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "playwright": {"type": "remote", "url": "http://mcp-playwright-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "slidespeak": {"type": "remote", "url": "http://mcp-slidespeak-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "terraform-docs": {"type": "remote", "url": "http://mcp-terraform-docs-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false},
+    "twilio-docs": {"type": "remote", "url": "http://mcp-twilio-docs-remote-proxy.mcp.svc:8080/mcp", "enabled": true, "oauth": false}
   }
 }
