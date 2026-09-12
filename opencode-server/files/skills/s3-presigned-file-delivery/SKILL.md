@@ -5,7 +5,7 @@ description: Use when the user asks to download, share, or get a link to an S3 o
 
 # s3-presigned-file-delivery
 
-Deliver a file from AWS S3 to the user as a clickable, time-limited download link using the `aws` MCP integration. Use when the user asks to download, share, or "get a link to" an S3 object, or to hand a session artifact to storage.
+Deliver a file from AWS S3 to the user as a clickable, time-limited download link using the `aws` integration of the `makeitwork` gateway aggregate. Use when the user asks to download, share, or "get a link to" an S3 object, or to hand a session artifact to storage.
 
 Apply the `cloud-artifact-transfer` skill's transfer boundaries and approval
 rules. This skill adds the `agent-pipe` S3 profile and delivery-specific policy.
@@ -22,11 +22,11 @@ Use the private `agent-pipe` bucket by default after its OpenTofu root has been 
 
 ## Capability
 
-`aws___get_presigned_url` (aws MCP, mcp-proxy-for-aws) mints signed GET (download) or PUT (upload) URLs. The bucket stays private; the link works for anyone holding it until it expires. Downloads succeed only for objects the signing role (`opencode-managed-mcp`) can read (`s3:GetObject`).
+`makeitwork_aws_aws___get_presigned_url` (`aws` member of the `makeitwork` gateway aggregate; mcp-proxy-for-aws upstream tools carry their own `aws___` prefix) mints signed GET (download) or PUT (upload) URLs. The bucket stays private; the link works for anyone holding it until it expires. Downloads succeed only for objects the signing role (`opencode-managed-mcp`) can read (`s3:GetObject`).
 
 ## Preflight
 
-1. Confirm the AWS account and target region through the AWS MCP; never infer either from a bucket name.
+1. Confirm the AWS account and target region through the `makeitwork` gateway's `aws` integration; never infer either from a bucket name.
 2. Verify `agent-pipe` exists and its Public Access Block has all four protections enabled. If the bucket or the managed-role permissions are absent, report the infrastructure gate; do not fall back to a public bucket.
 3. Use a collision-resistant key such as `deliveries/<session-id>/<filename>`. Do not use a user name, application name, or sensitive data in an object key.
 4. Inspect the source and object metadata for sensitivity before delivery. A presigned link can be shared by anyone holding it until it expires.
@@ -45,7 +45,7 @@ Use the private `agent-pipe` bucket by default after its OpenTofu root has been 
 
 ## Failure modes
 
-- Fetch tools return 400: they re-encoded the query string and broke SigV4. The link is valid for browsers/curl/wget — hand it to the user, don't re-fetch through URL-rewriting tools.
+- Fetch tools return 400: they re-encoded the query string and broke SigV4. The link is valid for browsers/curl/wget — hand it to the user, don't re-fetch it through URL-rewriting tools.
 - `InvalidToken` on a newly minted GET URL: do not infer that the object is missing or alter the URL. Mint a fresh GET URL and perform the exact curl GET test before returning it. A successful PUT or `HeadObject` does not prove a GET URL is usable.
 - 403 on upload or download: the signing role lacks the corresponding object permission, even though URL signing itself may succeed.
 - HEAD fails against a GET-signed URL: the method is part of the signature.
