@@ -22,7 +22,8 @@ test:
 	@$(MAKE) test-opencode-server-agents
 
 test-opencode-server-agents:
-	@rendered="$$(helm template test opencode-server)"; \
+	@set -euo pipefail; \
+	rendered="$$(helm template test opencode-server)"; \
 	echo "$$rendered" | grep -Fqx '  terra.md: |-'; \
 	echo "$$rendered" | grep -Fqx '    mode: subagent'; \
 	echo "$$rendered" | grep -Fqx '    model: openai/gpt-5.6-terra'; \
@@ -32,4 +33,6 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	tar -tzf "$$archive_dir/opencode-server-0.2.0.tgz" | grep -Fqx 'opencode-server/files/agents/terra.md'
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-*.tgz' -print -quit)"; \
+	test -n "$$archive"; \
+	tar -tzf "$$archive" | grep -Fqx 'opencode-server/files/agents/terra.md'
