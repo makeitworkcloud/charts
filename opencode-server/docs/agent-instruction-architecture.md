@@ -61,8 +61,8 @@ impact, and explicit owner approval before it is created.
 The `agent-knowledge` exception is intentionally narrow: when the repository's
 current contract grants a named primary agent authority over its own
 `docs/agents/<agent>/` subtree, a verified, non-sensitive update is committed
-directly to `main` with a scoped descriptive commit. No branch, pull request, or
-merge operation is needed for that repository-local action. Pull requests
+directly to `main` with a scoped descriptive commit. No branch, pull request,
+or merge operation is needed for that repository-local action. Pull requests
 remain available for owner-requested review and are required outside the
 agent's own subtree. The generic `default` agent has no autonomous knowledge
 subtree and must not use the exception until a human owner establishes one or
@@ -116,7 +116,7 @@ authorization, and final synthesis; it verifies material findings. Independent
 scopes may run in parallel.
 
 [`files/agents/terra.md`](../files/agents/terra.md) defines `terra`, a
-full-capability, generic execution subagent using `openai/gpt-5.6-terra` with
+full-capable, generic execution subagent using `openai/gpt-5.6-terra` with
 the default variant. A primary may select it for bounded coding, debugging, or
 repository tasks when it needs execution capacity. It does not change the
 `default` primary-agent selection or delegate primary ownership; the assigning
