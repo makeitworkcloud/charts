@@ -27,7 +27,14 @@ must constrain every runtime agent, including subagents:
 
 This floor is intentionally short. It protects narrow delegated workers without
 forcing them to carry primary-agent procedures they cannot authorize or
-complete.
+complete. The compact common repository routing is nevertheless complete for
+bounded workers: identity check, private access and visibility verification
+with the owner-approved allowlist and parent-verified evidence, verbose
+`index_status` discovery, full-mode index evidence with no subagent indexing,
+expected mapped `root_exists=true` root with worktree leaf 40-hex equal to the
+once-resolved GitHub default HEAD, `Module` line 1 full-extent reads without
+`source_truncated` clipping or exclusions, post-batch root recheck, the
+freshness-critical scope, and the verified-snapshot fallback.
 
 ### Primary agents
 
@@ -127,11 +134,10 @@ provenance and coverage evidence passes all checks. This is the exact recipe:
    GitHub stays authoritative for access, visibility, default HEAD, branch
    protections, pull requests, reviews, checks, releases, and write
    preconditions — freshness-critical facts, not an ordinary need for exact
-   content. Branch pull-request content, which the default-branch cache
-   snapshot cannot cover, is read on GitHub at the branch SHA. Primaries
-   may pass current authorization, the verified snapshot, and full-index
-   evidence to delegated workers; that evidence does not extend worker
-   authority.
+   content. For a requested branch/PR SHA different from the verified
+   default snapshot, use GitHub at the requested SHA. Primaries may pass
+   current authorization, the verified snapshot, and full-index evidence to
+   delegated workers; that evidence does not extend worker authority.
 
 ### Subagents
 
@@ -147,7 +153,7 @@ authorization, and final synthesis; it verifies material findings. Independent
 scopes may run in parallel.
 
 [`files/agents/terra.md`](../files/agents/terra.md) defines `terra`, a
-full-capability, generic execution subagent using `openai/gpt-5.6-terra` with
+full-capable, generic execution subagent using `openai/gpt-5.6-terra` with
 the default variant. A primary may select it for bounded coding, debugging, or
 repository tasks when it needs execution capacity. It does not change the
 `default` primary-agent selection or delegate primary ownership; the assigning
