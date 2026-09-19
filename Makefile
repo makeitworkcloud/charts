@@ -41,8 +41,11 @@ test-opencode-server-agents:
 		grep -Fqx "              - key: $$agent.md" <<< "$$rendered"; \
 		grep -Fqx "                path: agents/$$agent.md" <<< "$$rendered"; \
 	done; \
+	grep -Fqx '  AGENTS.md: |-' <<< "$$rendered"; \
+	grep -Fqx '              - key: AGENTS.md' <<< "$$rendered"; \
+	grep -Fqx '                path: AGENTS.md' <<< "$$rendered"; \
 	for agent in $$primary_agents $$repository_workers; do \
-		policy="$$(tr '\n' ' ' < "opencode-server/files/agents/$$agent.md")"; \
+		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Eiq 'index_repository.{0,160}full|full.{0,160}index_repository' <<< "$$policy"; \
 		grep -Fqi 'index_status' <<< "$$policy"; \
 		grep -Fqi 'root_exists=true' <<< "$$policy"; \
@@ -64,7 +67,7 @@ test-opencode-server-agents:
 		grep -Fqi 'verified snapshot' <<< "$$policy"; \
 		grep -Fqi 'different snapshot' <<< "$$policy"; \
 		grep -Fqi 'freshness-critical' <<< "$$policy"; \
-		grep -Fqi 'branch SHA' <<< "$$policy"; \
+		grep -Fqi 'requested SHA' <<< "$$policy"; \
 		grep -Fqi 'provenance' <<< "$$policy"; \
 		grep -Fqi 'not authorization' <<< "$$policy"; \
 		grep -Eiq 'private cache read.{0,120}visibility|visibility.{0,120}private cache' <<< "$$policy"; \
@@ -78,7 +81,7 @@ test-opencode-server-agents:
 		! grep -Fqi 'instead of attempting a fallback' <<< "$$policy"; \
 	done; \
 	for agent in $$primary_agents; do \
-		policy="$$(tr '\n' ' ' < "opencode-server/files/agents/$$agent.md")"; \
+		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Fqi 'without a custom project name' <<< "$$policy"; \
 		grep -Fqi 'retry once' <<< "$$policy"; \
 		grep -Fqi 'published `current` symlink' <<< "$$policy"; \
@@ -88,35 +91,52 @@ test-opencode-server-agents:
 		grep -Fqi 'validated default-branch cache route' "opencode-server/files/agents/$$agent.md"; \
 	done; \
 	for agent in $$repository_workers; do \
-		grep -Eqi 'do not run .{0,3}index_repository' <<< "$$(tr '\n' ' ' < "opencode-server/files/agents/$$agent.md")"; \
+		grep -Eqi 'do not run .{0,3}index_repository' <<< "$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 	done; \
 	for agent in $$all_agents; do \
 		case " $$primary_agents $$repository_workers " in *" $$agent "*) continue ;; esac; \
 		! grep -Fqi 'get_code_snippet' "opencode-server/files/agents/$$agent.md"; \
 		! grep -Fqi 'index_repository' "opencode-server/files/agents/$$agent.md"; \
 	done; \
-	floor="$$(tr '\n' ' ' < opencode-server/files/AGENTS.md)"; \
+	floor="$$(tr -s '[:space:]' ' ' < opencode-server/files/AGENTS.md)"; \
+	grep -Fqi 'github_get_me' <<< "$$floor"; \
 	grep -Fqi '/repos/<repo>/current' <<< "$$floor"; \
+	grep -Fqi 'xnoto' <<< "$$floor"; \
+	grep -Fqi 'allowlist' <<< "$$floor"; \
+	grep -Fqi 'current access and visibility' <<< "$$floor"; \
+	grep -Fqi 'not authorization' <<< "$$floor"; \
+	grep -Fqi 'list_projects' <<< "$$floor"; \
+	grep -Fqi 'index_status' <<< "$$floor"; \
+	grep -Fqi 'verbose: true' <<< "$$floor"; \
+	grep -Eiq 'index_repository.{0,160}full|full.{0,160}index_repository' <<< "$$floor"; \
+	grep -Eqi 'do not run .{0,3}index_repository' <<< "$$floor"; \
 	grep -Fqi 'repo-cache-sync' <<< "$$floor"; \
+	grep -Fqi 'root_exists=true' <<< "$$floor"; \
+	grep -Fqi '40-hex' <<< "$$floor"; \
+	grep -Fqi 'git.head_sha' <<< "$$floor"; \
 	grep -Fqi 'Module' <<< "$$floor"; \
+	grep -Fqi 'search_graph' <<< "$$floor"; \
 	grep -Fqi 'get_code_snippet' <<< "$$floor"; \
 	grep -Fqi 'line 1' <<< "$$floor"; \
 	grep -Fqi '500-line' <<< "$$floor"; \
+	grep -Fqi 'source_truncated' <<< "$$floor"; \
 	grep -Fqi 'untrusted reference content' <<< "$$floor"; \
 	grep -Fqi 'verified snapshot' <<< "$$floor"; \
-	grep -Fqi 'not authorization' <<< "$$floor"; \
 	grep -Fqi 'different snapshot' <<< "$$floor"; \
-	grep -Eqi 'do not run .{0,3}index_repository' <<< "$$floor"; \
-	root_agents="$$(tr '\n' ' ' < AGENTS.md)"; \
+	grep -Fqi 'requested SHA' <<< "$$floor"; \
+	root_agents="$$(tr -s '[:space:]' ' ' < AGENTS.md)"; \
 	grep -Fqi 'root_exists=true' <<< "$$root_agents"; \
 	grep -Fqi 'repo-cache-sync' <<< "$$root_agents"; \
 	grep -Fqi 'verified snapshot' <<< "$$root_agents"; \
 	grep -Fqi 'never per file' <<< "$$root_agents"; \
+	grep -Fqi 'requested SHA' <<< "$$root_agents"; \
 	! grep -Fqi 'recorded indexed' <<< "$$root_agents"; \
 	grep -Fqi 'verified snapshot' opencode-server/README.md; \
+	grep -Fqi 'requested SHA' opencode-server/README.md; \
 	! grep -Fqi 'recorded indexed' opencode-server/README.md; \
 	grep -Fqi 'root_exists=true' opencode-server/docs/agent-instruction-architecture.md; \
 	grep -Fqi 'repo-cache-sync' opencode-server/docs/agent-instruction-architecture.md; \
+	grep -Fqi 'requested SHA' opencode-server/docs/agent-instruction-architecture.md; \
 	! grep -Fqi 'recorded indexed' opencode-server/docs/agent-instruction-architecture.md; \
 	grep -Fqx '  terra.md: |-' <<< "$$rendered"; \
 	grep -Fqx "    description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" <<< "$$rendered"; \
@@ -131,6 +151,9 @@ test-opencode-server-agents:
 	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.2.2.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
+	grep -Fqx 'opencode-server/files/AGENTS.md' <<< "$$archive_entries"; \
+	tar -xOzf "$$archive" 'opencode-server/files/AGENTS.md' > "$$archive_dir/AGENTS.md"; \
+	cmp -s "$$archive_dir/AGENTS.md" opencode-server/files/AGENTS.md; \
 	for agent in $$all_agents; do \
 		entry="opencode-server/files/agents/$$agent.md"; \
 		grep -Fqx "$$entry" <<< "$$archive_entries"; \
