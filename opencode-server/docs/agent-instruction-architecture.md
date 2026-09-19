@@ -123,6 +123,14 @@ repository tasks when it needs execution capacity. It does not change the
 primary must supply authority, scope, safety constraints, and completion
 criteria in the task prompt.
 
+[`files/agents/devops-engineer.md`](../files/agents/devops-engineer.md) defines
+a parent-directed, read-only DevOps integration and delivery reviewer using
+`openai/gpt-5.6-terra` with no variant override. It reviews supplied DESIGN
+proposals and completed CHANGE diffs for CI, workflow, reusable-workflow,
+artifact, GitOps-handoff, runner, and delivery-integration contracts. All
+native and MCP tools are denied through a wildcard permission rule; the parent
+retains implementation, mutation, and final authority.
+
 The repository-capable `kimi` and `kimi-256k` subagents include a compact,
 self-contained `codebase-memory` and GitHub routing rule because they may
 perform bounded repository passes. Other subagents receive their authoritative sources,
@@ -130,7 +138,7 @@ read/write authority, and routing requirements in the delegation prompt.
 
 Specialized SDLC reviewer subagents extend the `recruiter-resume-reviewer`
 pattern to delivery work. `adversarial-code-reviewer`, `qa-engineer`,
-`release-engineer`, and `infra-security-reviewer` are read-only (`edit` and
+`release-engineer`, `infra-security-reviewer`, and `devops-engineer` are read-only (`edit` and
 `bash` denied), declare required inputs and return `HOLD` or `BLOCKED` when one
 is absent, review in a fresh context independent of the authoring session, and
 emit a ranked-findings verdict the parent must resolve or explicitly waive
@@ -151,14 +159,16 @@ draft agent instruction, policy, or skill files.
 Code-touching primary agents (`default`, `makeitwork`, `xnoto`, `career`, and
 `teacher`) carry a pre-pull-request review gate in their primary policy:
 non-trivial changes are dispatched to the adversarial reviewer — with the
-infrastructure-security reviewer for infrastructure-affecting changes — before
-the pull request is opened, and `qa-engineer`, `release-engineer`, or
-`docs-writer` are dispatched conditionally for validation, release, or
-documentation risk. The lifestyle primaries (`grillmaster`, `homerepair`,
-`homesteader`, `lawnmowerman`) intentionally do not carry the pre-pull-request
-gate because they do not author code, chart, or workflow changes; they still
-reach these subagents discretionally through description-based routing, as does
-all other unspecialized work.
+infrastructure-security reviewer for infrastructure-affecting changes — and
+to `devops-engineer` for CI, workflow, reusable-workflow, artifact,
+GitOps-handoff, runner, or delivery-integration contracts — before the pull
+request is opened; `qa-engineer`, `release-engineer`, or `docs-writer` are
+dispatched conditionally for validation, release, or documentation risk. The
+lifestyle primaries (`grillmaster`, `homerepair`, `homesteader`,
+`lawnmowerman`) intentionally do not carry the pre-pull-request gate because
+they do not author code, chart, or workflow changes; they still reach these
+subagents discretionally through description-based routing, as does all other
+unspecialized work.
 
 ## Why direct definitions intentionally duplicate policy
 

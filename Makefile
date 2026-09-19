@@ -25,7 +25,15 @@ test-opencode-server-agents:
 	@set -euo pipefail; \
 	expected="$$(printf '%s\n' '---' "description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" 'mode: subagent' 'model: openai/gpt-5.6-terra' 'variant: default' '---')"; \
 	test "$$(cat opencode-server/files/agents/terra.md)" = "$$expected"; \
-	grep -Fqx 'version: 0.2.1' opencode-server/Chart.yaml; \
+	expected_devops="$$(printf '%s\n' '---' 'description: Read-only DevOps integration and delivery reviewer for proposed designs or completed changes involving CI, GitHub Actions, shared workflows, artifacts, GitOps handoffs, runners, permissions, and deployment contracts; requires a supplied integration map and never implements or mutates systems' 'mode: subagent' 'model: openai/gpt-5.6-terra' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
+	actual_devops="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' opencode-server/files/agents/devops-engineer.md)"; \
+	test "$$actual_devops" = "$$expected_devops"; \
+	! grep -Fq 'variant:' opencode-server/files/agents/devops-engineer.md; \
+	grep -Fqx 'Use `DESIGN` mode only for a supplied proposal. Assess whether the proposed contracts, owners, validations, and delivery stages are sufficiently specified to proceed to implementation.' opencode-server/files/agents/devops-engineer.md; \
+	grep -Fqx 'Use `CHANGE` mode only for a completed diff and all affected workflows. Assess the implemented integration contract and supplied validation evidence. Flag needless bespoke automation even where no supplied contract expressly prohibits it.' opencode-server/files/agents/devops-engineer.md; \
+	grep -Fqx '## VERDICT: ADVANCE / HOLD / REJECT' opencode-server/files/agents/devops-engineer.md; \
+	for agent in default makeitwork xnoto career teacher; do grep -Fq '`devops-engineer` for CI, workflow, shared-workflow, artifact,' "opencode-server/files/agents/$$agent.md"; done; \
+	grep -Fqx 'version: 0.2.2' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	rendered="$$(helm template test opencode-server)"; \
 	primary_agents='default makeitwork xnoto career teacher grillmaster homerepair homesteader lawnmowerman'; \
@@ -62,13 +70,17 @@ test-opencode-server-agents:
 	grep -Fqx '    variant: default' <<< "$$rendered"; \
 	grep -Fqx '              - key: terra.md' <<< "$$rendered"; \
 	grep -Fqx '                path: agents/terra.md' <<< "$$rendered"; \
+	grep -Fqx '  devops-engineer.md: |-' <<< "$$rendered"; \
+	grep -Fqx '    ## VERDICT: ADVANCE / HOLD / REJECT' <<< "$$rendered"; \
+	grep -Fqx '              - key: devops-engineer.md' <<< "$$rendered"; \
+	grep -Fqx '                path: agents/devops-engineer.md' <<< "$$rendered"; \
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.2.1.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.2.2.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
-	archive_agents="$$all_agents terra"; \
+	archive_agents="$$all_agents terra devops-engineer"; \
 	for agent in $$archive_agents; do \
 		source="opencode-server/files/agents/$$agent.md"; \
 		entry="opencode-server/files/agents/$$agent.md"; \

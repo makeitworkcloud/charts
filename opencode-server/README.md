@@ -14,10 +14,12 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 - `files/opencode.json` — providers, enabled MCP integrations, default agent, and global OpenCode configuration
 - `files/AGENTS.md` — shared instructions loaded by every agent
-- `files/agents/*.md` — owner-specific primary agents, the generic `terra` execution subagent, model-backed subagents for delegated passes, and specialized read-only SDLC subagents (adversarial code review, QA coverage and documentation adequacy, release readiness, infrastructure security, documentation drafting)
+- `files/agents/*.md` — owner-specific primary agents, the generic `terra` execution subagent, model-backed subagents for delegated passes, and specialized read-only SDLC subagents (adversarial code review, DevOps integration and delivery review, QA coverage and documentation adequacy, release readiness, infrastructure security, documentation drafting)
 - `files/skills/*/SKILL.md` — specialized operational workflows
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
+
+The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-5.6-terra` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### MCP routing
 
