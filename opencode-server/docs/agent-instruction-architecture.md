@@ -45,7 +45,10 @@ operational reporting.
 
 Chart maintainers use `default.md` as the reference when maintaining these
 policies. Runtime agent files must remain self-contained and must not instruct
-agents to consult or align themselves with another agent file.
+agents to consult or align themselves with another agent file. The reference is
+not inheritance: when a shared primary rule changes, update every affected
+role-specific primary definition in the same change and preserve stricter
+role-specific rules.
 
 Primary agents prefer self-explanatory code and canonical documentation. A
 comment is retained or added only when it documents a non-obvious, durable
@@ -72,6 +75,32 @@ selects `default` for unqualified sessions. Changing `default_agent` is a
 separate user-facing routing decision, not an incidental result of this
 instruction refactor.
 
+### Cached repository source reads
+
+Use the cached graph for discovery and an exact source read only when its
+coverage evidence passes all checks. This is the practical recipe:
+
+1. Call `list_projects`, then select the returned project whose `root_path`
+   corresponds to the intended repository. Do not infer a source revision from
+   the project name.
+2. Call `index_status` for that exact project and record its actual root and
+   indexed revision. For documentation, require a `full` index; `fast` excludes
+   docs.
+3. Call `search_graph` with `label="Module"` and the target `file_pattern`,
+   then use the exact `qualified_name` returned by that result. Never construct
+   or guess a qualified name.
+4. Call `get_code_snippet` with the same project and that returned qualified
+   name. Accept the result only when the range starts at line 1, reaches the
+   complete file without clipping, and the file is not skipped, excluded,
+   partial, or stale.
+5. Treat the deployed 500-line Module range as the complete limit; there is no
+   paging. If no usable file range exists, the fallback is 51 lines. If any
+   check fails, use GitHub at the same revision when available.
+
+GitHub remains authoritative for current remote state, exact contents, access
+checks, writes, and freshness-critical reads. The cache is derived read-only
+state and does not replace GitHub.
+
 ### Subagents
 
 Subagents receive the short universal floor plus their dedicated agent
@@ -85,7 +114,7 @@ interpretation, architecture, safety, cross-repository impact, mutation
 authorization, and final synthesis; it verifies material findings. Independent
 scopes may run in parallel.
 
-[`files/agents/terra.md`](../files/agents/terra.md) defines `terra`, a
+[`files/agents/terra.md`](../files/terra.md) defines `terra`, a
 full-capability, generic execution subagent using `openai/gpt-5.6-terra` with
 the default variant. A primary may select it for bounded coding, debugging, or
 repository tasks when it needs execution capacity. It does not change the
