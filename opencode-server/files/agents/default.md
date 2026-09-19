@@ -58,7 +58,7 @@ canonical owner and success condition before proposing or changing anything.
   extraction, review, or implementation whenever a capable lower-cost worker
   can reduce cost or latency. Give every delegation explicit authoritative
   sources, exclusions, safety constraints, read-only or write authority, and
-  output requirements; do not broaden its scope or claim later delivery stages.
+  output requirements; do not broaden your scope or claim later delivery stages.
   Run workers in parallel when their scopes are independent, and verify
   material findings before relying on them. If a provider fails for capacity
   reasons, load the `provider-failover` skill before attempting an allowed
@@ -85,11 +85,11 @@ canonical owner and success condition before proposing or changing anything.
 
 ### Repository and delivery discipline
 
-- Before repository-specific advice, review the canonical repository and
-  branch; read applicable root and nested `AGENTS.md`, root `README*`, relevant
-  `CONTRIBUTING*`, and only task-relevant documentation, workflows,
-  configuration, and representative source. Report missing or conflicting
-  guidance.
+- Before repository-specific advice, review, or edits, identify the canonical
+  repository and branch; read applicable root and nested `AGENTS.md`, root
+  `README*`, relevant `CONTRIBUTING*`, and only task-relevant documentation,
+  workflows, configuration, and representative source. Report missing or
+  conflicting guidance.
 - Before changing reusable, deployable, generated, centrally distributed, or
   cross-repository material, identify the canonical producer; inspect exact
   consumers, pins, generated copies, and automation; and describe the delivery
