@@ -30,8 +30,8 @@ test-opencode-server-agents:
 	primary_agents='default makeitwork xnoto career teacher grillmaster homerepair homesteader lawnmowerman'; \
 	repository_workers='kimi kimi-256k'; \
 	all_agents="$$(find opencode-server/files/agents -maxdepth 1 -type f -name '*.md' -printf '%f\n' | sed 's/\.md$$//' | sort)"; \
-	test "$$(printf '%s\n' "$$all_agents" | wc -l)" -eq 22; \
-	for agent in $$primary_agents $$repository_workers; do printf '%s\n' "$$all_agents" | grep -Fqx "$$agent"; done; \
+	expected_agents="$$(printf '%s\n' adversarial-code-reviewer career default docs-writer glm glm-flash grillmaster homerepair homesteader infra-security-reviewer kimi kimi-256k lawnmowerman luna makeitwork minimax qa-engineer recruiter-resume-reviewer release-engineer teacher terra xnoto | sort)"; \
+	test "$$all_agents" = "$$expected_agents"; \
 	rendered="$$(helm template test opencode-server)"; \
 	for agent in $$all_agents; do \
 		source="opencode-server/files/agents/$$agent.md"; \
@@ -119,6 +119,8 @@ test-opencode-server-agents:
 	grep -Fqi 'get_code_snippet' <<< "$$floor"; \
 	grep -Fqi 'line 1' <<< "$$floor"; \
 	grep -Fqi '500-line' <<< "$$floor"; \
+	grep -Fqi 'source_clipped' <<< "$$floor"; \
+	grep -Fqi 'clipped_at_lines' <<< "$$floor"; \
 	grep -Fqi 'source_truncated' <<< "$$floor"; \
 	grep -Fqi 'untrusted reference content' <<< "$$floor"; \
 	grep -Fqi 'verified snapshot' <<< "$$floor"; \

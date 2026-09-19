@@ -58,9 +58,11 @@ documentation.
   `kustomize-cluster` repo-cache-sync manifests; an optional `git.head_sha`
   must agree), and the `Module` read through `search_graph` and
   `get_code_snippet` returns a line 1 full-extent range within the deployed
-  500-line cap with no `source_truncated` clipping or reported exclusions.
-  Recheck the root after a read batch; discard reads whose root changed or
-  disappeared and ask the parent to refresh or fall back.
+  500-line cap with no `source_clipped` or `clipped_at_lines` truncation
+  marker from `get_code_snippet`, no `source_truncated` or any other
+  truncation marker, and no reported exclusions. Recheck the root after a
+  read batch; discard reads whose root changed or disappeared and ask the
+  parent to refresh or fall back.
 - Freshness-critical means access, visibility, default HEAD, branch
   protections, pull requests, reviews, checks, releases, and write
   preconditions — not an ordinary need for exact content, and verified
