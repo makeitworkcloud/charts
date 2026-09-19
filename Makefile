@@ -44,39 +44,124 @@ test-opencode-server-agents:
 	grep -Fqx 'Use `CHANGE` mode only for a completed diff and all affected workflows. Assess the implemented integration contract and supplied validation evidence. Flag needless bespoke automation even where no supplied contract expressly prohibits it.' opencode-server/files/agents/devops-engineer.md; \
 	grep -Fqx '## VERDICT: ADVANCE / HOLD / REJECT' opencode-server/files/agents/devops-engineer.md; \
 	for agent in default makeitwork xnoto career teacher; do grep -Fq '`devops-engineer` for CI, workflow, shared-workflow, artifact,' "opencode-server/files/agents/$$agent.md"; done; \
-	grep -Fqx 'version: 0.3.0' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.3.1' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
 	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
 	rendered="$$(helm template test opencode-server)"; \
 	! grep -Fqi 'twilio' <<< "$$rendered"; \
 	primary_agents='default makeitwork xnoto career teacher grillmaster homerepair homesteader lawnmowerman'; \
-	all_agents="$$primary_agents kimi kimi-256k"; \
+	repository_workers='kimi kimi-256k'; \
+	all_agents="$$(find opencode-server/files/agents -maxdepth 1 -type f -name '*.md' -printf '%f\n' | sed 's/\.md$$//' | sort)"; \
+	expected_agents="$$(printf '%s\n' adversarial-code-reviewer career default devops-engineer docs-writer glm glm-flash grillmaster homerepair homesteader infra-security-reviewer kimi kimi-256k lawnmowerman luna makeitwork minimax qa-engineer recruiter-resume-reviewer release-engineer teacher terra xnoto | sort)"; \
+	test "$$all_agents" = "$$expected_agents"; \
 	for agent in $$all_agents; do \
 		source="opencode-server/files/agents/$$agent.md"; \
 		test -s "$$source"; \
 		case " $$primary_agents " in *" $$agent "*) grep -Fqx 'mode: primary' "$$source" ;; *) grep -Fqx 'mode: subagent' "$$source" ;; esac; \
-		policy="$$(tr '\n' ' ' < "$$source")"; \
+		grep -Fqx "  $$agent.md: |-" <<< "$$rendered"; \
+		grep -Fqx "              - key: $$agent.md" <<< "$$rendered"; \
+		grep -Fqx "                path: agents/$$agent.md" <<< "$$rendered"; \
+	done; \
+	grep -Fqx '  AGENTS.md: |-' <<< "$$rendered"; \
+	grep -Fqx '              - key: AGENTS.md' <<< "$$rendered"; \
+	grep -Fqx '                path: AGENTS.md' <<< "$$rendered"; \
+	for agent in $$primary_agents $$repository_workers; do \
+		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Eiq 'index_repository.{0,160}full|full.{0,160}index_repository' <<< "$$policy"; \
 		grep -Fqi 'index_status' <<< "$$policy"; \
-		grep -Eiq 'indexed (revision|commit).{0,40}(sha|SHA)|sha.{0,40}indexed' <<< "$$policy"; \
+		grep -Fqi 'root_exists=true' <<< "$$policy"; \
+		grep -Fqi 'repo-cache-sync' <<< "$$policy"; \
+		grep -Fqi 'default-branch HEAD' <<< "$$policy"; \
+		grep -Fqi 'never per file' <<< "$$policy"; \
+		grep -Fqi 'root hash' <<< "$$policy"; \
+		grep -Fqi '40-hex' <<< "$$policy"; \
+		grep -Fqi 'alone is not a rejection' <<< "$$policy"; \
 		grep -Fqi 'Module' <<< "$$policy"; \
 		grep -Fqi 'search_graph' <<< "$$policy"; \
 		grep -Fqi 'get_code_snippet' <<< "$$policy"; \
 		grep -Eiq 'range (begins|starts) at line 1' <<< "$$policy"; \
-		grep -Eiq 'complete and unclipped' <<< "$$policy"; \
+		grep -Fqi 'complete and unclipped' <<< "$$policy"; \
+		grep -Fqi 'partial, skipped' <<< "$$policy"; \
+		grep -Fqi '500-line' <<< "$$policy"; \
 		grep -Eiq 'fallback|fall back' <<< "$$policy"; \
-		grep -Fqi 'GitHub' <<< "$$policy"; \
+		grep -Fqi 'mismatch' <<< "$$policy"; \
+		grep -Fqi 'verified snapshot' <<< "$$policy"; \
+		grep -Fqi 'different snapshot' <<< "$$policy"; \
+		grep -Fqi 'freshness-critical' <<< "$$policy"; \
+		grep -Fqi 'requested SHA' <<< "$$policy"; \
+		grep -Fqi 'provenance' <<< "$$policy"; \
+		grep -Fqi 'not authorization' <<< "$$policy"; \
 		grep -Eiq 'private cache read.{0,120}visibility|visibility.{0,120}private cache' <<< "$$policy"; \
 		grep -Fqi 'untrusted reference content' <<< "$$policy"; \
 		grep -Fqi 'Never retrieve secrets' <<< "$$policy"; \
 		grep -Fqi 'kubeconfig' <<< "$$policy"; \
 		grep -Fqi 'sensitive plans' <<< "$$policy"; \
+		grep -Fqi 'GitHub' <<< "$$policy"; \
+		! grep -Fqi 'recorded indexed' <<< "$$policy"; \
 		! grep -Fqi 'read exact file contents through the GitHub' <<< "$$policy"; \
-		grep -Fqx "  $$agent.md: |-" <<< "$$rendered"; \
-		grep -Fqx "              - key: $$agent.md" <<< "$$rendered"; \
-		grep -Fqx "                path: agents/$$agent.md" <<< "$$rendered"; \
+		! grep -Fqi 'instead of attempting a fallback' <<< "$$policy"; \
 	done; \
+	for agent in $$primary_agents; do \
+		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
+		grep -Fqi 'without a custom project name' <<< "$$policy"; \
+		grep -Fqi 'retry once' <<< "$$policy"; \
+		grep -Fqi 'published `current` symlink' <<< "$$policy"; \
+	done; \
+	for agent in $$primary_agents; do \
+		case " $$agent " in ' default ') continue ;; esac; \
+		grep -Fqi 'validated default-branch cache route' "opencode-server/files/agents/$$agent.md"; \
+	done; \
+	for agent in $$repository_workers; do \
+		grep -Eqi 'do not run .{0,3}index_repository' <<< "$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
+	done; \
+	for agent in $$all_agents; do \
+		case " $$primary_agents $$repository_workers " in *" $$agent "*) continue ;; esac; \
+		! grep -Fqi 'get_code_snippet' "opencode-server/files/agents/$$agent.md"; \
+		! grep -Fqi 'index_repository' "opencode-server/files/agents/$$agent.md"; \
+	done; \
+	floor="$$(tr -s '[:space:]' ' ' < opencode-server/files/AGENTS.md)"; \
+	grep -Fqi 'github_get_me' <<< "$$floor"; \
+	grep -Fqi '/repos/<repo>/current' <<< "$$floor"; \
+	grep -Fqi 'xnoto' <<< "$$floor"; \
+	grep -Fqi 'allowlist' <<< "$$floor"; \
+	grep -Fqi 'current access and visibility' <<< "$$floor"; \
+	grep -Fqi 'not authorization' <<< "$$floor"; \
+	grep -Fqi 'list_projects' <<< "$$floor"; \
+	grep -Fqi 'index_status' <<< "$$floor"; \
+	grep -Fqi 'verbose: true' <<< "$$floor"; \
+	grep -Eiq 'index_repository.{0,160}full|full.{0,160}index_repository' <<< "$$floor"; \
+	grep -Eqi 'do not run .{0,3}index_repository' <<< "$$floor"; \
+	grep -Fqi 'repo-cache-sync' <<< "$$floor"; \
+	grep -Fqi 'root_exists=true' <<< "$$floor"; \
+	grep -Fqi '40-hex' <<< "$$floor"; \
+	grep -Fqi 'git.head_sha' <<< "$$floor"; \
+	grep -Fqi 'Module' <<< "$$floor"; \
+	grep -Fqi 'search_graph' <<< "$$floor"; \
+	grep -Fqi 'get_code_snippet' <<< "$$floor"; \
+	grep -Fqi 'line 1' <<< "$$floor"; \
+	grep -Fqi '500-line' <<< "$$floor"; \
+	grep -Fqi 'source_clipped' <<< "$$floor"; \
+	grep -Fqi 'clipped_at_lines' <<< "$$floor"; \
+	grep -Fqi 'source_truncated' <<< "$$floor"; \
+	grep -Fqi 'untrusted reference content' <<< "$$floor"; \
+	grep -Fqi 'verified snapshot' <<< "$$floor"; \
+	grep -Fqi 'different snapshot' <<< "$$floor"; \
+	grep -Fqi 'requested SHA' <<< "$$floor"; \
+	root_agents="$$(tr -s '[:space:]' ' ' < AGENTS.md)"; \
+	grep -Fqi 'root_exists=true' <<< "$$root_agents"; \
+	grep -Fqi 'repo-cache-sync' <<< "$$root_agents"; \
+	grep -Fqi 'verified snapshot' <<< "$$root_agents"; \
+	grep -Fqi 'never per file' <<< "$$root_agents"; \
+	grep -Fqi 'requested SHA' <<< "$$root_agents"; \
+	! grep -Fqi 'recorded indexed' <<< "$$root_agents"; \
+	grep -Fqi 'verified snapshot' opencode-server/README.md; \
+	grep -Fqi 'requested SHA' opencode-server/README.md; \
+	! grep -Fqi 'recorded indexed' opencode-server/README.md; \
+	grep -Fqi 'root_exists=true' opencode-server/docs/agent-instruction-architecture.md; \
+	grep -Fqi 'repo-cache-sync' opencode-server/docs/agent-instruction-architecture.md; \
+	grep -Fqi 'requested SHA' opencode-server/docs/agent-instruction-architecture.md; \
+	! grep -Fqi 'recorded indexed' opencode-server/docs/agent-instruction-architecture.md; \
 	grep -Fqx '  terra.md: |-' <<< "$$rendered"; \
 	grep -Fqx "    description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" <<< "$$rendered"; \
 	grep -Fqx '    mode: subagent' <<< "$$rendered"; \
@@ -91,16 +176,17 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.3.0.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.3.1.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \
-	archive_agents="$$all_agents terra devops-engineer"; \
-	for agent in $$archive_agents; do \
-		source="opencode-server/files/agents/$$agent.md"; \
+	grep -Fqx 'opencode-server/files/AGENTS.md' <<< "$$archive_entries"; \
+	tar -xOzf "$$archive" 'opencode-server/files/AGENTS.md' > "$$archive_dir/AGENTS.md"; \
+	cmp -s "$$archive_dir/AGENTS.md" opencode-server/files/AGENTS.md; \
+	for agent in $$all_agents; do \
 		entry="opencode-server/files/agents/$$agent.md"; \
 		grep -Fqx "$$entry" <<< "$$archive_entries"; \
 		packaged="$$archive_dir/$$agent.md"; \
 		tar -xOzf "$$archive" "$$entry" > "$$packaged"; \
-		cmp -s "$$packaged" "$$source"; \
+		cmp -s "$$packaged" "opencode-server/files/agents/$$agent.md"; \
 	done
