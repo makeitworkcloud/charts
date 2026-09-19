@@ -20,27 +20,50 @@ publish changed charts as OCI artifacts to GHCR.
 - For Make IT Work Cloud repository exploration, use the direct
   `codebase-memory` MCP over its read-only cache at `/repos/<repo>/current`.
   This path belongs to the remote backend, not OpenCode's local filesystem.
-  Check `list_projects` and `index_status` for the actual indexed root,
-  snapshot revision, and coverage; project names alone do not prove freshness.
-  Re-index missing or stale projects with explicit `mode: "full"` when
-  documentation is needed; fast mode excludes documentation directories.
-  Discover a document's `Module` using `search_graph` and pass the returned
-  exact qualified name to `get_code_snippet`. Accept a complete-document read
-  only when the indexed range starts at line 1, covers the required document,
-  and matches the returned extent without clipping or reported partial
-  coverage. In the deployed 0.10.8 interface, snippets cap at 500 lines and
-  File nodes without ranges fall back to 51 lines; there is no paging argument.
-  Use GitHub MCP for missing, excluded, partial, incomplete, or clipped
-  content, at the same snapshot revision when possible. Index coverage is
-  best-effort, not proof of parser completeness. Do not use GitHub file reads
-  as an alternate broad discovery path.
+  Resolve the repository's default-branch HEAD through GitHub MCP once per
+  repository task or batch, never per file. Call `list_projects`, then
+  `index_status` with its verbose git context, as discovery and health
+  checks only; do not assume an index mode or `git.head_sha` is present.
+  Documentation sources and knowledge bases require a recorded successful
+  `full`-mode `index_repository` invocation of `/repos/<repo>/current`;
+  `fast` excludes documentation directories. When that record is absent or
+  the project root is missing or stale, re-invoke without a custom project
+  name and use the returned project. The trusted git-sync mapping must be
+  verified from the canonical `kustomize-cluster` repo-cache-sync manifests,
+  not guessed; for a cache that verified writer covers, the leaf 40-hex of
+  the actual resolved worktree root is the synced commit by the git-sync
+  contract — the `current` symlink target's leaf SHA is the contract and
+  `.worktrees` layout is an implementation detail. A read is
+  provenance-verified when `index_status` shows `root_exists=true`, the
+  resolved `root_path` sits below the canonical cache root, and that root
+  hash — never a project-name hash — matches the resolved GitHub
+  default-branch HEAD; a null `git.head_sha` or `is_git=false` alone is not
+  a rejection when this succeeds, and a present `git.head_sha` must agree.
+  Do not directly index guessed hash directories; invoke through the
+  published `current` symlink, recheck `index_status` after a read batch,
+  and on a disappeared or changed root discard the affected reads, retry
+  once through a re-verified root, then fall back if it recurs. Discover a
+  document's `Module` using `search_graph` and pass the returned exact
+  qualified name to `get_code_snippet`. Accept a complete-document read
+  only when the range starts at line 1, covers the required document, is
+  complete and unclipped within the deployed 0.10.8 500-line cap, and is
+  not partial, skipped, or excluded; File nodes without ranges fall back to
+  51 lines and there is no paging argument. Verified provenance replaces a
+  per-file duplicate GitHub contents check. Index coverage is best-effort,
+  not proof of parser completeness. Do not use GitHub file reads as an
+  alternate broad discovery path.
 - Use the direct `github` MCP integration exclusively for GitHub-specific
   operations: writes, branches, pull requests, reviews, workflow evidence,
-  private-repository access and visibility checks, and freshness-critical reads.
+  private-repository access and visibility checks, and freshness-critical
+  reads. Freshness-critical means access, visibility, default HEAD, branch
+  protections, pull-request, review, check, release, and write
+  preconditions — not an ordinary need for exact content, which the
+  verified cache route satisfies. For a requested branch/PR SHA different
+  from the verified default snapshot, use GitHub at the requested SHA.
   Verify remote default-branch HEAD before branching or publishing. Cached
-  private content is limited to owner-approved repositories and does not prove
-  current authorization. Do not assume a local checkout or use `git`, `gh`,
-  SSH, or workstation paths.
+  private content is limited to owner-approved repositories and does not
+  prove current authorization. Do not assume a local checkout or use `git`,
+  `gh`, SSH, or workstation paths.
 - Use the direct `argocd` and `kubernetes` tools immediately for read-only
   cluster and application diagnostics. Do not sync, patch, delete, or run
   resource actions without explicit user approval.
@@ -53,12 +76,16 @@ publish changed charts as OCI artifacts to GHCR.
 
 ## Cached source safety
 
-- The cache read path is `index_status` followed by `Module` discovery and a
-  `full`-mode indexed read. If the indexed content is unavailable, incomplete,
-  partial, or clipped, explicitly fall back to GitHub MCP `get_file_contents`
-  with `sha=<recorded indexed commit SHA>` when that SHA is available. If the
-  SHA or historical read is unavailable, label the GitHub content as a
-  different snapshot rather than presenting it as an exact match.
+- The cache read path is provenance verification — `index_status` root plus
+  the verified git-sync root hash against the GitHub default-branch HEAD
+  resolved for the batch — followed by `Module` discovery and a `full`-mode
+  indexed read. If the writer mapping, resolved root, root hash, or HEAD is
+  unknown, the root hash and HEAD mismatch, or the indexed content is
+  unavailable, incomplete, partial, or clipped, log the specific failed
+  check and fall back to GitHub MCP `get_file_contents` with `sha=<verified
+  snapshot SHA>` when available. If that snapshot or its historical read is
+  unavailable, label the GitHub content as a different snapshot rather than
+  presenting it as an exact match.
 - Before any private cached read, verify the repository's current visibility
   and access through GitHub MCP for that task. The owner-approved repository
   allowlist still applies. A cache entry or commit SHA is not authorization
