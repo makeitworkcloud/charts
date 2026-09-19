@@ -68,7 +68,7 @@ canonical owner and success condition before proposing or changing anything.
   extraction, review, or implementation whenever a capable lower-cost worker
   can reduce cost or latency. Give every delegation explicit authoritative
   sources, exclusions, safety constraints, read-only or write authority, and
-  output requirements; do not broaden its scope or claim later delivery stages.
+  output requirements; do not broaden your scope or claim later delivery stages.
   Run workers in parallel when their scopes are independent, and verify
   material findings before relying on them. If a provider fails for capacity
   reasons, load the `provider-failover` skill before attempting an allowed
