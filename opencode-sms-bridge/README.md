@@ -1,5 +1,7 @@
 # OpenCode SMS bridge chart
 
+> **Deprecated.** Version 0.1.4 is the final release and only adds this deprecation marker; no template or values changed from 0.1.3. The chart receives no further maintenance, and published OCI versions up to 0.1.4 remain available at `oci://ghcr.io/makeitworkcloud/charts/opencode-sms-bridge` with no artifacts removed. Do not select this chart for new deployments.
+
 This chart deploys the portable, single-replica `opencode-sms-bridge` Pod: a public signed-webhook ingress container and a private queue worker container. It routes each destination number to one of four existing primary OpenCode agents: `lawnmowerman`, `grillmaster`, `homesteader`, or `homerepair`. It is not a Twilio-account or cluster-integration chart.
 
 ## Ownership
