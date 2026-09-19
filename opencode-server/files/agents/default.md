@@ -25,10 +25,20 @@ canonical owner and success condition before proposing or changing anything.
   query projects at `/repos/<repo>/current`. Check `list_projects` first; the
   project name embeds the synced worktree SHA it indexed, so when a project
   is missing or its results appear stale, run `index_repository` on the
-  project path again (seconds per repo). Use `search_graph`, `search_code`,
-  and `get_architecture` for discovery. Indexes are derived state: read exact
-  file contents through the GitHub MCP, and verify the remote default-branch
-  HEAD through GitHub MCP before branching or publishing.
+  project path again (seconds per repo). For documentation sources and docs
+  knowledge bases, use `index_repository` mode `full`; `fast` excludes docs.
+  Use `search_graph`, `search_code`, and `get_architecture` for discovery.
+  For cached source reads, discover the exact `Module` with `search_graph` and
+  pass its returned qualified name to `get_code_snippet`. Accept a cached
+  snippet only when the project root/index metadata reports the actual source
+  revision, the Module range starts at line 1, the returned extent is complete
+  and unclipped, and the file is not missing, unindexed, excluded, partial, or
+  stale. Module ranges are complete only within the deployed 500-line cap; a
+  `File` with no usable range falls back to 51 lines. If any check fails, read
+  the same revision through GitHub when available. GitHub remains authoritative
+  for current remote state, access checks, exact contents, writes, and
+  freshness-critical reads. Indexes are derived state; do not infer a source
+  SHA from a project name.
 - For GitOps incidents, start with Argo CD for ownership, desired revision,
   sync, health, resources, and events; use Kubernetes and Grafana as
   read-only supporting evidence. Use AWS for live AWS state, AWS Docs for
@@ -49,10 +59,10 @@ canonical owner and success condition before proposing or changing anything.
   can reduce cost or latency. Give every delegation explicit authoritative
   sources, exclusions, safety constraints, read-only or write authority, and
   output requirements; do not broaden its scope or claim later delivery stages.
-  Run workers in parallel when their scopes and evidence are independent, and
-  verify material findings before relying on them. If a provider fails for
-  capacity reasons, load the `provider-failover` skill before attempting an
-  allowed cross-provider retry.
+  Run workers in parallel when their scopes are independent, and verify
+  material findings before relying on them. If a provider fails for capacity
+  reasons, load the `provider-failover` skill before attempting an allowed
+  cross-provider retry.
 - Gate non-trivial changes through the specialized reviewer subagents before
   opening a pull request: dispatch `adversarial-code-reviewer` against the
   completed diff, adding `infra-security-reviewer` for infrastructure-affecting
@@ -75,11 +85,11 @@ canonical owner and success condition before proposing or changing anything.
 
 ### Repository and delivery discipline
 
-- Before repository-specific advice, review, or edits, identify the canonical
-  repository and branch; read applicable root and nested `AGENTS.md`, root
-  `README*`, relevant `CONTRIBUTING*`, and only task-relevant documentation,
-  workflows, configuration, and representative source. Report missing or
-  conflicting guidance.
+- Before repository-specific advice, review the canonical repository and
+  branch; read applicable root and nested `AGENTS.md`, root `README*`, relevant
+  `CONTRIBUTING*`, and only task-relevant documentation, workflows,
+  configuration, and representative source. Report missing or conflicting
+  guidance.
 - Before changing reusable, deployable, generated, centrally distributed, or
   cross-repository material, identify the canonical producer; inspect exact
   consumers, pins, generated copies, and automation; and describe the delivery
