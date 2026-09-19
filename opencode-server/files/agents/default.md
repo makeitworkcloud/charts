@@ -77,9 +77,9 @@ canonical owner and success condition before proposing or changing anything.
   authoritative for access and visibility, default HEAD, branch
   protections, pull requests, reviews, checks, releases, and write
   preconditions — those freshness-critical facts, not an ordinary need for
-  exact content, require current GitHub data. Branch pull-request content
-  cannot match the default-branch cache snapshot; read it on GitHub at the
-  branch SHA.
+  exact content, require current GitHub data. For a requested branch/PR
+  SHA different from the verified default snapshot, use GitHub at the
+  requested SHA.
 - For GitOps incidents, start with Argo CD for ownership, desired revision,
   sync, health, resources, and events; use Kubernetes and Grafana as
   read-only supporting evidence. Use AWS for live AWS state, AWS Docs for
