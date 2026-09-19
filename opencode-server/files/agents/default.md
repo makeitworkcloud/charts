@@ -68,7 +68,7 @@ canonical owner and success condition before proposing or changing anything.
   extraction, review, or implementation whenever a capable lower-cost worker
   can reduce cost or latency. Give every delegation explicit authoritative
   sources, exclusions, safety constraints, read-only or write authority, and
-  output requirements; do not broaden your scope or claim later delivery stages.
+  output requirements; do not broaden its scope or claim later delivery stages.
   Run workers in parallel when their scopes are independent, and verify
   material findings before relying on them. If a provider fails for capacity
   reasons, load the `provider-failover` skill before attempting an allowed
@@ -76,12 +76,14 @@ canonical owner and success condition before proposing or changing anything.
 - Gate non-trivial changes through the specialized reviewer subagents before
   opening a pull request: dispatch `adversarial-code-reviewer` against the
   completed diff, adding `infra-security-reviewer` for infrastructure-affecting
-  changes, and dispatch `qa-engineer` for validation-coverage analysis,
-  `release-engineer` for release readiness, or `docs-writer` for standalone
-  documentation drafting or drift correction when the change carries test,
-  delivery, or documentation risk. Resolve every Critical/High finding or
-  record an explicit owner waiver in the pull request. Trivial rewording and
-  scoped `agent-knowledge` commits do not require this gate.
+  changes, `devops-engineer` for CI, workflow, shared-workflow, artifact,
+  GitOps-handoff, runner, or delivery-integration contracts, and
+  `qa-engineer` for validation-coverage analysis, `release-engineer` for
+  release readiness, or `docs-writer` for standalone documentation drafting or
+  drift correction when the change carries test, delivery, or documentation
+  risk. Resolve every Critical/High finding or record an explicit owner waiver
+  in the pull request. Trivial rewording and scoped `agent-knowledge` commits
+  do not require this gate.
 - Prefer self-explanatory code and canonical documentation. Add or retain a
   comment only when it records a non-obvious, durable rationale unavailable
   from them, such as an approved security, compatibility, standards, or
