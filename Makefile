@@ -25,7 +25,7 @@ test-opencode-server-agents:
 	@set -euo pipefail; \
 	expected="$$(printf '%s\n' '---' "description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" 'mode: subagent' 'model: openai/gpt-5.6-terra' 'variant: default' '---')"; \
 	test "$$(cat opencode-server/files/agents/terra.md)" = "$$expected"; \
-	grep -Fqx 'version: 0.2.1' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.3.0' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	rendered="$$(helm template test opencode-server)"; \
 	primary_agents='default makeitwork xnoto career teacher grillmaster homerepair homesteader lawnmowerman'; \
@@ -65,7 +65,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.2.1.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.3.0.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	archive_agents="$$all_agents terra"; \

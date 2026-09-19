@@ -18,10 +18,10 @@ It must not add proxy credentials, external routes, or gateway membership.
 A routing change updates packaged OpenCode configuration and requires a chart
 version bump. After chart PR validation and a confirmed merge, publication and
 the generated `kustomize-cluster` chart-pin PR are separate stages. Before
-selecting a GitOps pin, require all 14 direct ToolHive proxy Services (`apify`,
+selecting a GitOps pin, require all 13 direct ToolHive proxy Services (`apify`,
 `argocd`, `aws`, `aws-docs`, `cloudflare`, `context7`, `gcp`, `grafana`,
-`kubernetes`, `parallel-search`, `playwright`, `slidespeak`, `terraform-docs`,
-and `twilio-docs`) to be reconciled and healthy. After the selected pin is
+`kubernetes`, `parallel-search`, `playwright`, `slidespeak`, and
+`terraform-docs`) to be reconciled and healthy. After the selected pin is
 reconciled, verify a fresh OpenCode session discovers the direct integrations
 and performs bounded read-only representative calls. Do not infer runtime
 reachability from chart CI.
