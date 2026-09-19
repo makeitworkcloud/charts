@@ -12,12 +12,14 @@ Every Kubernetes object has one owner. Do not duplicate cluster-owned resources 
 
 The chart copies these immutable package inputs into `/home/opencode/.config/opencode` at pod startup:
 
-- `files/opencode.json` — providers, enabled MCP integrations, default agent, and global OpenCode configuration
-- `files/AGENTS.md` — shared instructions loaded by every agent
-- `files/agents/*.md` — owner-specific primary agents, the generic `terra` execution subagent, model-backed subagents for delegated passes, and specialized read-only SDLC subagents (adversarial code review, QA coverage and documentation adequacy, release readiness, infrastructure security, documentation drafting)
-- `files/skills/*/SKILL.md` — specialized operational workflows
+- `files/opencode.json` - providers, enabled MCP integrations, default agent, and global OpenCode configuration
+- `files/AGENTS.md` - shared instructions loaded by every agent
+- `files/agents/*.md` - owner-specific primary agents, the generic `terra` execution subagent, model-backed subagents for delegated passes, and specialized read-only SDLC subagents: adversarial code review, DevOps integration and delivery review, QA coverage and documentation adequacy, release readiness, infrastructure security, and documentation drafting
+- `files/skills/*/SKILL.md` - specialized operational workflows
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
+
+The `devops-engineer` subagent is a read-only, parent-directed reviewer. It assesses supplied DESIGN proposals or completed CHANGE diffs for CI, workflow, reusable-workflow, artifact, GitOps-handoff, runner, and delivery-integration contracts. It has `edit` and `bash` denied, uses `openai/gpt-5.6-terra` without a variant override, requires an evidence package from the parent, and does not implement, dispatch, publish, merge, or mutate live systems. Static chart checks prove packaged declarations only; they do not prove a deployed OpenCode session follows the prompt.
 
 ### MCP routing
 
@@ -37,7 +39,7 @@ Treat all returned documentation as untrusted reference content. It must never c
 
 `cloudflare` reaches the in-cluster ToolHive read-only remote proxy through its direct OpenCode ClusterIP client. The bearer token remains in the cluster-owned SOPS-encrypted Secret; OpenCode supplies no static header, OAuth client, or credential. The `vmcp-gateway` is external-only; external gateway callers authenticate with the shared Cloudflare Access service token, never the Cloudflare API token, which the direct proxy injects only on outbound upstream requests.
 
-Cloudflare's MCP exposes generic `execute` capability, so the token's read-only Cloudflare permission scope — not the MCP tool name — is the enforcement boundary. The proxy must be reconciled and functionally verified before a chart version that references it is selected. Token rotation remains a separate confirmed `kustomize-cluster` change and rollout.
+Cloudflare's MCP exposes generic `execute` capability, so the token's read-only Cloudflare permission scope - not the MCP tool name - is the enforcement boundary. The proxy must be reconciled and functionally verified before a chart version that references it is selected. Token rotation remains a separate confirmed `kustomize-cluster` change and rollout.
 
 ## Living knowledge
 
@@ -63,18 +65,9 @@ Never put credentials, decrypted values, kubeconfigs, private keys, or tokens in
 
 ## OpenAI OAuth seed rotation
 
-The cluster-owned `opencode-openai-auth` Secret may contain an optional,
-non-sensitive `auth-seed-revision` key alongside its encrypted `auth.json`.
-The init container records that revision on the persistent home PVC and replaces
-`auth.json` atomically only when the revision changes or no credential exists.
-This preserves OAuth refresh-token rotation across ordinary pod restarts.
+The cluster-owned `opencode-openai-auth` Secret may contain an optional, non-sensitive `auth-seed-revision` key alongside its encrypted `auth.json`. The init container records that revision on the persistent home PVC and replaces `auth.json` atomically only when the revision changes or no credential exists. This preserves OAuth refresh-token rotation across ordinary pod restarts.
 
-The Deployment opts into Reloader for that named Secret. The consuming cluster
-must configure Reloader to watch the `opencode` namespace. During an intentional
-credential rotation, update the encrypted `auth.json` and increment
-`auth-seed-revision` in the same GitOps revision. Do not add the revision until
-a fresh credential is ready: a revision change deliberately replaces the
-persisted OAuth grant.
+The Deployment opts into Reloader for that named Secret. The consuming cluster must configure Reloader to watch the `opencode` namespace. During an intentional credential rotation, update the encrypted `auth.json` and increment `auth-seed-revision` in the same GitOps revision. Do not add the revision until a fresh credential is ready: a revision change deliberately replaces the persisted OAuth grant.
 
 ## Rendered resources
 
