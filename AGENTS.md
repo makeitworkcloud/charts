@@ -58,8 +58,8 @@ publish changed charts as OCI artifacts to GHCR.
   reads. Freshness-critical means access, visibility, default HEAD, branch
   protections, pull-request, review, check, release, and write
   preconditions — not an ordinary need for exact content, which the
-  verified cache route satisfies. Branch pull-request content cannot match
-  the default-branch cache snapshot; read it on GitHub at the branch SHA.
+  verified cache route satisfies. For a requested branch/PR SHA different
+  from the verified default snapshot, use GitHub at the requested SHA.
   Verify remote default-branch HEAD before branching or publishing. Cached
   private content is limited to owner-approved repositories and does not
   prove current authorization. Do not assume a local checkout or use `git`,
