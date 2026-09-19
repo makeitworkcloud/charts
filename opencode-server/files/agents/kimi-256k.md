@@ -14,7 +14,6 @@ permission:
   external_directory: deny
   task: deny
   todowrite: deny
-  permission: deny
   question: deny
   webfetch: deny
   websearch: deny
