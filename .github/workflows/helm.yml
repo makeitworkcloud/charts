@@ -101,9 +101,29 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 2
+          fetch-depth: 0
+      - name: Resolve base revision
+        id: base
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${PR_BASE_SHA}"
+          else
+            base="${PUSH_BEFORE_SHA}"
+          fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "::error::No usable base revision for this ${{ github.event_name }} event; refusing to guess a changed-chart range."
+            exit 1
+          fi
+          git cat-file -e "${base}^{commit}"
+          printf 'base=%s\n' "$base" >> "$GITHUB_OUTPUT"
       - id: find
-        run: echo "charts=$(make changed-charts)" >> "$GITHUB_OUTPUT"
+        env:
+          BASE_SHA: ${{ steps.base.outputs.base }}
+        run: echo "charts=$(make changed-charts BASE_SHA="$BASE_SHA")" >> "$GITHUB_OUTPUT"
 
   package:
     name: package ${{ matrix.chart }}

@@ -1,11 +1,13 @@
-.PHONY: changed-charts list-charts list-charts-json package-chart test test-opencode-server-agents
+.PHONY: changed-charts list-charts list-charts-json package-chart test test-changed-charts test-opencode-server-agents
 
 SHELL := /bin/bash
 CHARTS := $(shell find . -maxdepth 2 -name Chart.yaml -printf '%h\n' | cut -d'/' -f2 | sort -u)
+BASE_SHA ?= HEAD~1
 
 changed-charts:
-	@changed=$$(git diff --name-only HEAD~1 HEAD 2>/dev/null | cut -d'/' -f1 | sort -u); \
-	for chart in $(CHARTS); do echo "$$changed" | grep -qx "$$chart" && echo "$$chart"; done | jq -R -s -c 'split("\n") | map(select(length > 0))'
+	@set -euo pipefail; \
+	changed="$$(git diff --name-only "$(BASE_SHA)" HEAD | cut -d'/' -f1 | sort -u)" || { echo "changed-charts: git diff failed for BASE_SHA=$(BASE_SHA)" >&2; exit 1; }; \
+	for chart in $(CHARTS); do echo "$$changed" | grep -qx "$$chart" && echo "$$chart" || true; done | jq -R -s -c 'split("\n") | map(select(length > 0))'
 
 list-charts:
 	@for chart in $(CHARTS); do echo "$$chart"; done
@@ -19,7 +21,16 @@ package-chart:
 
 test:
 	@for chart in $(CHARTS); do helm lint --strict "$$chart" && helm template test "$$chart" > /dev/null; done
+	@$(MAKE) test-changed-charts
 	@$(MAKE) test-opencode-server-agents
+
+test-changed-charts:
+	@set -euo pipefail; \
+	test "$$($(MAKE) changed-charts BASE_SHA="$$(git rev-parse HEAD)")" = '[]'; \
+	if $(MAKE) changed-charts BASE_SHA=0000000000000000000000000000000000000001 > /dev/null 2>&1; then \
+		echo "changed-charts must fail on an unresolvable BASE_SHA"; \
+		exit 1; \
+	fi
 
 test-opencode-server-agents:
 	@set -euo pipefail; \
