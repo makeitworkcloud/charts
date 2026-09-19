@@ -27,7 +27,10 @@ test-opencode-server-agents:
 	test "$$(cat opencode-server/files/agents/terra.md)" = "$$expected"; \
 	grep -Fqx 'version: 0.3.0' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
+	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
+	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
 	rendered="$$(helm template test opencode-server)"; \
+	! grep -Fqi 'twilio' <<< "$$rendered"; \
 	primary_agents='default makeitwork xnoto career teacher grillmaster homerepair homesteader lawnmowerman'; \
 	all_agents="$$primary_agents kimi kimi-256k"; \
 	for agent in $$all_agents; do \
@@ -68,6 +71,7 @@ test-opencode-server-agents:
 	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.3.0.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
+	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \
 	archive_agents="$$all_agents terra"; \
 	for agent in $$archive_agents; do \
 		source="opencode-server/files/agents/$$agent.md"; \
