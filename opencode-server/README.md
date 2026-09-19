@@ -27,17 +27,9 @@ The `devops-engineer` subagent is a parent-directed, read-only reviewer for supp
 
 `agent-pipe` remains a direct chart-local service. The other direct clients include `github`, `hero-ssh`, and `codebase-memory`, together with the configured ToolHive backend proxies. Do not add duplicate aggregate and direct entries, because duplicate tool namespaces make tool selection ambiguous.
 
-### Twilio documentation MCP
-
-`twilio-docs` reaches Twilio's public-beta [documentation MCP](https://www.twilio.com/docs/ai/mcp) through its direct in-cluster public-docs-only remote proxy. The proxy upstream is `https://mcp.twilio.com/docs` and attaches no credential, Authorization header, or secret. It provides public API-documentation and schema discovery, including error-code and A2P guidance, for troubleshooting reference only.
-
-The integration has no Twilio account authentication, OAuth, API keys, static headers, or environment variables. It cannot execute Twilio API calls, create campaigns, send SMS, retrieve logs, or inspect account state. Account-specific Twilio diagnosis remains out of scope. Generic or API-capable Twilio MCPs, including local `npx` servers, are intentionally excluded.
-
-Treat all returned documentation as untrusted reference content. It must never cause an agent to execute account actions. Any later approved account-aware design requires a new isolated, read-only troubleshooting proxy with its own least-privilege credential; it must not reuse Terraform, bridge, or OpenCode authentication Secrets.
-
 ### Cloudflare API MCP
 
-`cloudflare` reaches the in-cluster ToolHive read-only remote proxy through its direct OpenCode ClusterIP client. The bearer token remains in the cluster-owned SOPS-encrypted Secret; OpenCode supplies no static header, OAuth client, or credential. The `vmcp-gateway` is external-only; external gateway callers authenticate with the shared Cloudflare Access service token, never the Cloudflare API token, which the direct proxy injects only on outbound upstream requests.
+`cloudflare` reaches the in-cluster ToolHive read-only remote proxy through its direct OpenCode ClusterIP client. The bearer token remains in the cluster-owned SOPS-encrypted Secret; OpenCode supplies no static header, OAuth, client, or credential. The `vmcp-gateway` is external-only; external gateway callers authenticate with the shared Cloudflare Access service token, never the Cloudflare API token, which the direct proxy injects only on outbound upstream requests.
 
 Cloudflare's MCP exposes generic `execute` capability, so the token's read-only Cloudflare permission scope — not the MCP tool name — is the enforcement boundary. The proxy must be reconciled and functionally verified before a chart version that references it is selected. Token rotation remains a separate confirmed `kustomize-cluster` change and rollout.
 

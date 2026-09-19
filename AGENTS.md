@@ -9,12 +9,11 @@ publish changed charts as OCI artifacts to GHCR.
 ## Session boundary and available MCPs
 
 - OpenCode is an in-cluster MCP client. It connects directly to the configured
-  ClusterIP Services: `agent-pipe`; the 14 ToolHive backend proxies
+  ClusterIP Services: `agent-pipe`; the 13 ToolHive backend proxies
   `apify`, `argocd`, `aws`, `aws-docs`, `cloudflare`, `context7`, `gcp`,
-  `grafana`, `kubernetes`, `parallel-search`, `playwright`, `slidespeak`,
-  `terraform-docs`, and `twilio-docs`; and the direct `codebase-memory`,
-  `github`, and `hero-ssh` proxies. Direct tool names do not use a
-  `makeitwork_` aggregate prefix.
+  `grafana`, `kubernetes`, `parallel-search`, `playwright`, `slidespeak`, and
+  `terraform-docs`; and the direct `codebase-memory`, `github`, and `hero-ssh`
+  proxies. Direct tool names do not use a `makeitwork_` aggregate prefix.
 - `vmcp-gateway` is reserved for external consumers only. Do not configure it
   as an OpenCode MCP client or expose duplicate aggregate and direct entries.
 - For Make IT Work Cloud repository exploration, use the direct
