@@ -14,12 +14,19 @@ PASS requires ALL of:
      explicit HOME/XDG env (the stock image has no opencode USER/passwd
      setup), and an explicit linux/amd64 platform with the pinned image
      identity (config id, repo digests, architecture, OS) asserted before
-     any container starts. Entrypoint is overridden with /bin/sh -ec: it
-     copies the two synthetic configs from a read-only /config-source bind
-     into the writable HOME named volume, then execs the pinned `opencode
-     serve --hostname 127.0.0.1 --port 4096`. This mirrors the production
-     chart's writable config seeding instead of a read-only config bind,
-     which differs from production and could cause false negatives.
+     any container starts. Because the first mount of the fresh named
+     volume copies the image's pre-created root-owned subdirectories up
+     into it (Docker copy-up), a throwaway preparer in the SAME pinned
+     image (root, CAP_CHOWN only) creates the HOME/XDG skeleton and
+     recursively chowns it, wholly scoped to the fresh UUID-named
+     disposable volume, with stat metadata printed before/after; this
+     bounded ownership repair aligns with Kubernetes fsGroup write access
+     and assumes/proves nothing about embeddings. The runtime entrypoint
+     is /bin/sh -ec: it preflights writability, copies the two synthetic
+     configs from a read-only /config-source bind into the writable HOME
+     named volume, then execs the pinned `opencode serve --hostname
+     127.0.0.1 --port 4096` (mirroring the production chart's writable
+     config seeding, not a read-only bind that differs from production).
   2. GET /config with x-opencode-directory:/home/opencode initializes the
      plugin via opencode's embedded npm/Arborist (no external bun/npm) and
      the loaded config still carries the pinned plugin spec.
@@ -107,10 +114,32 @@ ENV_ARGS = [
     "-e", "XDG_DATA_HOME=" + WORKDIR + "/.local/share",
 ]
 
-# Copies ONLY the two synthetic configs from the read-only /config-source bind
-# into the writable HOME named volume (uid 1000), then replaces the shell with
-# the pinned server. No other files are read; rootfs stays read-only.
+# The first mount of the fresh named volume copies the image's pre-created
+# root-owned subdirectories up into it (Docker copy-up), so a chown of the
+# volume root alone leaves them unwritable for uid 1000. This throwaway
+# preparer (SAME pinned image, root, CAP_CHOWN only, no other capability)
+# creates the HOME/XDG directory skeleton and recursively chowns it, wholly
+# scoped to this fresh UUID-named disposable volume -- no host home or
+# production data. Safe stat metadata (uid:gid mode path) for the volume root
+# and .config/opencode only is printed before/after; no file contents.
+# This bounded copy-up ownership repair aligns with Kubernetes fsGroup write
+# access semantics; it does not assume or prove anything about embeddings.
+PREPARE_VOLUME = (
+    "stat -c '%u:%g %a %n' " + WORKDIR + "; "
+    "mkdir -p " + WORKDIR + "/.config/opencode " + WORKDIR + "/.cache "
+    + WORKDIR + "/.local/share " + WORKDIR + "/.local/state; "
+    "chown -R 1000:1000 " + WORKDIR + "; "
+    "stat -c '%u:%g %a %n' " + WORKDIR + " " + WORKDIR + "/.config/opencode"
+)
+
+# Runtime uid-1000 init: writability preflight first (fast, explicit failure
+# before any copy or exec), then copies ONLY the two synthetic configs from
+# the read-only /config-source bind into the writable HOME named volume, then
+# replaces the shell with the pinned server. No other files are read; rootfs
+# stays read-only and no privilege is granted to the runtime.
 CONTAINER_INIT = (
+    "test -w " + WORKDIR + "/.config/opencode "
+    "|| { echo 'preflight: " + WORKDIR + "/.config/opencode not writable' >&2; exit 9; }; "
     "mkdir -p " + WORKDIR + "/.config/opencode; "
     "cp /config-source/opencode.json /config-source/opencode-mem.jsonc "
     + WORKDIR + "/.config/opencode/; "
@@ -447,20 +476,21 @@ def main() -> int:
         os.chmod(cfg_dir / "opencode-mem.jsonc", 0o644)
         os.chmod(cfg_dir, 0o755)  # mkdtemp 0700 would block runtime uid 1000 on the ro bind
 
-        phase("prepare named volume ownership (root container, cap CHOWN only, non-recursive)")
+        phase("prepare volume: copy-up ownership repair with stat evidence (root, cap CHOWN only)")
         run(["docker", "volume", "create", VOLUME], timeout=60, check=True)
-        run(
+        prep = run(
             [
                 "docker", "run", "--rm", *PLATFORM,
                 "--user", "0:0", "--cap-drop", "ALL", "--cap-add", "CHOWN",
                 "--security-opt", "no-new-privileges", "--read-only",
                 "--entrypoint", "/bin/sh",
                 "-v", VOLUME + ":" + WORKDIR,
-                IMAGE, "-c", "chown 1000:1000 " + WORKDIR,
+                IMAGE, "-ec", PREPARE_VOLUME,
             ],
             timeout=180,
             check=True,
         )
+        print("  volume stat before/after (uid:gid mode path): " + bounded(prep.stdout.strip()), flush=True)
 
         phase("start container 1 (hardened, read-only, cap-drop ALL, no published ports)")
         start_container(CONTAINERS[0], cfg_dir)
