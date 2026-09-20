@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/opencode-memory-runtime.yml
       - .github/tests/opencode_memory_runtime.py
+      - opencode-server/**
   workflow_dispatch:
 
 permissions:

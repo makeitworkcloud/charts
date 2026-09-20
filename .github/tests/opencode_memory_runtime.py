@@ -9,10 +9,15 @@ cluster changes. Under test:
   plugin  opencode-mem@2.26.0 (release 0c8ed7d54382d9225def8484d691182d46e8552d)
 
 PASS requires ALL of:
-  1. `opencode serve --hostname 127.0.0.1 --port 4096` starts hardened:
-     --user 1000:1000, --read-only, --cap-drop ALL, no-new-privileges,
-     tmpfs /tmp, no published ports, explicit HOME/XDG env (the stock image
-     has no opencode USER/passwd setup, so HOME must be forced).
+  1. The container starts hardened: --user 1000:1000, --read-only,
+     --cap-drop ALL, no-new-privileges, tmpfs /tmp, no published ports,
+     explicit HOME/XDG env (the stock image has no opencode USER/passwd
+     setup). Entrypoint is overridden with /bin/sh -ec: it copies the two
+     synthetic configs from a read-only /config-source bind into the writable
+     HOME named volume, then execs the pinned `opencode serve --hostname
+     127.0.0.1 --port 4096`. This mirrors the production chart's writable
+     config seeding instead of a read-only config bind, which differs from
+     production and could cause false negatives.
   2. GET /config with x-opencode-directory:/home/opencode initializes the
      plugin via opencode's embedded npm/Arborist (no external bun/npm) and
      the loaded config still carries the pinned plugin spec.
@@ -21,7 +26,7 @@ PASS requires ALL of:
      dims) and GET /api/search?q=...&tag=... returns the created id with
      byte-equal content plus a finite numeric similarity >= 0.6.
   4. After docker stop + rm, a replacement container (SAME image, volume,
-     config, workdir) returns the SAME memory id and content.
+     config seeding, workdir) returns the SAME memory id and content.
 
 Source-grounded contracts (verified at the pinned releases above):
   - opencode v1.18.29 packages/opencode/src/server/routes/instance/httpapi/
@@ -44,7 +49,9 @@ Limitations: autoCapture/autoCleanup/injectProfile disabled; synthetic
 API-level probe of local embeddings and container-replacement storage only --
 not pod/node DR, conversation extraction, or auto-learning/capture behavior.
 
-Any failure exits nonzero (no green masking). Failure classification is
+Any failure exits nonzero (no green masking). Every non-cleanup subprocess is
+deadline-capped (docker pull/prepare included); cleanup runs with fixed
+timeouts regardless of the global deadline. Failure classification is
 informational only: auth/transport/install causes outrank native suspicion,
 native suspicion requires explicit dlopen/shared-library phrases (never a
 bare onnxruntime/libsql/musl word), and it is SUSPECTED, not proof -- the
@@ -88,6 +95,16 @@ ENV_ARGS = [
     "-e", "XDG_CACHE_HOME=" + WORKDIR + "/.cache",
     "-e", "XDG_DATA_HOME=" + WORKDIR + "/.local/share",
 ]
+
+# Copies ONLY the two synthetic configs from the read-only /config-source bind
+# into the writable HOME named volume (uid 1000), then replaces the shell with
+# the pinned server. No other files are read; rootfs stays read-only.
+CONTAINER_INIT = (
+    "mkdir -p " + WORKDIR + "/.config/opencode; "
+    "cp /config-source/opencode.json /config-source/opencode-mem.jsonc "
+    + WORKDIR + "/.config/opencode/; "
+    "exec /usr/local/bin/opencode serve --hostname 127.0.0.1 --port " + str(OPENCODE_PORT)
+)
 
 OPENCODE_JSON = {
     "$schema": "https://opencode.ai/config.json",
@@ -146,8 +163,15 @@ def bounded(text: str, limit: int = 1500) -> str:
     return text if len(text) <= limit else text[:limit] + " ...[truncated]"
 
 
-def run(cmd, timeout, check=False):
-    """Bounded subprocess wrapper: timeouts and nonzero exits become Fail with short output."""
+def run(cmd, timeout, check=False, enforce_deadline=True):
+    """Bounded subprocess wrapper. Runtime calls are capped to the remaining
+    global deadline (docker pull/prepare included); cleanup and failure-path
+    evidence gathering pass enforce_deadline=False so they still run."""
+    if enforce_deadline:
+        remaining = DEADLINE - time.monotonic()
+        if remaining <= 0:
+            raise Fail("global deadline exhausted before: " + " ".join(cmd[:6]))
+        timeout = min(timeout, remaining)
     try:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=check)
     except subprocess.TimeoutExpired:
@@ -157,9 +181,12 @@ def run(cmd, timeout, check=False):
         raise Fail("command rc=%d: %s :: %s" % (error.returncode, " ".join(cmd[:6]), tail)) from None
 
 
-def cap(requested: float) -> int:
-    """Per-call subprocess timeout: never exceed the remaining global budget."""
-    return max(5, int(min(requested, DEADLINE - time.monotonic())))
+def cap(requested: float) -> float:
+    """Deadline-bounded float timeout for a single API call."""
+    remaining = DEADLINE - time.monotonic()
+    if remaining <= 0:
+        raise Fail("global deadline exhausted")
+    return max(0.1, min(requested, remaining))
 
 
 def require_remaining(seconds: float) -> None:
@@ -168,13 +195,14 @@ def require_remaining(seconds: float) -> None:
 
 
 def wget(container, url, *, headers=(), post=None, timeout):
-    cmd = ["docker", "exec", container, "wget", "-qO-", "-T", str(int(max(5, timeout)))]
+    timeout = cap(timeout)  # float seconds; subprocess accepts floats
+    cmd = ["docker", "exec", container, "wget", "-qO-", "-T", str(max(1, int(timeout)))]
     for key, value in headers:
         cmd += ["--header", key + ": " + value]
     if post is not None:
         cmd += ["--header", "Content-Type: application/json", "--post-data", post]
     cmd.append(url)
-    result = run(cmd, timeout + 25)
+    result = run(cmd, timeout + 25)  # run() re-caps to the remaining deadline
     return result.returncode, (result.stdout or "").strip(), (result.stderr or "").strip()
 
 
@@ -200,7 +228,7 @@ def wait_json(container, url, *, headers, allow, window, label, per_call=20):
             container,
             url,
             headers=headers,
-            timeout=cap(min(per_call, end - time.monotonic())),
+            timeout=min(per_call, end - time.monotonic()),
         )
         if rc == 0:
             try:
@@ -223,7 +251,7 @@ def api_call(container, path, *, post, timeout, label):
         "http://127.0.0.1:%d%s" % (MEM_PORT, path),
         headers=(("Authorization", "Bearer " + API_TOKEN),),
         post=post,
-        timeout=cap(timeout),
+        timeout=timeout,
     )
     if rc != 0:
         raise Fail(label + " transport failure: " + bounded(err or out, 400))
@@ -252,11 +280,12 @@ def start_container(name, cfg_dir) -> None:
             "docker", "run", "-d", "--name", name,
             "--user", "1000:1000", "--read-only", "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges", "--tmpfs", "/tmp",
+            "--entrypoint", "/bin/sh",
             *ENV_ARGS,
             "-v", VOLUME + ":" + WORKDIR,
-            "-v", str(cfg_dir) + ":" + WORKDIR + "/.config/opencode:ro",
+            "-v", str(cfg_dir) + ":/config-source:ro",
             "-w", WORKDIR, IMAGE,
-            "serve", "--hostname", "127.0.0.1", "--port", str(OPENCODE_PORT),
+            "-ec", CONTAINER_INIT,
         ],
         timeout=120,
         check=True,
@@ -285,7 +314,7 @@ def assert_hit(payload, memory_id, label) -> float:
 
 
 def diagnostics(container) -> str:
-    logs = run(["docker", "logs", "--tail", "150", container], timeout=30)
+    logs = run(["docker", "logs", "--tail", "150", container], timeout=30, enforce_deadline=False)
     return ((logs.stdout or "") + (logs.stderr or "")).strip()
 
 
@@ -421,7 +450,11 @@ def main() -> int:
         detail = str(error)
         print("[fail] " + bounded(detail), flush=True)
         for container in CONTAINERS:
-            state = run(["docker", "inspect", "-f", "{{.State.Status}}", container], timeout=30)
+            state = run(
+                ["docker", "inspect", "-f", "{{.State.Status}}", container],
+                timeout=30,
+                enforce_deadline=False,
+            )
             if (state.stdout or "").strip():
                 lines = relevant_lines(diagnostics(container))
                 if lines:
@@ -431,15 +464,16 @@ def main() -> int:
         print("[classification] " + classify_failure(detail), flush=True)
         return 1
     finally:
-        # Fixed cleanup timeouts: an expired global deadline must never block cleanup.
+        # Fixed timeouts with enforce_deadline=False: an expired global deadline
+        # must never block cleanup of the probe's own containers and volume.
         phase("cleanup: remove only the two probe containers and the named volume")
         for container in CONTAINERS:
             try:
-                run(["docker", "rm", "-f", container], timeout=60)
+                run(["docker", "rm", "-f", container], timeout=60, enforce_deadline=False)
             except Fail:
                 pass
         try:
-            run(["docker", "volume", "rm", "-f", VOLUME], timeout=60)
+            run(["docker", "volume", "rm", "-f", VOLUME], timeout=60, enforce_deadline=False)
         except Fail:
             pass
         if cfg_dir is not None:
