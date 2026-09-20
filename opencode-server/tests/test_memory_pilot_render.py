@@ -9,9 +9,7 @@ import yaml
 CHART = "opencode-server"
 CHART_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 PROD_IMAGE = "ghcr.io/anomalyco/opencode:1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
-TEI_IMAGE = "ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4"
-TEI_MODEL = "nomic-ai/nomic-embed-text-v1"
-TEI_REVISION = "3ac47f125a41961d13b397d0332866be2f9152e1"
+EMBEDDING_MODEL = "Xenova/nomic-embed-text-v1"
 PILOT_FULLNAME = "opencode-memory-pilot"
 PILOT_CLAIM = "opencode-memory-pilot-home"
 PILOT_ARGS = [
@@ -19,8 +17,6 @@ PILOT_ARGS = [
     "--set", "fullnameOverride=" + PILOT_FULLNAME,
     "--set", "persistence.existingClaim=" + PILOT_CLAIM,
 ]
-HEALTH_URL = "http://127.0.0.1:8080/health"
-HEALTH_CMD = ["curl", "-fsS", HEALTH_URL]
 
 
 def run_helm(extra):
@@ -206,12 +202,17 @@ class PilotRendering(unittest.TestCase):
             mem["compaction"],
             {"enabled": True, "memoryLimit": 10},
         )
-        self.assertEqual(mem["embeddingApiUrl"], "http://127.0.0.1:8080/v1")
-        self.assertEqual(mem["embeddingApiKey"], "-")
-        self.assertEqual(mem["embeddingModel"], TEI_MODEL)
+        self.assertEqual(mem["embeddingModel"], EMBEDDING_MODEL)
         self.assertEqual(mem["embeddingDimensions"], 768)
         self.assertTrue(mem["embeddingUseTaskPrefixes"])
-        for key in ("memoryProvider", "memoryModel", "memoryApiUrl", "memoryApiKey"):
+        for key in (
+            "memoryProvider",
+            "memoryModel",
+            "memoryApiUrl",
+            "memoryApiKey",
+            "embeddingApiUrl",
+            "embeddingApiKey",
+        ):
             self.assertNotIn(key, mem, key)
 
     def test_agents_md_is_minimal_pilot_instructions(self):
@@ -252,12 +253,8 @@ class PilotRendering(unittest.TestCase):
     def test_opencode_container(self):
         item = container(self.spec, "opencode")
         self.assertEqual(item["image"], PROD_IMAGE)
-        script = item["args"][0]
-        self.assertIn(HEALTH_URL, script)
-        self.assertIn("-T 2", script)
-        self.assertIn("deadline=600", script)
-        self.assertIn("$(date +%s)", script)
-        self.assertIn("exec /usr/local/bin/opencode web", script)
+        self.assertNotIn("command", item)
+        self.assertEqual(item["args"], ["web", "--hostname", "0.0.0.0", "--port", "4096"])
         self.assertEqual(
             item["startupProbe"],
             {"tcpSocket": {"port": "http"}, "periodSeconds": 10, "failureThreshold": 120},
@@ -284,33 +281,24 @@ class PilotRendering(unittest.TestCase):
             {"home": "/home/opencode", "config": "/home/opencode/.config/opencode", "tmp": "/tmp"},
         )
 
-    def test_tei_container(self):
-        item = container(self.spec, "tei")
-        self.assertEqual(item["image"], TEI_IMAGE)
-        self.assertEqual(
-            item["args"],
-            [
-                "--model-id", TEI_MODEL,
-                "--revision", TEI_REVISION,
-                "--hostname", "127.0.0.1",
-                "--port", "8080",
-                "--huggingface-hub-cache", "/models",
-                "--auto-truncate",
-            ],
-        )
-        self.assertNotIn("ports", item)
-        for probe in ("readinessProbe", "livenessProbe", "startupProbe"):
-            self.assertEqual(item[probe]["exec"]["command"], HEALTH_CMD, probe)
-        self.assertEqual(item["startupProbe"]["periodSeconds"], 10)
-        self.assertEqual(item["startupProbe"]["failureThreshold"], 60)
-        mounts = {entry["name"]: entry["mountPath"] for entry in item["volumeMounts"]}
-        self.assertEqual(mounts, {"models": "/models", "tei-tmp": "/tmp"})
+    def test_no_tei_assets_in_pilot_render(self):
+        self.assertEqual([item["name"] for item in self.spec["containers"]], ["opencode"])
+        for forbidden in (
+            "text-embeddings-inference",
+            "--model-id",
+            "--revision",
+            "--auto-truncate",
+            "huggingface-hub-cache",
+            "tei-tmp",
+            "8080",
+            "127.0.0.1",
+            "curl",
+        ):
+            self.assertNotIn(forbidden, self.rendered, forbidden)
 
     def test_volumes(self):
         names = {item["name"] for item in self.spec["volumes"]}
-        self.assertEqual(
-            names, {"home", "config", "config-source", "tmp", "models", "tei-tmp"}
-        )
+        self.assertEqual(names, {"home", "config", "config-source", "tmp"})
         self.assertEqual(
             volume(self.spec, "home"),
             {"name": "home", "persistentVolumeClaim": {"claimName": PILOT_CLAIM}},
@@ -329,7 +317,7 @@ class PilotRendering(unittest.TestCase):
                 },
             },
         )
-        for name in ("config", "tmp", "models", "tei-tmp"):
+        for name in ("config", "tmp"):
             self.assertEqual(volume(self.spec, name), {"name": name, "emptyDir": {}})
         for item in self.spec["volumes"]:
             self.assertNotIn("secret", item)
@@ -424,6 +412,16 @@ class UnsafePilotValues(unittest.TestCase):
             ],
             "requires memoryPilot.serverSecretName",
         )
+
+
+class WorkflowContract(unittest.TestCase):
+    def test_base_revision_env_uses_event_context(self):
+        workflow = os.path.join(CHART_DIR, "..", ".github", "workflows", "helm.yml")
+        with open(workflow, "r", encoding="utf-8") as handle:
+            content = handle.read()
+        self.assertIn("PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}", content)
+        self.assertIn("PUSH_BEFORE_SHA: ${{ github.event.before }}", content)
+        self.assertNotIn("${{ github.before }}", content)
 
 
 if __name__ == "__main__":

@@ -63,20 +63,7 @@ spec:
       containers:
         - name: opencode
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
-          command: [/bin/sh, -ec]
-          args:
-            - |
-              set -eu
-              deadline=600
-              started=$(date +%s)
-              until wget -q -T 2 -O /dev/null http://127.0.0.1:8080/health; do
-                if [ $(( $(date +%s) - started )) -ge "$deadline" ]; then
-                  echo "text-embeddings-inference sidecar not healthy after $deadline seconds" >&2
-                  exit 1
-                fi
-                sleep 2
-              done
-              exec /usr/local/bin/opencode web --hostname 0.0.0.0 --port 4096
+          args: [web, --hostname, 0.0.0.0, --port, "4096"]
           env:
             - name: HOME
               value: /home/opencode
@@ -109,43 +96,6 @@ spec:
               mountPath: /home/opencode/.config/opencode
             - name: tmp
               mountPath: /tmp
-        - name: tei
-          image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4
-          args:
-            - --model-id
-            - nomic-ai/nomic-embed-text-v1
-            - --revision
-            - "3ac47f125a41961d13b397d0332866be2f9152e1"
-            - --hostname
-            - 127.0.0.1
-            - --port
-            - "8080"
-            - --huggingface-hub-cache
-            - /models
-            - --auto-truncate
-          readinessProbe:
-            exec:
-              command: [curl, -fsS, "http://127.0.0.1:8080/health"]
-            periodSeconds: 10
-          livenessProbe:
-            exec:
-              command: [curl, -fsS, "http://127.0.0.1:8080/health"]
-            periodSeconds: 10
-          startupProbe:
-            exec:
-              command: [curl, -fsS, "http://127.0.0.1:8080/health"]
-            periodSeconds: 10
-            failureThreshold: 60
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: [ALL]
-            readOnlyRootFilesystem: true
-          volumeMounts:
-            - name: models
-              mountPath: /models
-            - name: tei-tmp
-              mountPath: /tmp
       volumes:
         - name: home
           persistentVolumeClaim: {claimName: {{ .Values.persistence.existingClaim }}}
@@ -162,9 +112,5 @@ spec:
               - key: AGENTS.md
                 path: AGENTS.md
         - name: tmp
-          emptyDir: {}
-        - name: models
-          emptyDir: {}
-        - name: tei-tmp
           emptyDir: {}
 {{ end -}}

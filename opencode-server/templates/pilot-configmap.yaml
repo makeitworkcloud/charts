@@ -51,9 +51,7 @@ data:
         "enabled": true,
         "memoryLimit": 10
       },
-      "embeddingApiUrl": "http://127.0.0.1:8080/v1",
-      "embeddingApiKey": "-",
-      "embeddingModel": "nomic-ai/nomic-embed-text-v1",
+      "embeddingModel": "Xenova/nomic-embed-text-v1",
       "embeddingDimensions": 768,
       "embeddingUseTaskPrefixes": true
     }
@@ -61,8 +59,8 @@ data:
     # Memory pilot
 
     This OpenCode instance is the isolated Make IT Work Cloud memory pilot. It
-    runs the opencode-mem plugin against a same-pod text-embeddings-inference
-    embedding sidecar and serves only synthetic memory traffic.
+    runs the opencode-mem plugin with local ONNX embeddings and serves only
+    synthetic memory traffic.
 
     - The default agent is `memory-pilot`; its only allowed tool is `memory`.
     - No MCP servers, packaged production agents, or skills are configured.

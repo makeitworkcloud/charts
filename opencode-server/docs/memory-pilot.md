@@ -32,36 +32,32 @@ artifact PVC, packaged production agents, skills, MCP configuration, or any
   `strategy: Recreate`.
 
 OpenCode still serves port 4096 behind a cluster-owned Service in
-`kustomize-cluster`, exactly like production. Only the embedding sidecar is
-never exposed by a Service.
+`kustomize-cluster`, exactly like production.
 
 ## Runtime shape
 
-- OpenCode `1.18.29` (digest-pinned) waits for the embedding sidecar's
-  `127.0.0.1:8080/health` endpoint using a busybox `wget -T 2` loop with a
-  date-based ten-minute deadline before `exec`-ing `opencode web` on port
-  4096, because the memory plugin caches embedding warm-up failures. A
-  Kubernetes `startupProbe` on port 4096 (period 10 seconds, failure
-  threshold 120) provides a twenty-minute budget that covers the wait plus
-  the first-boot npm plugin install; readiness and liveness probing only
-  begin after startup succeeds, so the tcp liveness probe cannot kill the
-  still-waiting container.
-- Embeddings come only from the same-pod
-  `ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4` sidecar running
-  `nomic-ai/nomic-embed-text-v1` at revision
-  `3ac47f125a41961d13b397d0332866be2f9152e1` (768 dimensions, Nomic task
-  prefixes, auto-truncate). The sidecar image, model, and revision are fixed
-  in the chart templates, not configurable values. The sidecar binds
-  `127.0.0.1:8080` only and is never exposed by a Service.
-- Both remote embedding fields are set, which is how the plugin skips its
-  local ONNX backend; `embeddingApiKey` is the non-secret `-` placeholder for
-  the no-auth loopback endpoint. The manual `memoryProvider`/
-  `memoryApiUrl` memory-API block only activates when explicitly configured
-  and is omitted, so no external embedding or model endpoint exists beyond
-  the loopback TEI and the `{env:ZHIPU_API_KEY}` provider.
-- The sidecar model cache is an `emptyDir`: every pod start re-downloads the
-  model into `/models`, so first starts can take minutes. Its startup probe
-  allows ten minutes for that download.
+- OpenCode `1.18.29` (digest-pinned) starts directly with
+  `opencode web --hostname 0.0.0.0 --port 4096`. A Kubernetes `startupProbe`
+  on port 4096 (period 10 seconds, failure threshold 120) provides a
+  twenty-minute budget for the first-boot npm plugin install and the local
+  embedding model download; readiness and liveness probing begin only after
+  startup succeeds.
+- Embeddings use the plugin's local ONNX default,
+  `Xenova/nomic-embed-text-v1`, with `embeddingDimensions: 768` and
+  `embeddingUseTaskPrefixes: true`. No remote embedding endpoint is
+  configured: `embeddingApiUrl` and `embeddingApiKey` are omitted, and the
+  manual `memoryProvider`/`memoryApiUrl` block only activates when
+  explicitly configured and is omitted, so no external embedding or model
+  endpoint exists beyond the `{env:ZHIPU_API_KEY}` provider.
+- Removing the former embedding sidecar does not remove Hugging Face
+dependencies: the plugin still ships its local `@huggingface/transformers`
+stack and downloads the ONNX model from Hugging Face on first use.
+- Local ONNX embedding compatibility on the stock Alpine-based OpenCode
+  image is UNVERIFIED. It is an activation gate: verify package
+  compatibility and native runtime behavior before registering or syncing
+  the pilot. Persistent home storage does not solve it — the model cache
+  persists under the storage path, but compatibility must be proven at
+  runtime.
 - The `opencode-mem@2.26.0` plugin installs from npm on first boot into the
   persistent home. Plugin settings are the seeded `opencode-mem.jsonc`:
   storage under `/home/opencode/.opencode-mem/data`, capture on, cleanup
@@ -92,31 +88,27 @@ documented operating policy, not an enforced sandbox: the `memory` tool can
 import and export files, so treat every path and payload as synthetic pilot
 data.
 
-## Persistence, backups, and restore
+## Persistence
 
-- The pilot is single-replica on a node-local home claim: no high
-  availability. `Recreate` reduces the chance of two writers overlapping the
-  store; it is not proof of database safety.
-- Backup scope is the plugin memory inventory only: its database, shards,
-  and raw-prompt records under `.opencode-mem`. An operator must classify
-  that content and confirm it excludes credentials before any copy is
-  taken; `.auth-token` is treated as a credential and is never included.
-  Do not back up the whole home directory and never `auth.json`. No agent
-  may read or upload credentials at any point in a backup or restore.
+- The pilot is single-replica `Recreate` on a dedicated home claim: no high
+  availability and no node-loss protection. `Recreate` reduces the chance of
+  two writers overlapping the store; it is not proof of database safety.
+- Storage acceptance for this pilot is the persistent home PVC as-is: the
+  plugin keeps everything under `/home/opencode/.opencode-mem/data`.
+- Backup and restore automation is deferred; no backup design is specified
+  here. If an operator takes a manual copy, scope it to the plugin memory
+  inventory (database, shards, raw-prompt records), classify the content
+  first, and exclude credentials — `.auth-token` is treated as a credential
+  and is never included — and never copy the whole home directory or
+  `auth.json`. No agent may read or upload credentials.
 - OpenCode's own session database is also on the home PVC; it is outside
   the plugin backup scope, not outside the claim.
-- There is no automated backup until a destination and encryption approach
-  are selected. Backup is a cold, manual operation: stop the pod before
-  copying so the store is consistent.
 - Never delete lock files automatically; a stale lock is an operator
   decision.
-- Restart and restore tests are external gates. A successful render and
-  rollout says nothing about restore correctness, and no production use may
-  depend on this store until those gates pass.
 
 ## Security posture
 
 Non-root UID/GID/fsGroup 1000, read-only root filesystems, all capabilities
-dropped, no Service Account token automount, no Service exposure for the TEI
-sidecar, no resource requests or limits (single-node repo policy), and no
-production credential grants.
+dropped, no Service Account token automount, no Service resources rendered,
+no resource requests or limits (single-node repo policy), and no production
+credential grants.
