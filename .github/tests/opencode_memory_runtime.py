@@ -450,17 +450,25 @@ def main() -> int:
         detail = str(error)
         print("[fail] " + bounded(detail), flush=True)
         for container in CONTAINERS:
-            state = run(
-                ["docker", "inspect", "-f", "{{.State.Status}}", container],
-                timeout=30,
-                enforce_deadline=False,
-            )
-            if (state.stdout or "").strip():
-                lines = relevant_lines(diagnostics(container))
-                if lines:
-                    printed = bounded("\n".join(lines))
-                    print("[container-logs] " + container + " (filtered): " + printed, flush=True)
-                    detail += "\n" + printed
+            # Diagnostic failures must never replace the original error or skip
+            # classification; report a bounded marker and keep the original detail.
+            try:
+                state = run(
+                    ["docker", "inspect", "-f", "{{.State.Status}}", container],
+                    timeout=30,
+                    enforce_deadline=False,
+                )
+                if (state.stdout or "").strip():
+                    lines = relevant_lines(diagnostics(container))
+                    if lines:
+                        printed = bounded("\n".join(lines))
+                        print("[container-logs] " + container + " (filtered): " + printed, flush=True)
+                        detail += "\n" + printed
+            except Fail as diagnostic_error:
+                print(
+                    "[diagnostics-unavailable] " + container + ": " + bounded(str(diagnostic_error), 200),
+                    flush=True,
+                )
         print("[classification] " + classify_failure(detail), flush=True)
         return 1
     finally:
