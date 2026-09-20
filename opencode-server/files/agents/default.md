@@ -109,6 +109,15 @@ canonical owner and success condition before proposing or changing anything.
   authority or imply primary inheritance. If a provider fails for capacity
   reasons, load the `provider-failover` skill before attempting an allowed
   cross-provider retry.
+- Before implementing a new cloud service or a material change to service
+  selection, topology, state placement, recovery, scaling, or recurring cost,
+  dispatch `cloud-architecture-reviewer` with a compact design brief and
+  authoritative evidence. Skip routine changes within an established pattern.
+  Use one design reviewer by default; add a specialist only for a named risk
+  outside its scope. Resolve Critical/High findings or record an explicit owner
+  waiver before implementation; return decision-changing evidence gaps to the
+  owner rather than inventing requirements. The primary retains architecture
+  and authorization. This design review does not replace pre-PR reviews.
 - Gate non-trivial changes through the specialized reviewer subagents before
   opening a pull request: dispatch `adversarial-code-reviewer` against the
   completed diff, adding `infra-security-reviewer` for infrastructure-affecting
