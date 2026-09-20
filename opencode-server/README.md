@@ -19,7 +19,7 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
 
-The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-5.6-terra` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
+The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, permissions, and delivery integration. It uses `openai/gpt-5.6-terra` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### MCP routing
 
@@ -90,13 +90,17 @@ Configuration is loaded when OpenCode starts. A reconciled chart update replaces
 `memoryPilot.enabled=true` switches a release from the production rendering to
 an isolated memory pilot: the production ConfigMap and Deployment are suppressed
 and the chart emits only a pilot ConfigMap and a single-replica `Recreate`
-Deployment named by a required distinct `fullnameOverride` (contract
-`opencode-memory-pilot`). The pilot runs OpenCode with only the pinned
-`opencode-mem` plugin and a same-pod `text-embeddings-inference` sidecar serving
-loopback-only embeddings; it mounts no production secrets, agents, skills, MCP
-configuration, or artifact PVC, and it requires a dedicated home claim. Unsafe
-values — the production `opencode` fullname, the production `opencode-home`
-claim, or empty names — fail rendering.
+Deployment. Rendering is locked to the reviewed contract: `fullnameOverride`
+must be exactly `opencode-memory-pilot`, `persistence.existingClaim` exactly
+`opencode-memory-pilot-home`, and the pilot provider and server-auth Secret
+names exactly the pilot defaults; any other value, including the production
+names, fails rendering. The pilot runs OpenCode with only the pinned
+`opencode-mem` plugin and a same-pod `text-embeddings-inference` sidecar
+serving loopback-only embeddings — the sidecar is never exposed by a Service,
+while OpenCode still serves port 4096 behind the cluster-owned Service. The
+pilot mounts no production secrets, agents, skills, MCP configuration, or
+artifact PVC, and permission rules deny every tool except `memory` and the
+plugin's structured-output path.
 
 Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
 the pilot is single-replica node-local persistence with no automated backup,
@@ -105,7 +109,7 @@ and restart and restore verification are external gates.
 ## Delivery lifecycle
 
 1. Open a charts pull request and require repository hygiene, Helm validation, and package checks to pass.
-2. Merge only with explicit confirmation. The main workflow publishes the immutable OCI chart to `ghcr.io/makeitworkcloud/charts`.
+2. Merge only with explicit confirmation. The main workflow publishes the immutable OCI chart to `ghcr.io/makeitworkcloud/charts/opencode-server`.
 3. After publication, charts automation opens or updates a `kustomize-cluster` pull request changing the OpenCode Application's pinned `targetRevision` and enables GitHub auto-merge.
 4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
 5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.

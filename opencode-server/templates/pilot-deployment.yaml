@@ -1,15 +1,15 @@
 {{- if .Values.memoryPilot.enabled -}}
-{{- if not .Values.fullnameOverride -}}
-{{- fail "memoryPilot.enabled=true requires an explicit distinct fullnameOverride (contract: opencode-memory-pilot)" -}}
+{{- if ne .Values.fullnameOverride "opencode-memory-pilot" -}}
+{{- fail "memoryPilot.enabled=true requires fullnameOverride exactly opencode-memory-pilot" -}}
 {{- end -}}
-{{- if eq .Values.fullnameOverride "opencode" -}}
-{{- fail "memoryPilot.enabled=true must not render the production fullnameOverride opencode" -}}
+{{- if ne .Values.persistence.existingClaim "opencode-memory-pilot-home" -}}
+{{- fail "memoryPilot.enabled=true requires persistence.existingClaim exactly opencode-memory-pilot-home" -}}
 {{- end -}}
-{{- if not .Values.persistence.existingClaim -}}
-{{- fail "memoryPilot.enabled=true requires a dedicated persistence.existingClaim (contract: opencode-memory-pilot-home)" -}}
+{{- if ne .Values.memoryPilot.providerSecretName "opencode-memory-pilot-provider" -}}
+{{- fail "memoryPilot.enabled=true requires memoryPilot.providerSecretName exactly opencode-memory-pilot-provider" -}}
 {{- end -}}
-{{- if eq .Values.persistence.existingClaim "opencode-home" -}}
-{{- fail "memoryPilot.enabled=true must not use the production home claim opencode-home" -}}
+{{- if ne .Values.memoryPilot.serverSecretName "opencode-memory-pilot-server-auth" -}}
+{{- fail "memoryPilot.enabled=true requires memoryPilot.serverSecretName exactly opencode-memory-pilot-server-auth" -}}
 {{- end -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -68,14 +68,13 @@ spec:
             - |
               set -eu
               deadline=600
-              waited=0
-              until wget -q -O /dev/null http://127.0.0.1:8080/health; do
-                if [ "$waited" -ge "$deadline" ]; then
+              started=$(date +%s)
+              until wget -q -T 2 -O /dev/null http://127.0.0.1:8080/health; do
+                if [ $(( $(date +%s) - started )) -ge "$deadline" ]; then
                   echo "text-embeddings-inference sidecar not healthy after $deadline seconds" >&2
                   exit 1
                 fi
                 sleep 2
-                waited=$((waited + 2))
               done
               exec /usr/local/bin/opencode web --hostname 0.0.0.0 --port 4096
           env:
@@ -90,6 +89,10 @@ spec:
           ports:
             - name: http
               containerPort: 4096
+          startupProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 10
+            failureThreshold: 120
           readinessProbe:
             tcpSocket: {port: http}
           livenessProbe:
@@ -107,12 +110,12 @@ spec:
             - name: tmp
               mountPath: /tmp
         - name: tei
-          image: {{ .Values.memoryPilot.tei.image.repository }}:{{ .Values.memoryPilot.tei.image.tag }}
+          image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4
           args:
             - --model-id
-            - {{ .Values.memoryPilot.tei.modelId | quote }}
+            - nomic-ai/nomic-embed-text-v1
             - --revision
-            - {{ .Values.memoryPilot.tei.modelRevision | quote }}
+            - "3ac47f125a41961d13b397d0332866be2f9152e1"
             - --hostname
             - 127.0.0.1
             - --port

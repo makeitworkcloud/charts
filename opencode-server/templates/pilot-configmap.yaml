@@ -13,6 +13,11 @@ data:
       "provider": {
         "zai-coding-plan": {"options": {"apiKey": "{env:ZHIPU_API_KEY}"}}
       },
+      "permission": {
+        "*": "deny",
+        "memory": "allow",
+        "StructuredOutput": "allow"
+      },
       "agent": {
         "build": {"disable": true},
         "plan": {"disable": true},
@@ -20,8 +25,8 @@ data:
         "explore": {"disable": true},
         "memory-pilot": {
           "mode": "primary",
-          "prompt": "You are the isolated Make IT Work Cloud memory-pilot primary agent. This instance exists only to generate and exercise synthetic memory data through the opencode-mem plugin; every turn is synthetic pilot input. Your only enabled tool is memory: capture, search, and review synthetic memories. You have no filesystem, shell, web, task, or MCP access. Never attempt real work, repository changes, or live-system actions, and never store or request credentials, tokens, or secret material.",
-          "tools": {"*": false, "task": false, "memory": true}
+          "prompt": "You are the isolated Make IT Work Cloud memory-pilot primary agent. This instance exists only to generate and exercise synthetic memory data through the opencode-mem plugin; every turn is synthetic pilot input. Your only allowed tool is memory: capture, search, and review synthetic memories, and treat import or export paths as synthetic pilot data, since the synthetic-only rule is operating policy rather than a sandbox. Never attempt real work, repository changes, or live-system actions, and never store or request credentials, tokens, or secret material.",
+          "permission": {"*": "deny", "memory": "allow"}
         }
       },
       "plugin": ["opencode-mem@2.26.0"]
@@ -51,9 +56,11 @@ data:
     runs the opencode-mem plugin against a same-pod text-embeddings-inference
     embedding sidecar and serves only synthetic memory traffic.
 
-    - The default agent is `memory-pilot`; its only enabled tool is `memory`.
+    - The default agent is `memory-pilot`; its only allowed tool is `memory`.
     - No MCP servers, packaged production agents, or skills are configured.
     - All conversations are synthetic pilot data; raw prompts persist in the
       memory store while chat-message injection is enabled.
+    - The synthetic-only rule is operating policy, not an enforced sandbox; the
+      memory tool can import and export files, so treat every path as synthetic.
     - Never store or request credentials, tokens, or secret material.
 {{ end -}}

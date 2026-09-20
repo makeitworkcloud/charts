@@ -1,10 +1,13 @@
+import glob
 import json
+import os
 import subprocess
 import unittest
 
 import yaml
 
 CHART = "opencode-server"
+CHART_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 PROD_IMAGE = "ghcr.io/anomalyco/opencode:1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
 TEI_IMAGE = "ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4"
 TEI_MODEL = "nomic-ai/nomic-embed-text-v1"
@@ -62,6 +65,11 @@ def volume(spec, name):
     return matches[0]
 
 
+def chart_file(*parts):
+    with open(os.path.join(CHART_DIR, *parts), "r", encoding="utf-8") as handle:
+        return handle.read().rstrip("\n")
+
+
 def assert_hardened(testcase, item):
     security = item["securityContext"]
     testcase.assertFalse(security["allowPrivilegeEscalation"])
@@ -70,22 +78,64 @@ def assert_hardened(testcase, item):
 
 
 class DefaultRendering(unittest.TestCase):
-    def test_renders_only_production_configmap_and_deployment(self):
-        rendered = render([])
-        docs = [doc for doc in yaml.safe_load_all(rendered) if doc is not None]
-        self.assertEqual(sorted(doc["kind"] for doc in docs), ["ConfigMap", "Deployment"])
-        config_map = by_kind(docs, "ConfigMap")
-        deployment = by_kind(docs, "Deployment")
-        self.assertEqual(config_map["metadata"]["name"], "opencode-config")
-        self.assertEqual(deployment["metadata"]["name"], "opencode")
-        spec = deployment["spec"]["template"]["spec"]
-        self.assertEqual([item["name"] for item in spec["containers"]], ["opencode"])
-        self.assertNotIn("strategy", deployment["spec"])
-        for forbidden in ("memory-pilot", "opencode-mem", "text-embeddings-inference"):
-            self.assertNotIn(forbidden, rendered, forbidden)
+    @classmethod
+    def setUpClass(cls):
+        cls.rendered = render([])
+        cls.docs = [doc for doc in yaml.safe_load_all(cls.rendered) if doc is not None]
+        cls.config_map = by_kind(cls.docs, "ConfigMap")
+        cls.deployment = by_kind(cls.docs, "Deployment")
+        cls.spec = cls.deployment["spec"]["template"]["spec"]
 
-    def test_explicit_disable_matches_default_byte_for_byte(self):
-        self.assertEqual(render([]), render(["--set", "memoryPilot.enabled=false"]))
+    def test_renders_only_production_configmap_and_deployment(self):
+        self.assertEqual(sorted(doc["kind"] for doc in self.docs), ["ConfigMap", "Deployment"])
+        self.assertEqual(self.config_map["metadata"]["name"], "opencode-config")
+        self.assertEqual(self.deployment["metadata"]["name"], "opencode")
+
+    def test_configmap_matches_canonical_chart_files(self):
+        data = self.config_map["data"]
+        agent_paths = sorted(glob.glob(os.path.join(CHART_DIR, "files", "agents", "*.md")))
+        skill_paths = sorted(glob.glob(os.path.join(CHART_DIR, "files", "skills", "*", "SKILL.md")))
+        expected_keys = {"opencode.json", "AGENTS.md"}
+        self.assertEqual(data["opencode.json"], chart_file("files", "opencode.json"))
+        self.assertEqual(data["AGENTS.md"], chart_file("files", "AGENTS.md"))
+        for path in agent_paths:
+            key = os.path.basename(path)
+            expected_keys.add(key)
+            self.assertEqual(data[key], chart_file("files", "agents", key), path)
+        for path in skill_paths:
+            relative = os.path.relpath(path, os.path.join(CHART_DIR, "files"))
+            key = relative.replace(os.sep, "-")
+            expected_keys.add(key)
+            self.assertEqual(data[key], chart_file("files", relative), path)
+        self.assertEqual(set(data), expected_keys)
+
+    def test_deployment_keeps_production_behavior(self):
+        self.assertNotIn("strategy", self.deployment["spec"])
+        self.assertEqual(self.deployment["spec"]["replicas"], 1)
+        self.assertEqual([item["name"] for item in self.spec["containers"]], ["opencode"])
+        opencode = container(self.spec, "opencode")
+        self.assertEqual(opencode["image"], PROD_IMAGE)
+        self.assertEqual(opencode["args"], ["web", "--hostname", "0.0.0.0", "--port", "4096"])
+        zai = env_entry(opencode, "ZHIPU_API_KEY")["valueFrom"]["secretKeyRef"]
+        self.assertEqual(zai, {"name": "opencode-zai", "key": "ZHIPU_API_KEY"})
+        mounts = {entry["name"]: entry["mountPath"] for entry in opencode["volumeMounts"]}
+        self.assertEqual(mounts["artifacts"], "/artifacts")
+        self.assertEqual(
+            volume(self.spec, "home"),
+            {"name": "home", "persistentVolumeClaim": {"claimName": "opencode-home"}},
+        )
+        self.assertEqual(
+            volume(self.spec, "artifacts"),
+            {"name": "artifacts", "persistentVolumeClaim": {"claimName": "opencode-artifacts"}},
+        )
+        self.assertEqual(
+            volume(self.spec, "openai-auth"),
+            {"name": "openai-auth", "secret": {"secretName": "opencode-openai-auth"}},
+        )
+
+    def test_default_render_carries_no_pilot_surfaces(self):
+        for forbidden in ("memory-pilot", "opencode-mem", "text-embeddings-inference"):
+            self.assertNotIn(forbidden, self.rendered, forbidden)
 
 
 class PilotRendering(unittest.TestCase):
@@ -118,12 +168,18 @@ class PilotRendering(unittest.TestCase):
             cfg["provider"]["zai-coding-plan"]["options"]["apiKey"],
             "{env:ZHIPU_API_KEY}",
         )
+        self.assertEqual(
+            cfg["permission"],
+            {"*": "deny", "memory": "allow", "StructuredOutput": "allow"},
+        )
         for agent in ("build", "plan", "general", "explore"):
             self.assertTrue(cfg["agent"][agent]["disable"], agent)
         pilot = cfg["agent"]["memory-pilot"]
         self.assertEqual(pilot["mode"], "primary")
-        self.assertEqual(pilot["tools"], {"*": False, "task": False, "memory": True})
+        self.assertEqual(pilot["permission"], {"*": "deny", "memory": "allow"})
         self.assertIn("synthetic", pilot["prompt"])
+        self.assertNotIn("tools", pilot)
+        self.assertNotIn("tools", cfg)
         self.assertEqual(cfg["plugin"], ["opencode-mem@2.26.0"])
         self.assertNotIn("mcp", cfg)
 
@@ -151,6 +207,7 @@ class PilotRendering(unittest.TestCase):
         agents_md = self.config_map["data"]["AGENTS.md"]
         self.assertIn("memory-pilot", agents_md)
         self.assertIn("synthetic", agents_md)
+        self.assertIn("not an enforced sandbox", agents_md)
 
     def test_deployment_is_single_replica_recreate(self):
         self.assertEqual(self.deployment["spec"]["replicas"], 1)
@@ -159,10 +216,11 @@ class PilotRendering(unittest.TestCase):
             self.deployment["spec"]["selector"]["matchLabels"],
             {"app": PILOT_FULLNAME},
         )
-        annotations = self.deployment["metadata"]["annotations"]
-        self.assertIn("checksum/opencode-server-config", annotations)
+        template_annotations = self.deployment["spec"]["template"]["metadata"]["annotations"]
+        self.assertIn("checksum/opencode-server-config", template_annotations)
+        deployment_annotations = self.deployment["metadata"]["annotations"]
         self.assertEqual(
-            annotations["secret.reloader.stakater.com/reload"],
+            deployment_annotations["secret.reloader.stakater.com/reload"],
             "opencode-memory-pilot-provider",
         )
 
@@ -185,8 +243,14 @@ class PilotRendering(unittest.TestCase):
         self.assertEqual(item["image"], PROD_IMAGE)
         script = item["args"][0]
         self.assertIn(HEALTH_URL, script)
+        self.assertIn("-T 2", script)
         self.assertIn("deadline=600", script)
+        self.assertIn("$(date +%s)", script)
         self.assertIn("exec /usr/local/bin/opencode web", script)
+        self.assertEqual(
+            item["startupProbe"],
+            {"tcpSocket": {"port": "http"}, "periodSeconds": 10, "failureThreshold": 120},
+        )
         provider_key = env_entry(item, "ZHIPU_API_KEY")["valueFrom"]["secretKeyRef"]
         self.assertEqual(
             provider_key,
@@ -285,18 +349,8 @@ class UnsafePilotValues(unittest.TestCase):
         self.assertNotEqual(proc.returncode, 0, proc.stdout)
         self.assertIn(needle, proc.stderr)
 
-    def test_enabled_with_production_fullname_defaults_fails(self):
-        self.assert_render_fails(["--set", "memoryPilot.enabled=true"], "fullnameOverride")
-
-    def test_enabled_with_explicit_production_fullname_fails(self):
-        self.assert_render_fails(
-            [
-                "--set", "memoryPilot.enabled=true",
-                "--set", "fullnameOverride=opencode",
-                "--set", "persistence.existingClaim=" + PILOT_CLAIM,
-            ],
-            "fullnameOverride",
-        )
+    def test_enabled_with_production_defaults_fails(self):
+        self.assert_render_fails(["--set", "memoryPilot.enabled=true"], "requires fullnameOverride")
 
     def test_enabled_with_production_claim_fails(self):
         self.assert_render_fails(
@@ -305,7 +359,7 @@ class UnsafePilotValues(unittest.TestCase):
                 "--set", "fullnameOverride=" + PILOT_FULLNAME,
                 "--set", "persistence.existingClaim=opencode-home",
             ],
-            "opencode-home",
+            "requires persistence.existingClaim",
         )
 
     def test_enabled_with_empty_claim_fails(self):
@@ -315,7 +369,17 @@ class UnsafePilotValues(unittest.TestCase):
                 "--set", "fullnameOverride=" + PILOT_FULLNAME,
                 "--set", "persistence.existingClaim=",
             ],
-            "existingClaim",
+            "requires persistence.existingClaim",
+        )
+
+    def test_enabled_with_near_miss_fullname_fails(self):
+        self.assert_render_fails(
+            [
+                "--set", "memoryPilot.enabled=true",
+                "--set", "fullnameOverride=opencode-memory-pilots",
+                "--set", "persistence.existingClaim=" + PILOT_CLAIM,
+            ],
+            "requires fullnameOverride",
         )
 
     def test_enabled_with_empty_fullname_fails(self):
@@ -325,7 +389,29 @@ class UnsafePilotValues(unittest.TestCase):
                 "--set", "fullnameOverride=",
                 "--set", "persistence.existingClaim=" + PILOT_CLAIM,
             ],
-            "fullnameOverride",
+            "requires fullnameOverride",
+        )
+
+    def test_enabled_with_production_provider_secret_fails(self):
+        self.assert_render_fails(
+            [
+                "--set", "memoryPilot.enabled=true",
+                "--set", "fullnameOverride=" + PILOT_FULLNAME,
+                "--set", "persistence.existingClaim=" + PILOT_CLAIM,
+                "--set", "memoryPilot.providerSecretName=opencode-zai",
+            ],
+            "requires memoryPilot.providerSecretName",
+        )
+
+    def test_enabled_with_production_server_secret_fails(self):
+        self.assert_render_fails(
+            [
+                "--set", "memoryPilot.enabled=true",
+                "--set", "fullnameOverride=" + PILOT_FULLNAME,
+                "--set", "persistence.existingClaim=" + PILOT_CLAIM,
+                "--set", "memoryPilot.serverSecretName=opencode-server-auth",
+            ],
+            "requires memoryPilot.serverSecretName",
         )
 
 

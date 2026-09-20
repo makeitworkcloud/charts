@@ -164,7 +164,7 @@ test-opencode-server-agents:
 	grep -Fqi 'requested SHA' opencode-server/docs/agent-instruction-architecture.md; \
 	! grep -Fqi 'recorded indexed' opencode-server/docs/agent-instruction-architecture.md; \
 	grep -Fqx '  terra.md: |-' <<< "$$rendered"; \
-	grep -Fqx '    description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis' <<< "$$rendered"; \
+	grep -Fqx "    description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" <<< "$$rendered"; \
 	grep -Fqx '    mode: subagent' <<< "$$rendered"; \
 	grep -Fqx '    model: openai/gpt-5.6-terra' <<< "$$rendered"; \
 	grep -Fqx '    variant: default' <<< "$$rendered"; \

@@ -15,18 +15,9 @@ secrets:
   serverAuth: opencode-server-auth
   zai: opencode-zai
 
-# Opt-in isolated memory pilot. When enabled, the chart renders ONLY the pilot
-# ConfigMap and Deployment (OpenCode plus a same-pod text-embeddings-inference
-# sidecar) and suppresses the production ConfigMap and Deployment. Requires a
-# distinct fullnameOverride and a dedicated home claim; rendering fails on the
-# production values. See docs/memory-pilot.md.
+# Isolated memory pilot mode locked to the reviewed contract names validated
+# in templates/pilot-deployment.yaml. See docs/memory-pilot.md.
 memoryPilot:
   enabled: false
   providerSecretName: opencode-memory-pilot-provider
   serverSecretName: opencode-memory-pilot-server-auth
-  tei:
-    image:
-      repository: ghcr.io/huggingface/text-embeddings-inference
-      tag: "cpu-1.9.4"
-    modelId: nomic-ai/nomic-embed-text-v1
-    modelRevision: 3ac47f125a41961d13b397d0332866be2f9152e1
