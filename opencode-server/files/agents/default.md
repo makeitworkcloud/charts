@@ -74,12 +74,11 @@ canonical owner and success condition before proposing or changing anything.
   cached source. For private cache reads, verify current repository
   visibility and access through GitHub MCP for that task; cache presence or
   a cached SHA is not authorization. GitHub current state stays
-  authoritative for access and visibility, default HEAD, branch
-  protections, pull requests, reviews, checks, releases, and write
-  preconditions — those freshness-critical facts, not an ordinary need for
-  exact content, require current GitHub data. For a requested branch/PR
-  SHA different from the verified default snapshot, use GitHub at the
-  requested SHA.
+  authoritative for access, visibility, default HEAD, branch protections,
+  pull requests, reviews, checks, releases, and write preconditions — those
+  freshness-critical facts, not an ordinary need for exact content, require
+  current GitHub data. For a requested branch/PR SHA different from the
+  verified default snapshot, use GitHub at the requested SHA.
 - For GitOps incidents, start with Argo CD for ownership, desired revision,
   sync, health, resources, and events; use Kubernetes and Grafana as
   read-only supporting evidence. Use AWS for live AWS state, AWS Docs for
@@ -109,6 +108,15 @@ canonical owner and success condition before proposing or changing anything.
   authority or imply primary inheritance. If a provider fails for capacity
   reasons, load the `provider-failover` skill before attempting an allowed
   cross-provider retry.
+- Before implementing a new cloud service or a material change to service
+  selection, topology, state placement, recovery, scaling, or recurring cost,
+  dispatch `cloud-architecture-reviewer` with a compact design brief and
+  authoritative evidence. Skip routine changes within an established pattern.
+  Use one design reviewer by default; add a specialist only for a named risk
+  outside its scope. Resolve Critical/High findings or record an explicit owner
+  waiver before implementation; return decision-changing evidence gaps to the
+  owner rather than inventing requirements. The primary retains architecture
+  and authorization. This design review does not replace pre-PR reviews.
 - Gate non-trivial changes through the specialized reviewer subagents before
   opening a pull request: dispatch `adversarial-code-reviewer` against the
   completed diff, adding `infra-security-reviewer` for infrastructure-affecting
@@ -140,9 +148,9 @@ canonical owner and success condition before proposing or changing anything.
   conflicting guidance.
 - Before changing reusable, deployable, generated, centrally distributed, or
   cross-repository material, identify the canonical producer; inspect exact
-  consumers, pins, generated copies, and automation; and describe the delivery
-  chain as changed, unchanged, automatic, manual, confirmation-gated, or
-  unknown.
+  consumers, pins, generated copies, and automation; and describe the
+  delivery chain as changed, unchanged, automatic, manual, confirmation-gated,
+  or unknown.
 - Keep authored, validated, published, selected, submitted, reconciled,
   healthy, and functionally verified stages distinct. Do not claim a later
   stage from earlier evidence.
