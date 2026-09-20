@@ -19,7 +19,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
     ignore-check.kube-linter.io/unset-cpu-requirements: "single-node policy"
     ignore-check.kube-linter.io/unset-memory-requirements: "single-node policy"
-    secret.reloader.stakater.com/reload: {{ .Values.memoryPilot.providerSecretName | quote }}
+    secret.reloader.stakater.com/reload: {{ printf "%s,%s" .Values.memoryPilot.providerSecretName .Values.memoryPilot.serverSecretName | quote }}
 spec:
   replicas: 1
   strategy:

@@ -32,7 +32,19 @@ artifact PVC, packaged production agents, skills, MCP configuration, or any
   `strategy: Recreate`.
 
 OpenCode still serves port 4096 behind a cluster-owned Service in
-`kustomize-cluster`, exactly like production.
+`kustomize-cluster`, exactly like production. Cross-repo comparison of that
+Service against this Deployment is deferred to activation and performed
+against the published chart; pull-request checks do not fetch other
+repositories.
+
+## Secret rotation
+
+The pilot Deployment opts into Reloader for both pilot Secrets:
+`secret.reloader.stakater.com/reload` lists
+`opencode-memory-pilot-provider,opencode-memory-pilot-server-auth`. Rotate
+the provider key or the server password in `kustomize-cluster` and let
+Reloader restart the pod; with a single `Recreate` replica that restart is a
+deliberate full stop, so rotate while no synthetic run is in flight.
 
 ## Runtime shape
 

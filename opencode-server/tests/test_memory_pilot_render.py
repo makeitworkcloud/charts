@@ -1,13 +1,18 @@
 import glob
+import io
 import json
 import os
 import subprocess
+import tarfile
+import tempfile
 import unittest
 
 import yaml
 
 CHART = "opencode-server"
 CHART_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+REPO_ROOT = os.path.abspath(os.path.join(CHART_DIR, ".."))
+BASELINE_SHA = "c5d663c3ec88bea58e96e7332c7c2da08f3a226d"
 PROD_IMAGE = "ghcr.io/anomalyco/opencode:1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
 EMBEDDING_MODEL = "Xenova/nomic-embed-text-v1"
 PILOT_FULLNAME = "opencode-memory-pilot"
@@ -71,6 +76,32 @@ def assert_hardened(testcase, item):
     testcase.assertFalse(security["allowPrivilegeEscalation"])
     testcase.assertTrue(security["readOnlyRootFilesystem"])
     testcase.assertEqual(security["capabilities"]["drop"], ["ALL"])
+
+
+class BaselineParity(unittest.TestCase):
+    def test_production_render_matches_inspected_baseline(self):
+        archive = subprocess.run(
+            ["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"],
+            capture_output=True,
+            cwd=REPO_ROOT,
+        )
+        self.assertEqual(
+            archive.returncode, 0, archive.stderr.decode("utf-8", "replace")
+        )
+        with tempfile.TemporaryDirectory(prefix="opencode-server-baseline-") as tmp:
+            with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
+                tar.extractall(tmp, filter="data")
+            baseline = subprocess.run(
+                ["helm", "template", "test", os.path.join(tmp, "opencode-server")],
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(baseline.returncode, 0, baseline.stderr)
+        baseline_docs = [
+            doc for doc in yaml.safe_load_all(baseline.stdout) if doc is not None
+        ]
+        current_docs = [doc for doc in yaml.safe_load_all(render([])) if doc is not None]
+        self.assertEqual(current_docs, baseline_docs)
 
 
 class DefaultRendering(unittest.TestCase):
@@ -233,7 +264,7 @@ class PilotRendering(unittest.TestCase):
         deployment_annotations = self.deployment["metadata"]["annotations"]
         self.assertEqual(
             deployment_annotations["secret.reloader.stakater.com/reload"],
-            "opencode-memory-pilot-provider",
+            "opencode-memory-pilot-provider,opencode-memory-pilot-server-auth",
         )
 
     def test_pod_security_context(self):
