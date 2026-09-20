@@ -9,14 +9,17 @@ cluster changes. Under test:
   plugin  opencode-mem@2.26.0 (release 0c8ed7d54382d9225def8484d691182d46e8552d)
 
 PASS requires ALL of:
-  1. `opencode serve` starts hardened: --user 1000:1000, --read-only,
-     --cap-drop ALL, no-new-privileges, tmpfs /tmp, no published ports.
+  1. `opencode serve --hostname 127.0.0.1 --port 4096` starts hardened:
+     --user 1000:1000, --read-only, --cap-drop ALL, no-new-privileges,
+     tmpfs /tmp, no published ports, explicit HOME/XDG env (the stock image
+     has no opencode USER/passwd setup, so HOME must be forced).
   2. GET /config with x-opencode-directory:/home/opencode initializes the
-     plugin via opencode's embedded npm/Arborist (no external bun/npm).
+     plugin via opencode's embedded npm/Arborist (no external bun/npm) and
+     the loaded config still carries the pinned plugin spec.
   3. POST /api/memories {content, containerTag} stores one synthetic sentence
      through the real local embedding path (Xenova/nomic-embed-text-v1, 768
      dims) and GET /api/search?q=...&tag=... returns the created id with
-     byte-equal content plus a numeric similarity.
+     byte-equal content plus a finite numeric similarity >= 0.6.
   4. After docker stop + rm, a replacement container (SAME image, volume,
      config, workdir) returns the SAME memory id and content.
 
@@ -35,26 +38,31 @@ Source-grounded contracts (verified at the pinned releases above):
     always ensureTursoReady + warmup + embedWithTimeout (vector ops execute).
   - opencode-mem src/services/tags.ts + src/config.ts: project tag =
     <containerTagPrefix>_project_ + sha256("path:<cwd>")[:16]; plugin config
-    lives at ~/.config/opencode/opencode-mem.jsonc.
+    lives at ~/.config/opencode/opencode-mem.jsonc (HOME-derived).
 
 Limitations: autoCapture/autoCleanup/injectProfile disabled; synthetic
 API-level probe of local embeddings and container-replacement storage only --
 not pod/node DR, conversation extraction, or auto-learning/capture behavior.
 
-Any failure exits nonzero (no green masking). Native-load failures
-(dlopen/libc/libsql/onnx) are reported distinctly from transport/auth/install
-timeouts, which are NOT musl-incompatibility evidence.
+Any failure exits nonzero (no green masking). Failure classification is
+informational only: auth/transport/install causes outrank native suspicion,
+native suspicion requires explicit dlopen/shared-library phrases (never a
+bare onnxruntime/libsql/musl word), and it is SUSPECTED, not proof -- the
+core assertion failure is the gate evidence regardless of cause.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import math
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from pathlib import Path
 from urllib.parse import quote
 
@@ -64,20 +72,28 @@ IMAGE = (
 )
 PLUGIN_SPEC = "opencode-mem@2.26.0"
 API_TOKEN = "ci-fixture-not-a-secret"  # public synthetic fixture; deliberately not a credential
-VOLUME = "opencode-mem-ci-volume"
-CONTAINERS = ("opencode-mem-ci-c1", "opencode-mem-ci-c2")
+RUN_ID = uuid.uuid4().hex[:12]
+VOLUME = "opencode-mem-ci-" + RUN_ID + "-vol"
+CONTAINERS = ("opencode-mem-ci-" + RUN_ID + "-c1", "opencode-mem-ci-" + RUN_ID + "-c2")
 WORKDIR = "/home/opencode"
-OPENCODE_PORT = 4096  # opencode serve default (server.ts prefers 4096, then a free port)
+OPENCODE_PORT = 4096
 MEM_PORT = 4747  # opencode-mem web server default (src/config.ts)
 SENTENCE = "The synthetic runtime probe stores amber-harbor-7f31d2 evidence."
 TAG = "opencode_project_" + hashlib.sha256(("path:" + WORKDIR).encode()).hexdigest()[:16]
 DEADLINE = time.monotonic() + 19 * 60  # headroom under the 20m job timeout
 
+ENV_ARGS = [
+    "-e", "HOME=" + WORKDIR,
+    "-e", "XDG_CONFIG_HOME=" + WORKDIR + "/.config",
+    "-e", "XDG_CACHE_HOME=" + WORKDIR + "/.cache",
+    "-e", "XDG_DATA_HOME=" + WORKDIR + "/.local/share",
+]
+
 OPENCODE_JSON = {
     "$schema": "https://opencode.ai/config.json",
     "plugin": [PLUGIN_SPEC],
     "enabled_providers": [],
-    "permission": {"edit": "deny", "bash": "deny", "webfetch": "deny", "websearch": "deny"},
+    "permission": {"*": "deny"},
 }
 
 MEM_JSONC = {
@@ -96,16 +112,25 @@ MEM_JSONC = {
     "similarityThreshold": 0.6,
 }
 
+AUTH_MARKERS = ("401", "unauthorized")
+TRANSPORT_MARKERS = ("timeout", "timed out", "refused", "connection reset", "econnreset")
+INSTALL_MARKERS = ("enotfound", "fetch failed", "eresolve", "eacces", "registry", "npm err", "network")
 NATIVE_MARKERS = (
     "dlopen",
-    "libc.so",
-    "musl",
-    "glibc",
-    "libsql",
-    "onnxruntime",
     "cannot open shared object",
     "error loading shared library",
     "cannot locate symbol",
+    "undefined symbol",
+    "libc.so",
+    "glibc_",
+)
+ERROR_HINTS = (
+    "error", "fail", "exception", "cannot", "dlopen", "shared object",
+    "undefined symbol", "native", "module", "abort",
+)
+SENSITIVE_HINTS = (
+    "token", "auth", "bearer", "secret", "password", "authorization",
+    "api-key", "api_key", "apikey", "env",
 )
 
 
@@ -117,20 +142,29 @@ def phase(message: str) -> None:
     print("[phase] " + message, flush=True)
 
 
+def bounded(text: str, limit: int = 1500) -> str:
+    return text if len(text) <= limit else text[:limit] + " ...[truncated]"
+
+
 def run(cmd, timeout, check=False):
+    """Bounded subprocess wrapper: timeouts and nonzero exits become Fail with short output."""
     try:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=check)
     except subprocess.TimeoutExpired:
         raise Fail("subprocess timeout: " + " ".join(cmd[:6])) from None
+    except subprocess.CalledProcessError as error:
+        tail = bounded(((error.stdout or "") + (error.stderr or "")).strip(), 400)
+        raise Fail("command rc=%d: %s :: %s" % (error.returncode, " ".join(cmd[:6]), tail)) from None
+
+
+def cap(requested: float) -> int:
+    """Per-call subprocess timeout: never exceed the remaining global budget."""
+    return max(5, int(min(requested, DEADLINE - time.monotonic())))
 
 
 def require_remaining(seconds: float) -> None:
     if DEADLINE - time.monotonic() < seconds:
         raise Fail("global deadline too close (need %.0fs)" % seconds)
-
-
-def bounded(text: str, limit: int = 1500) -> str:
-    return text if len(text) <= limit else text[:limit] + " ...[truncated]"
 
 
 def wget(container, url, *, headers=(), post=None, timeout):
@@ -144,6 +178,19 @@ def wget(container, url, *, headers=(), post=None, timeout):
     return result.returncode, (result.stdout or "").strip(), (result.stderr or "").strip()
 
 
+def plugin_present(data) -> bool:
+    """The pinned plugin spec must actually be in the loaded config plugin list."""
+    plugins = data.get("plugin") if isinstance(data, dict) else None
+    if not isinstance(plugins, list):
+        return False
+    for spec in plugins:
+        if spec == PLUGIN_SPEC:
+            return True
+        if isinstance(spec, list) and spec and spec[0] == PLUGIN_SPEC:
+            return True
+    return False
+
+
 def wait_json(container, url, *, headers, allow, window, label, per_call=20):
     """Retry an in-container wget until JSON passing `allow` arrives within `window`s."""
     end = time.monotonic() + window
@@ -153,7 +200,7 @@ def wait_json(container, url, *, headers, allow, window, label, per_call=20):
             container,
             url,
             headers=headers,
-            timeout=min(per_call, max(5, end - time.monotonic())),
+            timeout=cap(min(per_call, end - time.monotonic())),
         )
         if rc == 0:
             try:
@@ -176,7 +223,7 @@ def api_call(container, path, *, post, timeout, label):
         "http://127.0.0.1:%d%s" % (MEM_PORT, path),
         headers=(("Authorization", "Bearer " + API_TOKEN),),
         post=post,
-        timeout=timeout,
+        timeout=cap(timeout),
     )
     if rc != 0:
         raise Fail(label + " transport failure: " + bounded(err or out, 400))
@@ -205,9 +252,11 @@ def start_container(name, cfg_dir) -> None:
             "docker", "run", "-d", "--name", name,
             "--user", "1000:1000", "--read-only", "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges", "--tmpfs", "/tmp",
+            *ENV_ARGS,
             "-v", VOLUME + ":" + WORKDIR,
             "-v", str(cfg_dir) + ":" + WORKDIR + "/.config/opencode:ro",
-            "-w", WORKDIR, IMAGE, "serve",
+            "-w", WORKDIR, IMAGE,
+            "serve", "--hostname", "127.0.0.1", "--port", str(OPENCODE_PORT),
         ],
         timeout=120,
         check=True,
@@ -225,9 +274,14 @@ def assert_hit(payload, memory_id, label) -> float:
     if hit.get("content") != SENTENCE:
         raise Fail(label + ": content mismatch for " + memory_id)
     similarity = hit.get("similarity")
-    if not isinstance(similarity, (int, float)):
+    if isinstance(similarity, bool) or not isinstance(similarity, (int, float)):
         raise Fail(label + ": missing numeric similarity for " + memory_id)
-    return float(similarity)
+    similarity = float(similarity)
+    if not math.isfinite(similarity):
+        raise Fail(label + ": non-finite similarity for " + memory_id)
+    if similarity < 0.6:
+        raise Fail(label + ": similarity %.4f below 0.6 for %s" % (similarity, memory_id))
+    return similarity
 
 
 def diagnostics(container) -> str:
@@ -235,15 +289,31 @@ def diagnostics(container) -> str:
     return ((logs.stdout or "") + (logs.stderr or "")).strip()
 
 
+def relevant_lines(logs):
+    """Error-looking lines only; never auth/token/env lines; no config dumps."""
+    kept = []
+    for line in logs.splitlines():
+        low = line.lower()
+        if any(hint in low for hint in SENSITIVE_HINTS):
+            continue
+        if any(hint in low for hint in ERROR_HINTS):
+            kept.append(line.strip())
+    return kept[:40]
+
+
 def classify_failure(detail: str) -> str:
     low = detail.lower()
+    if any(marker in low for marker in AUTH_MARKERS):
+        return "AUTH (401/unauthorized) -- NOT compatibility evidence"
+    if any(marker in low for marker in TRANSPORT_MARKERS):
+        return "TRANSPORT/TIMEOUT -- NOT compatibility evidence"
+    if any(marker in low for marker in INSTALL_MARKERS):
+        return "INSTALL/DEPENDENCY -- NOT compatibility evidence"
     if any(marker in low for marker in NATIVE_MARKERS):
-        return "NATIVE_LOAD_SUSPECTED (libc/dlopen/libsql/onnx) -- local-embedding gate evidence"
-    if "401" in low or "unauthorized" in low:
-        return "AUTH (401/unauthorized) -- NOT musl-incompatibility evidence"
-    if "timeout" in low or "timed out" in low or "refused" in low:
-        return "TRANSPORT/TIMEOUT -- NOT musl-incompatibility evidence"
-    return "UNCLASSIFIED (install/runtime error) -- not classified as native load failure"
+        return ("NATIVE_LOAD_SUSPECTED (explicit dlopen/shared-library phrase) -- "
+                "informational only, not proof; the failed assertion is the gate "
+                "evidence regardless of cause")
+    return "UNCLASSIFIED (runtime error) -- not classified as native load failure"
 
 
 def main() -> int:
@@ -254,12 +324,21 @@ def main() -> int:
         cfg_dir = Path(tempfile.mkdtemp(prefix="opencode-mem-ci-"))
         (cfg_dir / "opencode.json").write_text(json.dumps(OPENCODE_JSON, indent=2) + "\n", encoding="utf-8")
         (cfg_dir / "opencode-mem.jsonc").write_text(json.dumps(MEM_JSONC, indent=2) + "\n", encoding="utf-8")
+        os.chmod(cfg_dir / "opencode.json", 0o644)
+        os.chmod(cfg_dir / "opencode-mem.jsonc", 0o644)
+        os.chmod(cfg_dir, 0o755)  # mkdtemp 0700 would block runtime uid 1000 on the ro bind
 
-        phase("prepare named volume ownership (throwaway root container, chown 1000:1000)")
+        phase("prepare named volume ownership (root container, cap CHOWN only, non-recursive)")
         run(["docker", "volume", "create", VOLUME], timeout=60, check=True)
         run(
-            ["docker", "run", "--rm", "--entrypoint", "/bin/sh", "-v", VOLUME + ":" + WORKDIR, IMAGE,
-             "-c", "chown -R 1000:1000 " + WORKDIR],
+            [
+                "docker", "run", "--rm",
+                "--user", "0:0", "--cap-drop", "ALL", "--cap-add", "CHOWN",
+                "--security-opt", "no-new-privileges", "--read-only",
+                "--entrypoint", "/bin/sh",
+                "-v", VOLUME + ":" + WORKDIR,
+                IMAGE, "-c", "chown 1000:1000 " + WORKDIR,
+            ],
             timeout=180,
             check=True,
         )
@@ -272,7 +351,7 @@ def main() -> int:
             CONTAINERS[0],
             "http://127.0.0.1:%d/config" % OPENCODE_PORT,
             headers=(("x-opencode-directory", WORKDIR),),
-            allow=lambda data: isinstance(data, dict) and isinstance(data.get("plugin"), list),
+            allow=plugin_present,
             window=330,
             label="opencode /config",
         )
@@ -317,7 +396,7 @@ def main() -> int:
             CONTAINERS[1],
             "http://127.0.0.1:%d/config" % OPENCODE_PORT,
             headers=(("x-opencode-directory", WORKDIR),),
-            allow=lambda data: isinstance(data, dict) and isinstance(data.get("plugin"), list),
+            allow=plugin_present,
             window=240,
             label="opencode /config (replacement)",
         )
@@ -344,10 +423,15 @@ def main() -> int:
         for container in CONTAINERS:
             state = run(["docker", "inspect", "-f", "{{.State.Status}}", container], timeout=30)
             if (state.stdout or "").strip():
-                detail += "\n-- docker logs tail " + container + " --\n" + bounded(diagnostics(container))
+                lines = relevant_lines(diagnostics(container))
+                if lines:
+                    printed = bounded("\n".join(lines))
+                    print("[container-logs] " + container + " (filtered): " + printed, flush=True)
+                    detail += "\n" + printed
         print("[classification] " + classify_failure(detail), flush=True)
         return 1
     finally:
+        # Fixed cleanup timeouts: an expired global deadline must never block cleanup.
         phase("cleanup: remove only the two probe containers and the named volume")
         for container in CONTAINERS:
             try:
