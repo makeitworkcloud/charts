@@ -20,15 +20,19 @@ package-chart:
 	@helm package "$(CHART)" --destination "$(DESTINATION)"
 
 test:
-	@for chart in $(CHARTS); do helm lint --strict "$$chart" && helm template test "$$chart" > /dev/null; done
+	@set -euo pipefail; \
+	for chart in $(CHARTS); do \
+		helm lint --strict "$$chart"; \
+		helm template test "$$chart" > /dev/null; \
+	done
 	@$(MAKE) test-changed-charts
 	@$(MAKE) test-opencode-server-agents
 	@$(MAKE) test-opencode-server-memory-pilot
 
 test-changed-charts:
 	@set -euo pipefail; \
-	test "$$($(MAKE) changed-charts BASE_SHA="$$(git rev-parse HEAD)")" = '[]'; \
-	if $(MAKE) changed-charts BASE_SHA=0000000000000000000000000000000000000001 > /dev/null 2>&1; then \
+	test "$$($(MAKE) --no-print-directory changed-charts BASE_SHA="$$(git rev-parse HEAD)")" = '[]'; \
+	if $(MAKE) --no-print-directory changed-charts BASE_SHA=0000000000000000000000000000000000000001 > /dev/null 2>&1; then \
 		echo "changed-charts must fail on an unresolvable BASE_SHA"; \
 		exit 1; \
 	fi
@@ -37,7 +41,7 @@ test-opencode-server-agents:
 	@set -euo pipefail; \
 	expected="$$(printf '%s\n' '---' "description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" 'mode: subagent' 'model: openai/gpt-5.6-terra' 'variant: default' '---')"; \
 	test "$$(cat opencode-server/files/agents/terra.md)" = "$$expected"; \
-	expected_devops="$$(printf '%s\n' '---' 'description: Read-only DevOps integration and delivery reviewer for proposed designs or completed changes involving CI, GitHub Actions, shared workflows, artifacts, GitOps handoffs, runners, permissions, and deployment contracts; requires a supplied integration map and never implements or mutates systems' 'mode: subagent' 'model: openai/gpt-5.6-terra' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
+	expected_devops="$$(printf '%s\n' '---' 'description: Read-only DevOps integration and delivery reviewer for proposed designs or completed changes involving CI, GitHub Actions, shared workflows, artifacts, GitOps handoffs, runners, permissions, and delivery contracts; requires a supplied integration map and never implements or mutates systems' 'mode: subagent' 'model: openai/gpt-5.6-terra' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
 	actual_devops="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' opencode-server/files/agents/devops-engineer.md)"; \
 	test "$$actual_devops" = "$$expected_devops"; \
 	! grep -Fq 'variant:' opencode-server/files/agents/devops-engineer.md; \

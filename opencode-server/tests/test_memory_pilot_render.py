@@ -446,13 +446,49 @@ class UnsafePilotValues(unittest.TestCase):
 
 
 class WorkflowContract(unittest.TestCase):
-    def test_base_revision_env_uses_event_context(self):
-        workflow = os.path.join(CHART_DIR, "..", ".github", "workflows", "helm.yml")
+    def setUp(self):
+        workflow = os.path.join(REPO_ROOT, ".github", "workflows", "helm.yml")
         with open(workflow, "r", encoding="utf-8") as handle:
-            content = handle.read()
-        self.assertIn("PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}", content)
-        self.assertIn("PUSH_BEFORE_SHA: ${{ github.event.before }}", content)
-        self.assertNotIn("${{ github.before }}", content)
+            self.content = handle.read()
+
+    def test_base_revision_env_uses_event_context(self):
+        self.assertIn("PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}", self.content)
+        self.assertIn("PUSH_BEFORE_SHA: ${{ github.event.before }}", self.content)
+        self.assertNotIn("${{ github.before }}", self.content)
+
+    def test_validation_pipeline_steps_fail_closed(self):
+        hygiene = self.content.split("id: hygiene", 1)[1].split("id: helm", 1)[0]
+        helm = self.content.split("id: helm", 1)[1].split("name: Report validation", 1)[0]
+        for block in (hygiene, helm):
+            self.assertIn("shell: bash", block)
+            self.assertIn("set -euo pipefail", block)
+            self.assertIn("| tee", block)
+            self.assertLess(block.index("set -euo pipefail"), block.index("| tee"))
+
+
+class MakefileContract(unittest.TestCase):
+    def setUp(self):
+        with open(os.path.join(REPO_ROOT, "Makefile"), "r", encoding="utf-8") as handle:
+            self.content = handle.read()
+
+    def test_changed_charts_invocations_print_no_directory(self):
+        block = self.content.split("test-changed-charts:", 1)[1].split("test-opencode-server-agents:", 1)[0]
+        self.assertEqual(self.content.count("$(MAKE) --no-print-directory changed-charts"), 2)
+        self.assertIn(
+            'test "$$($(MAKE) --no-print-directory changed-charts BASE_SHA="$$(git rev-parse HEAD)")" = \'[]\'',
+            block,
+        )
+        self.assertIn(
+            "if $(MAKE) --no-print-directory changed-charts BASE_SHA=0000000000000000000000000000000000000001 > /dev/null 2>&1; then",
+            block,
+        )
+
+    def test_chart_loop_runs_lint_and_template_separately(self):
+        block = self.content.split("\ntest:\n", 1)[1].split("\ntest-changed-charts:\n", 1)[0]
+        self.assertIn("set -euo pipefail", block)
+        self.assertIn('helm lint --strict "$$chart";', block)
+        self.assertIn('helm template test "$$chart" > /dev/null;', block)
+        self.assertNotIn("helm lint --strict \"$$chart\" &&", self.content)
 
 
 if __name__ == "__main__":
