@@ -38,10 +38,10 @@ OpenCode still serves port 4096 behind a cluster-owned Service in
 
 - OpenCode `1.18.29` (digest-pinned) starts directly with
   `opencode web --hostname 0.0.0.0 --port 4096`. A Kubernetes `startupProbe`
-  on port 4096 (period 10 seconds, failure threshold 120) provides a
-  twenty-minute budget for the first-boot npm plugin install and the local
-  embedding model download; readiness and liveness probing begin only after
-  startup succeeds.
+  on port 4096 (period 10 seconds, failure threshold 120) gives slow first
+  boots a twenty-minute budget before readiness and liveness probing begin.
+  The tcp probe covers server startup only: it verifies the listener and
+  does not establish plugin load or embedding-model readiness.
 - Embeddings use the plugin's local ONNX default,
   `Xenova/nomic-embed-text-v1`, with `embeddingDimensions: 768` and
   `embeddingUseTaskPrefixes: true`. No remote embedding endpoint is
@@ -50,8 +50,8 @@ OpenCode still serves port 4096 behind a cluster-owned Service in
   explicitly configured and is omitted, so no external embedding or model
   endpoint exists beyond the `{env:ZHIPU_API_KEY}` provider.
 - Removing the former embedding sidecar does not remove Hugging Face
-dependencies: the plugin still ships its local `@huggingface/transformers`
-stack and downloads the ONNX model from Hugging Face on first use.
+  dependencies: the plugin still ships its local `@huggingface/transformers`
+  stack and downloads the ONNX model from Hugging Face on first use.
 - Local ONNX embedding compatibility on the stock Alpine-based OpenCode
   image is UNVERIFIED. It is an activation gate: verify package
   compatibility and native runtime behavior before registering or syncing
@@ -94,7 +94,8 @@ data.
   availability and no node-loss protection. `Recreate` reduces the chance of
   two writers overlapping the store; it is not proof of database safety.
 - Storage acceptance for this pilot is the persistent home PVC as-is: the
-  plugin keeps everything under `/home/opencode/.opencode-mem/data`.
+  plugin stores memory data and the local embedding cache under
+  `/home/opencode/.opencode-mem/data`.
 - Backup and restore automation is deferred; no backup design is specified
   here. If an operator takes a manual copy, scope it to the plugin memory
   inventory (database, shards, raw-prompt records), classify the content
