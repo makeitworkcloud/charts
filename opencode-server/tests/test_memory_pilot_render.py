@@ -24,6 +24,7 @@ PILOT_ARGS = [
     "--set", "fullnameOverride=" + PILOT_FULLNAME,
     "--set", "persistence.existingClaim=" + PILOT_CLAIM,
 ]
+BASELINE_QA_ENGINEER = os.path.join("opencode-server", "files", "agents", "qa-engineer.md")
 
 
 def run_helm(extra):
@@ -81,6 +82,28 @@ def assert_hardened(testcase, item):
 
 
 class BaselineParity(unittest.TestCase):
+    def _extract_baseline(self, tmp):
+        archive = subprocess.run(
+            ["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"],
+            capture_output=True,
+            cwd=REPO_ROOT,
+        )
+        self.assertEqual(
+            archive.returncode, 0, archive.stderr.decode("utf-8", "replace")
+        )
+        with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
+            tar.extractall(tmp, filter="data")
+        return os.path.join(tmp, "opencode-server")
+
+    def _render_chart(self, chart_path):
+        proc = subprocess.run(
+            ["helm", "template", "test", chart_path],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        return [doc for doc in yaml.safe_load_all(proc.stdout) if doc is not None]
+
     def _raw_configmap_include(self, chart_path):
         probe_root = tempfile.mkdtemp(prefix="opencode-server-probe-")
         try:
@@ -107,28 +130,16 @@ class BaselineParity(unittest.TestCase):
         finally:
             shutil.rmtree(probe_root)
 
-    def test_production_render_matches_inspected_baseline(self):
-        archive = subprocess.run(
-            ["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"],
-            capture_output=True,
-            cwd=REPO_ROOT,
-        )
-        self.assertEqual(
-            archive.returncode, 0, archive.stderr.decode("utf-8", "replace")
-        )
+    def test_production_render_matches_baseline_with_approved_eof_fix(self):
         with tempfile.TemporaryDirectory(prefix="opencode-server-baseline-") as tmp:
-            with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
-                tar.extractall(tmp, filter="data")
-            baseline_chart = os.path.join(tmp, "opencode-server")
-            baseline = subprocess.run(
-                ["helm", "template", "test", baseline_chart],
-                capture_output=True,
-                text=True,
-            )
-            self.assertEqual(baseline.returncode, 0, baseline.stderr)
-            baseline_docs = [
-                doc for doc in yaml.safe_load_all(baseline.stdout) if doc is not None
-            ]
+            baseline_chart = self._extract_baseline(tmp)
+            qa_engineer = os.path.join(tmp, BASELINE_QA_ENGINEER)
+            with open(qa_engineer, "rb") as handle:
+                pristine = handle.read()
+            self.assertFalse(pristine.endswith(b"\n"))
+            with open(qa_engineer, "wb") as handle:
+                handle.write(pristine + b"\n")
+            baseline_docs = self._render_chart(baseline_chart)
             current_docs = [doc for doc in yaml.safe_load_all(render([])) if doc is not None]
             try:
                 self.assertEqual(current_docs, baseline_docs)
@@ -148,6 +159,31 @@ class BaselineParity(unittest.TestCase):
                 print("baseline include prefix:", json.dumps(baseline_raw[:50]))
                 print("baseline include suffix:", json.dumps(baseline_raw[-50:]))
                 raise
+
+    def test_baseline_configmap_semantics_match_current(self):
+        with tempfile.TemporaryDirectory(prefix="opencode-server-baseline-") as tmp:
+            baseline_chart = self._extract_baseline(tmp)
+            baseline_config = by_kind(self._render_chart(baseline_chart), "ConfigMap")
+            current_config = by_kind(render_docs([]), "ConfigMap")
+            self.assertEqual(current_config["data"], baseline_config["data"])
+
+    def test_qa_engineer_eof_is_only_agent_source_change(self):
+        with tempfile.TemporaryDirectory(prefix="opencode-server-baseline-") as tmp:
+            baseline_chart = self._extract_baseline(tmp)
+            baseline_agents = os.path.join(baseline_chart, "files", "agents")
+            current_agents = os.path.join(CHART_DIR, "files", "agents")
+            self.assertEqual(
+                sorted(os.listdir(current_agents)), sorted(os.listdir(baseline_agents))
+            )
+            for name in sorted(os.listdir(baseline_agents)):
+                with open(os.path.join(baseline_agents, name), "rb") as handle:
+                    baseline_bytes = handle.read()
+                with open(os.path.join(current_agents, name), "rb") as handle:
+                    current_bytes = handle.read()
+                if name == "qa-engineer.md":
+                    self.assertEqual(current_bytes, baseline_bytes + b"\n")
+                else:
+                    self.assertEqual(current_bytes, baseline_bytes, name)
 
 
 class DefaultRendering(unittest.TestCase):

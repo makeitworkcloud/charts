@@ -121,6 +121,18 @@ data.
 - Never delete lock files automatically; a stale lock is an operator
   decision.
 
+## Baseline and checksum parity
+
+The pilot tests compare the production render against the inspected baseline
+commit `32a6b91` plus one explicitly enumerated, hygiene-required formatting
+correction: the baseline `files/agents/qa-engineer.md` lacks a final newline
+and the comparison appends exactly one before rendering. Agent semantics
+are unchanged. Because of that correction the rendered production ConfigMap
+checksum differs from the published 0.4.0 chart, and a normal production pod
+rollout on the chart version pin can occur even when the pilot is disabled.
+No claim is made that the current production manifest or checksum exactly
+matches the original baseline.
+
 ## Security posture
 
 Non-root UID/GID/fsGroup 1000, read-only root filesystems, all capabilities

@@ -109,6 +109,13 @@ the cluster-owned Service. Local embedding runtime compatibility on the stock
 image is an unverified activation gate. The pilot mounts no production
 secrets, agents, skills, MCP configuration, or artifact PVC.
 
+A repository-hygiene end-of-file correction to `files/agents/qa-engineer.md`
+changes the rendered production ConfigMap checksum relative to the published
+0.4.0 chart; agent semantics are unchanged, and a normal production pod
+rollout on the chart version pin can occur even when the pilot is disabled.
+See [Memory pilot](docs/memory-pilot.md) for the baseline comparison and the
+single approved formatting correction it applies.
+
 Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
 the pilot is single-replica persistence on a dedicated home claim with no
 high-availability or node-loss protection, and backup and restore automation
