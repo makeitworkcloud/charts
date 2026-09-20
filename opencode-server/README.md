@@ -89,7 +89,7 @@ persisted OAuth grant.
 - Deployment with an init container that seeds immutable chart configuration into an `emptyDir`
 - ConfigMap containing OpenCode configuration, agents, and skills
 
-The chart mounts the cluster-owned artifact PVC only into the OpenCode container. The independent `agent-ppipe-uploader` chart mounts that PVC read-only and has no AWS credentials; it exposes the cluster-internal presigned-upload API for explicit, user-approved artifact delivery.
+The chart mounts the cluster-owned artifact PVC only into the OpenCode container. The independent `agent-pipe-uploader` chart mounts that PVC read-only and has no AWS credentials; it exposes the cluster-internal presigned-upload API for explicit, user-approved artifact delivery.
 
 Configuration is loaded when OpenCode starts. A reconciled chart update replaces the pod through the ConfigMap checksum annotation; it is not hot-reloaded into an existing process.
 
