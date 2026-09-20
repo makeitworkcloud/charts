@@ -127,7 +127,7 @@ test-opencode-server-agents:
 		! grep -Fqi 'recorded indexed' <<< "$$policy"; \
 		! grep -Fqi 'read exact file contents through the GitHub' <<< "$$policy"; \
 		! grep -Fqi 'instead of attempting a fallback' <<< "$$policy"; \
-	end; \
+	done; \
 	for agent in $$primary_agents; do \
 		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Fqi 'without a custom project name' <<< "$$policy"; \
@@ -145,7 +145,7 @@ test-opencode-server-agents:
 		case " $$primary_agents $$repository_workers " in *" $$agent "*) continue ;; esac; \
 		! grep -Fqi 'get_code_snippet' "opencode-server/files/agents/$$agent.md"; \
 		! grep -Fqi 'index_repository' "opencode-server/files/agents/$$agent.md"; \
-	end; \
+	done; \
 	floor="$$(tr -s '[:space:]' ' ' < opencode-server/files/AGENTS.md)"; \
 	grep -Fqi 'github_get_me' <<< "$$floor"; \
 	grep -Fqi '/repos/<repo>/current' <<< "$$floor"; \
