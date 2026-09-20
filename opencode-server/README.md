@@ -93,6 +93,34 @@ The chart mounts the cluster-owned artifact PVC only into the OpenCode container
 
 Configuration is loaded when OpenCode starts. A reconciled chart update replaces the pod through the ConfigMap checksum annotation; it is not hot-reloaded into an existing process.
 
+## Memory pilot (opt-in)
+
+`memoryPilot.enabled=true` switches a release from the production rendering to
+an isolated memory pilot: the production ConfigMap and Deployment are suppressed
+and the chart emits only a pilot ConfigMap and a single-replica `Recreate`
+Deployment. Rendering is locked to the reviewed contract: `fullnameOverride`
+must be exactly `opencode-memory-pilot`, `persistence.existingClaim` exactly
+`opencode-memory-pilot-home`, and the pilot provider and server-auth Secret
+names exactly the pilot defaults; any other value, including the production
+names, fails rendering. The pilot runs OpenCode with only the pinned
+`opencode-mem` plugin and its local ONNX embeddings — no sidecar, no remote
+embedding endpoint, and no new images — while OpenCode serves port 4096 behind
+the cluster-owned Service. Local embedding runtime compatibility on the stock
+image is an unverified activation gate. The pilot mounts no production
+secrets, agents, skills, MCP configuration, or artifact PVC.
+
+A repository-hygiene end-of-file correction to `files/agents/qa-engineer.md`
+changes the rendered production ConfigMap checksum relative to the published
+0.4.0 chart; agent semantics are unchanged, and a normal production pod
+rollout on the chart version pin can occur even when the pilot is disabled.
+See [Memory pilot](docs/memory-pilot.md) for the baseline comparison and the
+single approved formatting correction it applies.
+
+Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
+the pilot is single-replica persistence on a dedicated home claim with no
+high-availability or node-loss protection, and backup and restore automation
+is deferred.
+
 ## Delivery lifecycle
 
 1. Open a charts pull request and require repository hygiene, Helm validation, and package checks to pass.

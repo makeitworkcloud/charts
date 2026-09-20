@@ -14,3 +14,10 @@ secrets:
   openaiAuth: opencode-openai-auth
   serverAuth: opencode-server-auth
   zai: opencode-zai
+
+# Isolated memory pilot mode locked to the reviewed contract names validated
+# in templates/pilot-deployment.yaml. See docs/memory-pilot.md.
+memoryPilot:
+  enabled: false
+  providerSecretName: opencode-memory-pilot-provider
+  serverSecretName: opencode-memory-pilot-server-auth

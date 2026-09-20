@@ -1,0 +1,116 @@
+{{- if .Values.memoryPilot.enabled -}}
+{{- if ne .Values.fullnameOverride "opencode-memory-pilot" -}}
+{{- fail "memoryPilot.enabled=true requires fullnameOverride exactly opencode-memory-pilot" -}}
+{{- end -}}
+{{- if ne .Values.persistence.existingClaim "opencode-memory-pilot-home" -}}
+{{- fail "memoryPilot.enabled=true requires persistence.existingClaim exactly opencode-memory-pilot-home" -}}
+{{- end -}}
+{{- if ne .Values.memoryPilot.providerSecretName "opencode-memory-pilot-provider" -}}
+{{- fail "memoryPilot.enabled=true requires memoryPilot.providerSecretName exactly opencode-memory-pilot-provider" -}}
+{{- end -}}
+{{- if ne .Values.memoryPilot.serverSecretName "opencode-memory-pilot-server-auth" -}}
+{{- fail "memoryPilot.enabled=true requires memoryPilot.serverSecretName exactly opencode-memory-pilot-server-auth" -}}
+{{- end -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opencode-server.fullname" . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    ignore-check.kube-linter.io/unset-cpu-requirements: "single-node policy"
+    ignore-check.kube-linter.io/unset-memory-requirements: "single-node policy"
+    secret.reloader.stakater.com/reload: {{ printf "%s,%s" .Values.memoryPilot.providerSecretName .Values.memoryPilot.serverSecretName | quote }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ include "opencode-server.fullname" . }}
+  template:
+    metadata:
+      annotations:
+        checksum/opencode-server-config: {{ include (print $.Template.BasePath "/pilot-configmap.yaml") . | sha256sum }}
+      labels:
+        app: {{ include "opencode-server.fullname" . }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: seed-opencode-config
+          image: docker.io/alpine/git:v2.49.1
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              cp -a /config-source/. /home/opencode/.config/opencode/
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: config
+              mountPath: /home/opencode/.config/opencode
+            - name: config-source
+              mountPath: /config-source
+              readOnly: true
+      containers:
+        - name: opencode
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          args: [web, --hostname, 0.0.0.0, --port, "4096"]
+          env:
+            - name: HOME
+              value: /home/opencode
+            - name: ZHIPU_API_KEY
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.memoryPilot.providerSecretName }}, key: ZHIPU_API_KEY}
+            - name: OPENCODE_SERVER_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.memoryPilot.serverSecretName }}, key: password}
+          ports:
+            - name: http
+              containerPort: 4096
+          startupProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 10
+            failureThreshold: 120
+          readinessProbe:
+            tcpSocket: {port: http}
+          livenessProbe:
+            tcpSocket: {port: http}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: home
+              mountPath: /home/opencode
+            - name: config
+              mountPath: /home/opencode/.config/opencode
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: home
+          persistentVolumeClaim: {claimName: {{ .Values.persistence.existingClaim }}}
+        - name: config
+          emptyDir: {}
+        - name: config-source
+          configMap:
+            name: {{ include "opencode-server.fullname" . }}-config
+            items:
+              - key: opencode.json
+                path: opencode.json
+              - key: opencode-mem.jsonc
+                path: opencode-mem.jsonc
+              - key: AGENTS.md
+                path: AGENTS.md
+        - name: tmp
+          emptyDir: {}
+{{ end -}}
