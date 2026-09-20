@@ -175,8 +175,9 @@ the code-capable primaries dispatch before implementing a new cloud service or
 a material change to service selection, topology, state placement, recovery,
 scaling, or recurring cost. It runs on `openai/gpt-5.6-terra` with the default
 variant, all native and MCP tools denied, and a bounded 500-800-word review
-budget; it does not escalate models, request specialists, or retrieve evidence
-itself, and the primary retains architecture and authorization. This
+budget; it does not switch models, dispatch specialists, or retrieve evidence
+itself. It may recommend a specialist for a named material risk; the primary
+retains architecture and authorization. This
 preimplementation design gate is distinct from the existing pre-pull-request
 gate: it judges a proposed design before implementation begins, while the
 pre-PR reviewers judge completed diffs, and neither replaces the other.
