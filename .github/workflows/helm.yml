@@ -21,7 +21,7 @@ jobs:
         name: Run repository hygiene
         continue-on-error: true
         run: |
-          python -m pip install pre-commit
+          python -m pip install pre-commit "PyYAML==6.0.3"
           pre-commit run --all-files --show-diff-on-failure --color=never 2>&1 | tee hygiene.log
       - id: helm
         name: Run Helm validation
@@ -106,7 +106,7 @@ jobs:
         id: base
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          PUSH_BEFORE_SHA: ${{ github.before }}
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then

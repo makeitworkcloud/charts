@@ -85,10 +85,27 @@ The chart mounts the cluster-owned artifact PVC only into the OpenCode container
 
 Configuration is loaded when OpenCode starts. A reconciled chart update replaces the pod through the ConfigMap checksum annotation; it is not hot-reloaded into an existing process.
 
+## Memory pilot (opt-in)
+
+`memoryPilot.enabled=true` switches a release from the production rendering to
+an isolated memory pilot: the production ConfigMap and Deployment are suppressed
+and the chart emits only a pilot ConfigMap and a single-replica `Recreate`
+Deployment named by a required distinct `fullnameOverride` (contract
+`opencode-memory-pilot`). The pilot runs OpenCode with only the pinned
+`opencode-mem` plugin and a same-pod `text-embeddings-inference` sidecar serving
+loopback-only embeddings; it mounts no production secrets, agents, skills, MCP
+configuration, or artifact PVC, and it requires a dedicated home claim. Unsafe
+values — the production `opencode` fullname, the production `opencode-home`
+claim, or empty names — fail rendering.
+
+Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
+the pilot is single-replica node-local persistence with no automated backup,
+and restart and restore verification are external gates.
+
 ## Delivery lifecycle
 
 1. Open a charts pull request and require repository hygiene, Helm validation, and package checks to pass.
-2. Merge only with explicit confirmation. The main workflow publishes the immutable OCI chart to `ghcr.io/makeitworkcloud/charts/opencode-server`.
+2. Merge only with explicit confirmation. The main workflow publishes the immutable OCI chart to `ghcr.io/makeitworkcloud/charts`.
 3. After publication, charts automation opens or updates a `kustomize-cluster` pull request changing the OpenCode Application's pinned `targetRevision` and enables GitHub auto-merge.
 4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
 5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
