@@ -74,11 +74,12 @@ canonical owner and success condition before proposing or changing anything.
   cached source. For private cache reads, verify current repository
   visibility and access through GitHub MCP for that task; cache presence or
   a cached SHA is not authorization. GitHub current state stays
-  authoritative for access, visibility, default HEAD, branch protections,
-  pull requests, reviews, checks, releases, and write preconditions — those
-  freshness-critical facts, not an ordinary need for exact content, require
-  current GitHub data. For a requested branch/PR SHA different from the
-  verified default snapshot, use GitHub at the requested SHA.
+  authoritative for access and visibility, default HEAD, branch
+  protections, pull requests, reviews, checks, releases, and write
+  preconditions — those freshness-critical facts, not an ordinary need for
+  exact content, require current GitHub data. For a requested branch/PR
+  SHA different from the verified default snapshot, use GitHub at the
+  requested SHA.
 - For GitOps incidents, start with Argo CD for ownership, desired revision,
   sync, health, resources, and events; use Kubernetes and Grafana as
   read-only supporting evidence. Use AWS for live AWS state, AWS Docs for
@@ -148,9 +149,9 @@ canonical owner and success condition before proposing or changing anything.
   conflicting guidance.
 - Before changing reusable, deployable, generated, centrally distributed, or
   cross-repository material, identify the canonical producer; inspect exact
-  consumers, pins, generated copies, and automation; and describe the
-  delivery chain as changed, unchanged, automatic, manual, confirmation-gated,
-  or unknown.
+  consumers, pins, generated copies, and automation; and describe the delivery
+  chain as changed, unchanged, automatic, manual, confirmation-gated, or
+  unknown.
 - Keep authored, validated, published, selected, submitted, reconciled,
   healthy, and functionally verified stages distinct. Do not claim a later
   stage from earlier evidence.
