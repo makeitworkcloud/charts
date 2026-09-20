@@ -54,6 +54,10 @@ test-opencode-server-agents:
 	grep -Fqx '## Findings and verdict' opencode-server/files/agents/cloud-architecture-reviewer.md; \
 	grep -Fqx '## Required output and review budget' opencode-server/files/agents/cloud-architecture-reviewer.md; \
 	grep -Fqx '## VERDICT: ADVANCE / HOLD / REJECT' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## SCOPE, EVIDENCE, AND ASSUMPTIONS' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## MATERIAL FINDINGS AND REQUIRED CHANGES' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## SIMPLER ALTERNATIVE AND NONBLOCKING SUGGESTIONS' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## ACCEPTED TRADEOFFS, OPEN QUESTIONS, AND VERIFICATION' opencode-server/files/agents/cloud-architecture-reviewer.md; \
 	grep -Fq 'Supplied evidence only.' opencode-server/files/agents/cloud-architecture-reviewer.md; \
 	grep -Fq 'No cloud vendor is preferred by default.' opencode-server/files/agents/cloud-architecture-reviewer.md; \
 	grep -Fq 'Do not produce a numeric well-architected score.' opencode-server/files/agents/cloud-architecture-reviewer.md; \
@@ -123,7 +127,7 @@ test-opencode-server-agents:
 		! grep -Fqi 'recorded indexed' <<< "$$policy"; \
 		! grep -Fqi 'read exact file contents through the GitHub' <<< "$$policy"; \
 		! grep -Fqi 'instead of attempting a fallback' <<< "$$policy"; \
-	done; \
+	end; \
 	for agent in $$primary_agents; do \
 		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Fqi 'without a custom project name' <<< "$$policy"; \
@@ -141,7 +145,7 @@ test-opencode-server-agents:
 		case " $$primary_agents $$repository_workers " in *" $$agent "*) continue ;; esac; \
 		! grep -Fqi 'get_code_snippet' "opencode-server/files/agents/$$agent.md"; \
 		! grep -Fqi 'index_repository' "opencode-server/files/agents/$$agent.md"; \
-	done; \
+	end; \
 	floor="$$(tr -s '[:space:]' ' ' < opencode-server/files/AGENTS.md)"; \
 	grep -Fqi 'github_get_me' <<< "$$floor"; \
 	grep -Fqi '/repos/<repo>/current' <<< "$$floor"; \
