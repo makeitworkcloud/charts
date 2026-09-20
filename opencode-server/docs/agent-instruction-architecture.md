@@ -39,7 +39,7 @@ verified-snapshot fallback.
 
 ### Primary agents
 
-[`files/agents/default.md`](../files/agents/default.md) is a full-capable,
+[`files/agents/default.md`](../files/agents/default.md) is a full-capability,
 generic primary-agent definition and the example for new primary agents. It
 contains the complete primary operating policy directly in its own prompt.
 
@@ -134,8 +134,8 @@ provenance and coverage evidence passes all checks. This is the exact recipe:
    is unavailable, read current content and label it a different snapshot.
    GitHub stays authoritative for access, visibility, default HEAD, branch
    protections, pull requests, reviews, checks, releases, and write
-   preconditions — freshness-critical facts, not an ordinary need for
-   exact content. For a requested branch/PR SHA different from the verified
+   preconditions — freshness-critical facts, not an ordinary need for exact
+   content. For a requested branch/PR SHA different from the verified
    default snapshot, use GitHub at the requested SHA. Primaries may pass
    current authorization, the verified snapshot, and full-index evidence to
    delegated workers; that evidence does not extend worker authority.
