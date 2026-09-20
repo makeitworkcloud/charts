@@ -65,11 +65,13 @@ never exposed by a Service.
 - The `opencode-mem@2.26.0` plugin installs from npm on first boot into the
   persistent home. Plugin settings are the seeded `opencode-mem.jsonc`:
   storage under `/home/opencode/.opencode-mem/data`, capture on, cleanup
-  off. User-profile learning is effectively off because that path is owned
-  by the disabled web server (`webServerEnabled: false`), not because of
-  `injectProfile`; `injectProfile: false` additionally prevents any stored
-  profile from being injected, and `userProfileAutoCleanupEnabled: false`
-  keeps cleanup from touching it.
+  off, chat-message injection pinned to `injectOn: "first"` with
+  `maxMemories: 3` and `excludeCurrentSession: true`, and compaction pinned
+  to `memoryLimit: 10`. User-profile learning is effectively off because
+  that path is owned by the disabled web server (`webServerEnabled: false`),
+  not because of `injectProfile`; `injectProfile: false` additionally
+  prevents any stored profile from being injected, and
+  `userProfileAutoCleanupEnabled: false` keeps cleanup from touching it.
 - The only enabled provider is `zai-coding-plan/glm-5.3` through
   `{env:ZHIPU_API_KEY}`. The schema-supported built-in agents build, plan,
   general, and explore are disabled; no other built-in names are guessed.
@@ -95,9 +97,14 @@ data.
 - The pilot is single-replica on a node-local home claim: no high
   availability. `Recreate` reduces the chance of two writers overlapping the
   store; it is not proof of database safety.
-- Back up the full `.opencode-mem` directory, including `.auth-token` if the
-  plugin created one; do not back up the whole home directory and never
-  `auth.json`.
+- Backup scope is the plugin memory inventory only: its database, shards,
+  and raw-prompt records under `.opencode-mem`. An operator must classify
+  that content and confirm it excludes credentials before any copy is
+  taken; `.auth-token` is treated as a credential and is never included.
+  Do not back up the whole home directory and never `auth.json`. No agent
+  may read or upload credentials at any point in a backup or restore.
+- OpenCode's own session database is also on the home PVC; it is outside
+  the plugin backup scope, not outside the claim.
 - There is no automated backup until a destination and encryption approach
   are selected. Backup is a cold, manual operation: stop the pod before
   copying so the store is consistent.

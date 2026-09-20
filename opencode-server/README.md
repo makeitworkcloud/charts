@@ -99,8 +99,7 @@ names, fails rendering. The pilot runs OpenCode with only the pinned
 serving loopback-only embeddings — the sidecar is never exposed by a Service,
 while OpenCode still serves port 4096 behind the cluster-owned Service. The
 pilot mounts no production secrets, agents, skills, MCP configuration, or
-artifact PVC, and permission rules deny every tool except `memory` and the
-plugin's structured-output path.
+artifact PVC.
 
 Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
 the pilot is single-replica node-local persistence with no automated backup,

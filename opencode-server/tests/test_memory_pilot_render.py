@@ -193,8 +193,19 @@ class PilotRendering(unittest.TestCase):
         self.assertEqual(mem["opencodeModel"], "glm-5.3")
         self.assertFalse(mem["injectProfile"])
         self.assertFalse(mem["userProfileAutoCleanupEnabled"])
-        self.assertTrue(mem["chatMessage"]["enabled"])
-        self.assertTrue(mem["compaction"]["enabled"])
+        self.assertEqual(
+            mem["chatMessage"],
+            {
+                "enabled": True,
+                "maxMemories": 3,
+                "excludeCurrentSession": True,
+                "injectOn": "first",
+            },
+        )
+        self.assertEqual(
+            mem["compaction"],
+            {"enabled": True, "memoryLimit": 10},
+        )
         self.assertEqual(mem["embeddingApiUrl"], "http://127.0.0.1:8080/v1")
         self.assertEqual(mem["embeddingApiKey"], "-")
         self.assertEqual(mem["embeddingModel"], TEI_MODEL)

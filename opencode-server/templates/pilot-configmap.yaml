@@ -41,8 +41,16 @@ data:
       "opencodeModel": "glm-5.3",
       "injectProfile": false,
       "userProfileAutoCleanupEnabled": false,
-      "chatMessage": {"enabled": true},
-      "compaction": {"enabled": true},
+      "chatMessage": {
+        "enabled": true,
+        "maxMemories": 3,
+        "excludeCurrentSession": true,
+        "injectOn": "first"
+      },
+      "compaction": {
+        "enabled": true,
+        "memoryLimit": 10
+      },
       "embeddingApiUrl": "http://127.0.0.1:8080/v1",
       "embeddingApiKey": "-",
       "embeddingModel": "nomic-ai/nomic-embed-text-v1",
