@@ -12,12 +12,14 @@ PASS requires ALL of:
   1. The container starts hardened: --user 1000:1000, --read-only,
      --cap-drop ALL, no-new-privileges, tmpfs /tmp, no published ports,
      explicit HOME/XDG env (the stock image has no opencode USER/passwd
-     setup). Entrypoint is overridden with /bin/sh -ec: it copies the two
-     synthetic configs from a read-only /config-source bind into the writable
-     HOME named volume, then execs the pinned `opencode serve --hostname
-     127.0.0.1 --port 4096`. This mirrors the production chart's writable
-     config seeding instead of a read-only config bind, which differs from
-     production and could cause false negatives.
+     setup), and an explicit linux/amd64 platform with the pinned image
+     identity (config id, repo digests, architecture, OS) asserted before
+     any container starts. Entrypoint is overridden with /bin/sh -ec: it
+     copies the two synthetic configs from a read-only /config-source bind
+     into the writable HOME named volume, then execs the pinned `opencode
+     serve --hostname 127.0.0.1 --port 4096`. This mirrors the production
+     chart's writable config seeding instead of a read-only config bind,
+     which differs from production and could cause false negatives.
   2. GET /config with x-opencode-directory:/home/opencode initializes the
      plugin via opencode's embedded npm/Arborist (no external bun/npm) and
      the loaded config still carries the pinned plugin spec.
@@ -77,6 +79,8 @@ IMAGE = (
     "ghcr.io/anomalyco/opencode:1.18.29"
     "@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
 )
+PINNED_DIGEST = IMAGE.split("@", 1)[1]
+PLATFORM = ["--platform", "linux/amd64"]
 PLUGIN_SPEC = "opencode-mem@2.26.0"
 API_TOKEN = "ci-fixture-not-a-secret"  # public synthetic fixture; deliberately not a credential
 RUN_ID = uuid.uuid4().hex[:12]
@@ -194,6 +198,46 @@ def require_remaining(seconds: float) -> None:
         raise Fail("global deadline too close (need %.0fs)" % seconds)
 
 
+def verify_image_identity() -> None:
+    """Pull the pinned image for linux/amd64 and assert its exact identity.
+
+    Inspects only public identity fields (.Id, .RepoDigests, .Architecture,
+    .Os -- never .Config.Env) so the runtime evidence is exact. Any mismatch
+    fails with clear identity diagnostics; there is no fallback image.
+    """
+    phase("pull pinned image and verify identity (linux/amd64, no fallback)")
+    run(["docker", "pull", *PLATFORM, IMAGE], timeout=600, check=True)
+    result = run(
+        [
+            "docker", "image", "inspect", "--format",
+            "{{json .Id}}|{{json .RepoDigests}}|{{json .Architecture}}|{{json .Os}}",
+            IMAGE,
+        ],
+        timeout=60,
+        check=True,
+    )
+    parts = (result.stdout or "").strip().split("|")
+    if len(parts) != 4:
+        raise Fail("image identity inspect malformed: " + bounded(result.stdout or "", 200))
+    image_id, repo_digests, architecture, os_name = (json.loads(part) for part in parts)
+    print("  image id: " + str(image_id), flush=True)
+    print("  repo digests: " + ",".join(str(digest) for digest in repo_digests), flush=True)
+    print("  architecture: %s  os: %s" % (architecture, os_name), flush=True)
+    if architecture != "amd64" or os_name != "linux":
+        raise Fail(
+            "image platform mismatch: architecture=%s os=%s, expected linux/amd64 (no fallback)"
+            % (architecture, os_name)
+        )
+    reported = [str(digest).rsplit("@", 1)[-1] for digest in repo_digests if isinstance(digest, str)]
+    if not reported:
+        raise Fail("RepoDigests empty; cannot confirm pinned digest " + PINNED_DIGEST + " (no fallback)")
+    if PINNED_DIGEST not in reported:
+        raise Fail(
+            "pinned digest " + PINNED_DIGEST + " not in RepoDigests " + ",".join(reported)
+            + " -- image identity mismatch (no fallback)"
+        )
+
+
 def wget(container, url, *, headers=(), post=None, timeout):
     timeout = cap(timeout)  # float seconds; subprocess accepts floats
     cmd = ["docker", "exec", container, "wget", "-qO-", "-T", str(max(1, int(timeout)))]
@@ -277,7 +321,7 @@ def search(container, *, window, per_call):
 def start_container(name, cfg_dir) -> None:
     run(
         [
-            "docker", "run", "-d", "--name", name,
+            "docker", "run", "-d", *PLATFORM, "--name", name,
             "--user", "1000:1000", "--read-only", "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges", "--tmpfs", "/tmp",
             "--entrypoint", "/bin/sh",
@@ -350,6 +394,7 @@ def main() -> int:
     try:
         phase("preflight: docker availability")
         run(["docker", "version"], timeout=60, check=True)
+        verify_image_identity()
         cfg_dir = Path(tempfile.mkdtemp(prefix="opencode-mem-ci-"))
         (cfg_dir / "opencode.json").write_text(json.dumps(OPENCODE_JSON, indent=2) + "\n", encoding="utf-8")
         (cfg_dir / "opencode-mem.jsonc").write_text(json.dumps(MEM_JSONC, indent=2) + "\n", encoding="utf-8")
@@ -361,7 +406,7 @@ def main() -> int:
         run(["docker", "volume", "create", VOLUME], timeout=60, check=True)
         run(
             [
-                "docker", "run", "--rm",
+                "docker", "run", "--rm", *PLATFORM,
                 "--user", "0:0", "--cap-drop", "ALL", "--cap-add", "CHOWN",
                 "--security-opt", "no-new-privileges", "--read-only",
                 "--entrypoint", "/bin/sh",
