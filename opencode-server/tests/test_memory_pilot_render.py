@@ -351,7 +351,7 @@ class PilotRendering(unittest.TestCase):
         self.assertNotIn("MINIMAX_API_KEY", env_names)
         self.assertEqual(item["ports"], [{"name": "http", "containerPort": 4096}])
         self.assertEqual(item["readinessProbe"], {"tcpSocket": {"port": "http"}})
-        self.assertEqual(item["livenessProbe"], {"tcpSocket": {"port: "http"}}) if False else self.assertEqual(item["livenessProbe"], {"tcpSocket": {"port": "http"}})
+        self.assertEqual(item["livenessProbe"], {"tcpSocket": {"port": "http"}})
         mounts = {entry["name"]: entry["mountPath"] for entry in item["volumeMounts"]}
         self.assertEqual(
             mounts,
