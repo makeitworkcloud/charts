@@ -1,0 +1,23 @@
+name: opencode-memory-runtime
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/opencode-memory-runtime.yml
+      - .github/tests/opencode_memory_runtime.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-embedding-runtime-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run synthetic opencode-memory runtime probe
+        run: python3 .github/tests/opencode_memory_runtime.py
