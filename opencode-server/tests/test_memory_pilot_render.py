@@ -14,7 +14,7 @@ import yaml
 CHART = "opencode-server"
 CHART_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 REPO_ROOT = os.path.abspath(os.path.join(CHART_DIR, ".."))
-BASELINE_SHA = "c5d663c3ec88bea58e96e7332c7c2da08f3a226d"
+BASELINE_SHA = "32a6b91cc3a881b861bdac087655c3935bb15454"
 PROD_IMAGE = "ghcr.io/anomalyco/opencode:1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
 EMBEDDING_MODEL = "Xenova/nomic-embed-text-v1"
 PILOT_FULLNAME = "opencode-memory-pilot"
@@ -351,7 +351,7 @@ class PilotRendering(unittest.TestCase):
         self.assertNotIn("MINIMAX_API_KEY", env_names)
         self.assertEqual(item["ports"], [{"name": "http", "containerPort": 4096}])
         self.assertEqual(item["readinessProbe"], {"tcpSocket": {"port": "http"}})
-        self.assertEqual(item["livenessProbe"], {"tcpSocket": {"port": "http"}})
+        self.assertEqual(item["livenessProbe"], {"tcpSocket": {"port: "http"}}) if False else self.assertEqual(item["livenessProbe"], {"tcpSocket": {"port": "http"}})
         mounts = {entry["name"]: entry["mountPath"] for entry in item["volumeMounts"]}
         self.assertEqual(
             mounts,

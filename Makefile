@@ -1,4 +1,4 @@
-.PHONY: changed-charts list-charts list-charts-json package-chart test test-changed-charts test-opencode-server-agents
+.PHONY: changed-charts list-charts list-charts-json package-chart test test-changed-charts test-opencode-server-agents test-opencode-server-memory-pilot
 
 SHELL := /bin/bash
 CHARTS := $(shell find . -maxdepth 2 -name Chart.yaml -printf '%h\n' | cut -d'/' -f2 | sort -u)
@@ -20,14 +20,19 @@ package-chart:
 	@helm package "$(CHART)" --destination "$(DESTINATION)"
 
 test:
-	@for chart in $(CHARTS); do helm lint --strict "$$chart" && helm template test "$$chart" > /dev/null; done
+	@set -euo pipefail; \
+	for chart in $(CHARTS); do \
+		helm lint --strict "$$chart"; \
+		helm template test "$$chart" > /dev/null; \
+	done
 	@$(MAKE) test-changed-charts
 	@$(MAKE) test-opencode-server-agents
+	@$(MAKE) test-opencode-server-memory-pilot
 
 test-changed-charts:
 	@set -euo pipefail; \
-	test "$$($(MAKE) changed-charts BASE_SHA="$$(git rev-parse HEAD)")" = '[]'; \
-	if $(MAKE) changed-charts BASE_SHA=0000000000000000000000000000000000000001 > /dev/null 2>&1; then \
+	test "$$($(MAKE) --no-print-directory changed-charts BASE_SHA="$$(git rev-parse HEAD)")" = '[]'; \
+	if $(MAKE) --no-print-directory changed-charts BASE_SHA=0000000000000000000000000000000000000001 > /dev/null 2>&1; then \
 		echo "changed-charts must fail on an unresolvable BASE_SHA"; \
 		exit 1; \
 	fi
@@ -70,7 +75,7 @@ test-opencode-server-agents:
 		grep -Fq 'Skip routine changes within an established pattern.' "opencode-server/files/agents/$$agent.md"; \
 		grep -Fq 'This design review does not replace pre-PR reviews.' "opencode-server/files/agents/$$agent.md"; \
 	done; \
-	grep -Fqx 'version: 0.4.0' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.4.1' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
 	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
@@ -202,7 +207,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.0.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.1.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \
@@ -216,3 +221,6 @@ test-opencode-server-agents:
 		tar -xOzf "$$archive" "$$entry" > "$$packaged"; \
 		cmp -s "$$packaged" "opencode-server/files/agents/$$agent.md"; \
 	done
+
+test-opencode-server-memory-pilot:
+	@python3 opencode-server/tests/test_memory_pilot_render.py
