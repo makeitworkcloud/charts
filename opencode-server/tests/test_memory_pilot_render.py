@@ -1,7 +1,9 @@
 import glob
+import hashlib
 import io
 import json
 import os
+import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -79,6 +81,32 @@ def assert_hardened(testcase, item):
 
 
 class BaselineParity(unittest.TestCase):
+    def _raw_configmap_include(self, chart_path):
+        probe_root = tempfile.mkdtemp(prefix="opencode-server-probe-")
+        try:
+            probe_chart = os.path.join(probe_root, "probe")
+            shutil.copytree(chart_path, probe_chart)
+            with open(
+                os.path.join(probe_chart, "templates", "zz-raw-probe.yaml"),
+                "w",
+                encoding="utf-8",
+            ) as handle:
+                handle.write(
+                    'probe: {{ include (print $.Template.BasePath "/configmap.yaml") . | toJson }}\n'
+                )
+            proc = subprocess.run(
+                ["helm", "template", "test", probe_chart],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            for doc in yaml.safe_load_all(proc.stdout):
+                if isinstance(doc, dict) and "probe" in doc:
+                    return doc["probe"]
+            self.fail("probe document not found for %s" % chart_path)
+        finally:
+            shutil.rmtree(probe_root)
+
     def test_production_render_matches_inspected_baseline(self):
         archive = subprocess.run(
             ["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"],
@@ -91,17 +119,35 @@ class BaselineParity(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="opencode-server-baseline-") as tmp:
             with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
                 tar.extractall(tmp, filter="data")
+            baseline_chart = os.path.join(tmp, "opencode-server")
             baseline = subprocess.run(
-                ["helm", "template", "test", os.path.join(tmp, "opencode-server")],
+                ["helm", "template", "test", baseline_chart],
                 capture_output=True,
                 text=True,
             )
-        self.assertEqual(baseline.returncode, 0, baseline.stderr)
-        baseline_docs = [
-            doc for doc in yaml.safe_load_all(baseline.stdout) if doc is not None
-        ]
-        current_docs = [doc for doc in yaml.safe_load_all(render([])) if doc is not None]
-        self.assertEqual(current_docs, baseline_docs)
+            self.assertEqual(baseline.returncode, 0, baseline.stderr)
+            baseline_docs = [
+                doc for doc in yaml.safe_load_all(baseline.stdout) if doc is not None
+            ]
+            current_docs = [doc for doc in yaml.safe_load_all(render([])) if doc is not None]
+            try:
+                self.assertEqual(current_docs, baseline_docs)
+            except AssertionError:
+                current_raw = self._raw_configmap_include(CHART_DIR)
+                baseline_raw = self._raw_configmap_include(baseline_chart)
+                print(
+                    "current include sha256:",
+                    hashlib.sha256(current_raw.encode("utf-8")).hexdigest(),
+                )
+                print(
+                    "baseline include sha256:",
+                    hashlib.sha256(baseline_raw.encode("utf-8")).hexdigest(),
+                )
+                print("current include prefix:", json.dumps(current_raw[:50]))
+                print("current include suffix:", json.dumps(current_raw[-50:]))
+                print("baseline include prefix:", json.dumps(baseline_raw[:50]))
+                print("baseline include suffix:", json.dumps(baseline_raw[-50:]))
+                raise
 
 
 class DefaultRendering(unittest.TestCase):
