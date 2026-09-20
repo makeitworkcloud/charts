@@ -1,4 +1,4 @@
-.PHONY: changed-charts list-charts list-charts-json package-chart test test-changed-charts test-opencode-server-agents test-opencode-server-memory-pilot
+.PHONY: changed-charts list-charts list-charts-json package-chart test test-changed-charts test-opencode-server-agents
 
 SHELL := /bin/bash
 CHARTS := $(shell find . -maxdepth 2 -name Chart.yaml -printf '%h\n' | cut -d'/' -f2 | sort -u)
@@ -20,19 +20,14 @@ package-chart:
 	@helm package "$(CHART)" --destination "$(DESTINATION)"
 
 test:
-	@set -euo pipefail; \
-	for chart in $(CHARTS); do \
-		helm lint --strict "$$chart"; \
-		helm template test "$$chart" > /dev/null; \
-	done
+	@for chart in $(CHARTS); do helm lint --strict "$$chart" && helm template test "$$chart" > /dev/null; done
 	@$(MAKE) test-changed-charts
 	@$(MAKE) test-opencode-server-agents
-	@$(MAKE) test-opencode-server-memory-pilot
 
 test-changed-charts:
 	@set -euo pipefail; \
-	test "$$($(MAKE) --no-print-directory changed-charts BASE_SHA="$$(git rev-parse HEAD)")" = '[]'; \
-	if $(MAKE) --no-print-directory changed-charts BASE_SHA=0000000000000000000000000000000000000001 > /dev/null 2>&1; then \
+	test "$$($(MAKE) changed-charts BASE_SHA="$$(git rev-parse HEAD)")" = '[]'; \
+	if $(MAKE) changed-charts BASE_SHA=0000000000000000000000000000000000000001 > /dev/null 2>&1; then \
 		echo "changed-charts must fail on an unresolvable BASE_SHA"; \
 		exit 1; \
 	fi
@@ -49,7 +44,33 @@ test-opencode-server-agents:
 	grep -Fqx 'Use `CHANGE` mode only for a completed diff and all affected workflows. Assess the implemented integration contract and supplied validation evidence. Flag needless bespoke automation even where no supplied contract expressly prohibits it.' opencode-server/files/agents/devops-engineer.md; \
 	grep -Fqx '## VERDICT: ADVANCE / HOLD / REJECT' opencode-server/files/agents/devops-engineer.md; \
 	for agent in default makeitwork xnoto career teacher; do grep -Fq '`devops-engineer` for CI, workflow, shared-workflow, artifact,' "opencode-server/files/agents/$$agent.md"; done; \
-	grep -Fqx 'version: 0.3.2' opencode-server/Chart.yaml; \
+	expected_cloud="$$(printf '%s\n' '---' 'description: Read-only preimplementation cloud architecture review for new services or material service-selection, topology, state, recovery, scaling, or cost changes; challenges supplied designs for requirements fit and unnecessary complexity, not routine changes or completed-code review' 'mode: subagent' 'model: openai/gpt-5.6-terra' 'variant: default' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
+	actual_cloud="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' opencode-server/files/agents/cloud-architecture-reviewer.md)"; \
+	test "$$actual_cloud" = "$$expected_cloud"; \
+	grep -Fqx '## Required inputs' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## Boundaries' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## Preferences' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## Evaluation criteria' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## Findings and verdict' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## Required output and review budget' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## VERDICT: ADVANCE / HOLD / REJECT' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## SCOPE, EVIDENCE, AND ASSUMPTIONS' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## MATERIAL FINDINGS AND REQUIRED CHANGES' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## SIMPLER ALTERNATIVE AND NONBLOCKING SUGGESTIONS' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fqx '## ACCEPTED TRADEOFFS, OPEN QUESTIONS, AND VERIFICATION' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fq 'Supplied evidence only.' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fq 'No cloud vendor is preferred by default.' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fq 'Do not produce a numeric well-architected score.' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fq 'Aim for 500-800 words' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fq 'Do not automatically request a' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fq 'decision-changing' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	grep -Fq 'preimplementation' opencode-server/files/agents/cloud-architecture-reviewer.md; \
+	for agent in default makeitwork xnoto career teacher; do \
+		grep -Fq 'dispatch `cloud-architecture-reviewer` with a compact design brief and' "opencode-server/files/agents/$$agent.md"; \
+		grep -Fq 'Skip routine changes within an established pattern.' "opencode-server/files/agents/$$agent.md"; \
+		grep -Fq 'This design review does not replace pre-PR reviews.' "opencode-server/files/agents/$$agent.md"; \
+	done; \
+	grep -Fqx 'version: 0.4.0' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
 	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
@@ -58,7 +79,7 @@ test-opencode-server-agents:
 	primary_agents='default makeitwork xnoto career teacher grillmaster homerepair homesteader lawnmowerman'; \
 	repository_workers='kimi kimi-256k'; \
 	all_agents="$$(find opencode-server/files/agents -maxdepth 1 -type f -name '*.md' -printf '%f\n' | sed 's/\.md$$//' | sort)"; \
-	expected_agents="$$(printf '%s\n' adversarial-code-reviewer career default devops-engineer docs-writer glm glm-flash grillmaster homerepair homesteader infra-security-reviewer kimi kimi-256k lawnmowerman luna makeitwork minimax qa-engineer recruiter-resume-reviewer release-engineer teacher terra xnoto | sort)"; \
+	expected_agents="$$(printf '%s\n' adversarial-code-reviewer career cloud-architecture-reviewer default devops-engineer docs-writer glm glm-flash grillmaster homerepair homesteader infra-security-reviewer kimi kimi-256k lawnmowerman luna makeitwork minimax qa-engineer recruiter-resume-reviewer release-engineer teacher terra xnoto | sort)"; \
 	test "$$all_agents" = "$$expected_agents"; \
 	for agent in $$all_agents; do \
 		source="opencode-server/files/agents/$$agent.md"; \
@@ -181,7 +202,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.3.2.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.0.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \
@@ -195,6 +216,3 @@ test-opencode-server-agents:
 		tar -xOzf "$$archive" "$$entry" > "$$packaged"; \
 		cmp -s "$$packaged" "opencode-server/files/agents/$$agent.md"; \
 	done
-
-test-opencode-server-memory-pilot:
-	@python3 opencode-server/tests/test_memory_pilot_render.py

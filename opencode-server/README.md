@@ -14,12 +14,20 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 - `files/opencode.json` — providers, enabled MCP integrations, default agent, and global OpenCode configuration
 - `files/AGENTS.md` — shared instructions loaded by every agent, including the compact common repository routing floor
-- `files/agents/*.md` — owner-specific primary agents, the generic `terra` execution subagent, model-backed subagents for delegated passes, and specialized read-only SDLC subagents (adversarial code review, DevOps integration and delivery review, QA coverage and documentation adequacy, release readiness, infrastructure security, documentation drafting)
+- `files/agents/*.md` — owner-specific primary agents, the generic `terra` execution subagent, model-backed subagents for delegated passes, and specialized read-only SDLC subagents (adversarial code review, cloud architecture design review, DevOps integration and delivery review, QA coverage and documentation adequacy, release readiness, infrastructure security, documentation drafting)
 - `files/skills/*/SKILL.md` — specialized operational workflows
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
 
 The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-5.6-terra` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
+
+### Cloud architecture design review
+
+The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-5.6-terra` with the default variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
+
+The review is requirements-led and simplicity-biased: it prefers established vendor- or canonical-owner-maintained solutions, challenges unsupported complexity, and no cloud vendor is preferred by default. The five code-capable primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`) route material designs to it with a compact design brief and skip routine changes within an established pattern; the existing pre-pull-request review gates are unchanged, and this design review does not replace them.
+
+`ADVANCE` means the design is reasonable to begin implementing — not approval, authorization, deployment, health, or functional verification. The reviewer does not automatically request a higher variant or a second reviewer, and model comparisons such as Kimi remain deferred with no savings benchmark claimed. CI validates packaging and instruction contracts, not review quality; after a separately approved rollout, a fresh session should verify the agent inventory, tool denial, and representative review cases as described in [Agent instruction architecture](docs/agent-instruction-architecture.md).
 
 ### MCP routing
 
@@ -81,30 +89,9 @@ persisted OAuth grant.
 - Deployment with an init container that seeds immutable chart configuration into an `emptyDir`
 - ConfigMap containing OpenCode configuration, agents, and skills
 
-The chart mounts the cluster-owned artifact PVC only into the OpenCode container. The independent `agent-pipe-uploader` chart mounts that PVC read-only and has no AWS credentials; it exposes the cluster-internal presigned-upload API for explicit, user-approved artifact delivery.
+The chart mounts the cluster-owned artifact PVC only into the OpenCode container. The independent `agent-ppipe-uploader` chart mounts that PVC read-only and has no AWS credentials; it exposes the cluster-internal presigned-upload API for explicit, user-approved artifact delivery.
 
 Configuration is loaded when OpenCode starts. A reconciled chart update replaces the pod through the ConfigMap checksum annotation; it is not hot-reloaded into an existing process.
-
-## Memory pilot (opt-in)
-
-`memoryPilot.enabled=true` switches a release from the production rendering to
-an isolated memory pilot: the production ConfigMap and Deployment are suppressed
-and the chart emits only a pilot ConfigMap and a single-replica `Recreate`
-Deployment. Rendering is locked to the reviewed contract: `fullnameOverride`
-must be exactly `opencode-memory-pilot`, `persistence.existingClaim` exactly
-`opencode-memory-pilot-home`, and the pilot provider and server-auth Secret
-names exactly the pilot defaults; any other value, including the production
-names, fails rendering. The pilot runs OpenCode with only the pinned
-`opencode-mem` plugin and its local ONNX embeddings — no sidecar, no remote
-embedding endpoint, and no new images — while OpenCode serves port 4096 behind
-the cluster-owned Service. Local embedding runtime compatibility on the stock
-image is an unverified activation gate. The pilot mounts no production
-secrets, agents, skills, MCP configuration, or artifact PVC.
-
-Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
-the pilot is single-replica persistence on a dedicated home claim with no
-high-availability or node-loss protection, and backup and restore automation
-is deferred.
 
 ## Delivery lifecycle
 
