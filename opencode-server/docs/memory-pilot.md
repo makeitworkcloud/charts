@@ -44,11 +44,13 @@ OpenCode still serves port 4096 behind a cluster-owned Service in
   does not establish plugin load or embedding-model readiness.
 - Embeddings use the plugin's local ONNX default,
   `Xenova/nomic-embed-text-v1`, with `embeddingDimensions: 768` and
-  `embeddingUseTaskPrefixes: true`. No remote embedding endpoint is
-  configured: `embeddingApiUrl` and `embeddingApiKey` are omitted, and the
-  manual `memoryProvider`/`memoryApiUrl` block only activates when
-  explicitly configured and is omitted, so no external embedding or model
-  endpoint exists beyond the `{env:ZHIPU_API_KEY}` provider.
+  `embeddingUseTaskPrefixes: true`. `embeddingApiUrl` and `embeddingApiKey`
+  are omitted, as is the manual `memoryProvider`/`memoryApiUrl` block, which
+  only activates when explicitly configured. No remote embedding-inference
+  API or fallback memory-model API is configured. The configured Z.AI
+  provider is used for conversation and extraction inference; npm package
+  installation and first-use Hugging Face model downloads still require
+  egress.
 - Removing the former embedding sidecar does not remove Hugging Face
   dependencies: the plugin still ships its local `@huggingface/transformers`
   stack and downloads the ONNX model from Hugging Face on first use.
