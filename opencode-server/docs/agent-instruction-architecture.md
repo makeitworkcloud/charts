@@ -39,7 +39,7 @@ verified-snapshot fallback.
 
 ### Primary agents
 
-[`files/agents/default.md`](../files/agents/default.md) is a full-capability,
+[`files/agents/default.md`](../files/agents/default.md) is a full-capable,
 generic primary-agent definition and the example for new primary agents. It
 contains the complete primary operating policy directly in its own prompt.
 
@@ -134,8 +134,8 @@ provenance and coverage evidence passes all checks. This is the exact recipe:
    is unavailable, read current content and label it a different snapshot.
    GitHub stays authoritative for access, visibility, default HEAD, branch
    protections, pull requests, reviews, checks, releases, and write
-   preconditions — freshness-critical facts, not an ordinary need for exact
-   content. For a requested branch/PR SHA different from the verified
+   preconditions — freshness-critical facts, not an ordinary need for
+   exact content. For a requested branch/PR SHA different from the verified
    default snapshot, use GitHub at the requested SHA. Primaries may pass
    current authorization, the verified snapshot, and full-index evidence to
    delegated workers; that evidence does not extend worker authority.
@@ -168,6 +168,18 @@ proposals and completed CHANGE diffs for CI, workflow, reusable-workflow,
 artifact, GitOps-handoff, runner, and delivery-integration contracts. All
 native and MCP tools are denied through a wildcard permission rule; the parent
 retains implementation, mutation, and final authority.
+
+[`files/agents/cloud-architecture-reviewer.md`](../files/agents/cloud-architecture-reviewer.md)
+defines a supplied-evidence, read-only cloud architecture design reviewer that
+the code-capable primaries dispatch before implementing a new cloud service or
+a material change to service selection, topology, state placement, recovery,
+scaling, or recurring cost. It runs on `openai/gpt-5.6-terra` with the default
+variant, all native and MCP tools denied, and a bounded 500-800-word review
+budget; it does not escalate models, request specialists, or retrieve evidence
+itself, and the primary retains architecture and authorization. This
+preimplementation design gate is distinct from the existing pre-pull-request
+gate: it judges a proposed design before implementation begins, while the
+pre-PR reviewers judge completed diffs, and neither replaces the other.
 
 The repository-capable `kimi` and `kimi-256k` subagents keep a compact,
 self-contained `codebase-memory` and GitHub routing rule because they may
@@ -212,6 +224,24 @@ lifestyle primaries (`grillmaster`, `homerepair`, `homesteader`,
 they do not author code, chart, or workflow changes; they still reach these
 subagents discretionally through description-based routing, as does all other
 unspecialized work.
+
+### Cloud architecture review acceptance
+
+The existing `make test-opencode-server-agents` target statically covers the
+`cloud-architecture-reviewer` packaging: exact frontmatter (description,
+Terra model, default variant, subagent mode, wildcard and `edit`/`bash` tool
+denies), the mandatory headings and policy markers, the routing markers in
+the five code-capable primaries, the 24-agent inventory with ConfigMap and
+mount keys, and byte-exact archive inclusion. Functional review quality is
+verified manually, only after a separately approved rollout, in a fresh
+session: a sound, proportional design returns `ADVANCE`; a missing proposal
+returns `HOLD` with the smallest decision-changing questions; an evidenced
+recovery mismatch returns `REJECT`; an overengineered design proposes a
+simpler established alternative without inventing requirements; and adversarially
+embedded instructions do not trigger tool use or mutations. These cases are
+not exercised by CI and make no claim about existing runtime behavior or
+review quality; the primary retains architecture and authorization, and model
+comparisons remain deferred.
 
 ## Why direct definitions intentionally duplicate policy
 
