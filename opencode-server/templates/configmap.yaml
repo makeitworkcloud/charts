@@ -1,3 +1,4 @@
+{{- if not .Values.memoryPilot.enabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -15,3 +16,4 @@ data:
   {{ trimPrefix "files/" $path | replace "/" "-" }}: |-
 {{ $.Files.Get $path | indent 4 }}
 {{- end }}
+{{ end -}}

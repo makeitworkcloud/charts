@@ -1,0 +1,59 @@
+{{- if .Values.memoryPilot.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "opencode-server.fullname" . }}-config
+data:
+  opencode.json: |-
+    {
+      "$schema": "https://opencode.ai/config.json",
+      "model": "zai-coding-plan/glm-5.3",
+      "default_agent": "memory-pilot",
+      "enabled_providers": ["zai-coding-plan"],
+      "provider": {
+        "zai-coding-plan": {"options": {"apiKey": "{env:ZHIPU_API_KEY}"}}
+      },
+      "agent": {
+        "build": {"disable": true},
+        "plan": {"disable": true},
+        "general": {"disable": true},
+        "explore": {"disable": true},
+        "memory-pilot": {
+          "mode": "primary",
+          "prompt": "You are the isolated Make IT Work Cloud memory-pilot primary agent. This instance exists only to generate and exercise synthetic memory data through the opencode-mem plugin; every turn is synthetic pilot input. Your only enabled tool is memory: capture, search, and review synthetic memories. You have no filesystem, shell, web, task, or MCP access. Never attempt real work, repository changes, or live-system actions, and never store or request credentials, tokens, or secret material.",
+          "tools": {"*": false, "task": false, "memory": true}
+        }
+      },
+      "plugin": ["opencode-mem@2.26.0"]
+    }
+  opencode-mem.jsonc: |-
+    {
+      "storagePath": "/home/opencode/.opencode-mem/data",
+      "webServerEnabled": false,
+      "autoCleanupEnabled": false,
+      "autoCaptureEnabled": true,
+      "opencodeProvider": "zai-coding-plan",
+      "opencodeModel": "glm-5.3",
+      "injectProfile": false,
+      "userProfileAutoCleanupEnabled": false,
+      "chatMessage": {"enabled": true},
+      "compaction": {"enabled": true},
+      "embeddingApiUrl": "http://127.0.0.1:8080/v1",
+      "embeddingApiKey": "-",
+      "embeddingModel": "nomic-ai/nomic-embed-text-v1",
+      "embeddingDimensions": 768,
+      "embeddingUseTaskPrefixes": true
+    }
+  AGENTS.md: |-
+    # Memory pilot
+
+    This OpenCode instance is the isolated Make IT Work Cloud memory pilot. It
+    runs the opencode-mem plugin against a same-pod text-embeddings-inference
+    embedding sidecar and serves only synthetic memory traffic.
+
+    - The default agent is `memory-pilot`; its only enabled tool is `memory`.
+    - No MCP servers, packaged production agents, or skills are configured.
+    - All conversations are synthetic pilot data; raw prompts persist in the
+      memory store while chat-message injection is enabled.
+    - Never store or request credentials, tokens, or secret material.
+{{ end -}}
