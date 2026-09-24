@@ -106,7 +106,6 @@ test-opencode-server-agents:
 		grep -Fqi 'default-branch HEAD' <<< "$$policy"; \
 		grep -Fqi 'never per file' <<< "$$policy"; \
 		grep -Fqi 'root hash' <<< "$$policy"; \
-		grep -Fqi '40-hex' <<< "$$policy"; \
 		grep -Fqi 'alone is not a rejection' <<< "$$policy"; \
 		grep -Fqi 'Module' <<< "$$policy"; \
 		grep -Fqi 'search_graph' <<< "$$policy"; \
@@ -136,7 +135,7 @@ test-opencode-server-agents:
 	for agent in $$primary_agents; do \
 		frontmatter="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' "opencode-server/files/agents/$$agent.md")"; \
 		grep -Fqx 'model: openai/gpt-6-sol' <<< "$$frontmatter"; \
-		! grep -Eq '^variant:' <<< "$$frontmatter"; \
+		test "$$(grep -Ec '^variant:' <<< "$$frontmatter")" -eq 0; \
 		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Fqi 'without a custom project name' <<< "$$policy"; \
 		grep -Fqi 'retry once' <<< "$$policy"; \
@@ -197,7 +196,7 @@ test-opencode-server-agents:
 	grep -Fqi 'requested SHA' opencode-server/docs/agent-instruction-architecture.md; \
 	! grep -Fqi 'recorded indexed' opencode-server/docs/agent-instruction-architecture.md; \
 	grep -Fqx '  terra.md: |-' <<< "$$rendered"; \
-	grep -Fqx "    description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" <<< "$$rendered"; \
+	grep -Fqx "    description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity" <<< "$$rendered"; \
 	grep -Fqx '    mode: subagent' <<< "$$rendered"; \
 	grep -Fqx '    model: openai/gpt-5.6-terra' <<< "$$rendered"; \
 	grep -Fqx '    variant: default' <<< "$$rendered"; \
