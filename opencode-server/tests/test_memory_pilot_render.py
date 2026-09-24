@@ -25,6 +25,17 @@ PILOT_ARGS = [
     "--set", "persistence.existingClaim=" + PILOT_CLAIM,
 ]
 BASELINE_QA_ENGINEER = os.path.join("opencode-server", "files", "agents", "qa-engineer.md")
+APPROVED_PRIMARY_MODEL_FILES = (
+    "career.md",
+    "default.md",
+    "grillmaster.md",
+    "homerepair.md",
+    "homesteader.md",
+    "lawnmowerman.md",
+    "makeitwork.md",
+    "teacher.md",
+    "xnoto.md",
+)
 
 
 def run_helm(extra):
@@ -82,6 +93,22 @@ def assert_hardened(testcase, item):
 
 
 class BaselineParity(unittest.TestCase):
+    def _apply_approved_primary_models(self, baseline_chart):
+        old_block = b"mode: primary\nmodel: openai/gpt-5.6-terra\nvariant: default\n"
+        new_block = b"mode: primary\nmodel: openai/gpt-6-sol\n"
+        agents_dir = os.path.join(baseline_chart, "files", "agents")
+        for name in APPROVED_PRIMARY_MODEL_FILES:
+            path = os.path.join(agents_dir, name)
+            with open(path, "rb") as handle:
+                content = handle.read()
+            parts = content.split(b"---\n", 2)
+            self.assertEqual(len(parts), 3, name)
+            self.assertEqual(parts[0], b"", name)
+            self.assertEqual(parts[1].count(old_block), 1, name)
+            parts[1] = parts[1].replace(old_block, new_block)
+            with open(path, "wb") as handle:
+                handle.write(b"---\n".join(parts))
+
     def _extract_baseline(self, tmp):
         archive = subprocess.run(
             ["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"],
@@ -93,7 +120,9 @@ class BaselineParity(unittest.TestCase):
         )
         with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
             tar.extractall(tmp, filter="data")
-        return os.path.join(tmp, "opencode-server")
+        baseline_chart = os.path.join(tmp, "opencode-server")
+        self._apply_approved_primary_models(baseline_chart)
+        return baseline_chart
 
     def _render_chart(self, chart_path):
         proc = subprocess.run(
@@ -130,7 +159,7 @@ class BaselineParity(unittest.TestCase):
         finally:
             shutil.rmtree(probe_root)
 
-    def test_production_render_matches_baseline_with_approved_eof_fix(self):
+    def test_production_render_matches_baseline_with_approved_agent_changes(self):
         with tempfile.TemporaryDirectory(prefix="opencode-server-baseline-") as tmp:
             baseline_chart = self._extract_baseline(tmp)
             qa_engineer = os.path.join(tmp, BASELINE_QA_ENGINEER)
@@ -167,7 +196,7 @@ class BaselineParity(unittest.TestCase):
             current_config = by_kind(render_docs([]), "ConfigMap")
             self.assertEqual(current_config["data"], baseline_config["data"])
 
-    def test_qa_engineer_eof_is_only_agent_source_change(self):
+    def test_approved_primary_agent_changes_are_only_expected_source_changes(self):
         with tempfile.TemporaryDirectory(prefix="opencode-server-baseline-") as tmp:
             baseline_chart = self._extract_baseline(tmp)
             baseline_agents = os.path.join(baseline_chart, "files", "agents")
@@ -312,8 +341,7 @@ class PilotRendering(unittest.TestCase):
             },
         )
         self.assertEqual(
-            mem["compaction"],
-            {"enabled": True, "memoryLimit": 10},
+            mem["compaction"], {"enabled": True, "memoryLimit": 10}
         )
         self.assertEqual(mem["embeddingModel"], EMBEDDING_MODEL)
         self.assertEqual(mem["embeddingDimensions"], 768)

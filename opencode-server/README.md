@@ -27,7 +27,7 @@ catalog; use `opencode models openai --refresh` if the model is absent. Catalog
 presence does not prove provider entitlement or successful inference. After an
 approved rollout, verify the model in a fresh session; existing sessions may
 retain their selected model. Configuration is loaded at server startup, not
-hot-reloaded.
+hot-reloaded into an existing process.
 
 The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-5.6-terra` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
@@ -119,12 +119,18 @@ the cluster-owned Service. Local embedding runtime compatibility on the stock
 image is an unverified activation gate. The pilot mounts no production
 secrets, agents, skills, MCP configuration, or artifact PVC.
 
-A repository-hygiene end-of-file correction to `files/agents/qa-engineer.md`
-changes the rendered production ConfigMap checksum relative to the published
-0.4.0 chart; agent semantics are unchanged, and a normal production pod
-rollout on the chart version pin can occur even when the pilot is disabled.
-See [Memory pilot](docs/memory-pilot.md) for the baseline comparison and the
-single approved formatting correction it applies.
+The historical 0.4.0 baseline comparison has two approved agent changes: a
+repository-hygiene end-of-file correction to `files/agents/qa-engineer.md`,
+and the nine primary agent files (`career.md`, `default.md`, `grillmaster.md`,
+`homerepair.md`, `homesteader.md`, `lawnmowerman.md`, `makeitwork.md`,
+`teacher.md`, and `xnoto.md`) move from `openai/gpt-5.6-terra` with
+`variant: default` to `openai/gpt-6-sol` with no variant. The parity test
+applies those exact frontmatter changes to the extracted historical baseline;
+all other source and rendered equality checks remain unchanged. These approved
+changes can change the rendered production ConfigMap checksum relative to the
+published 0.4.0 chart, and a normal production pod rollout on the chart version
+pin can occur even when the pilot is disabled. See [Memory pilot](docs/memory-pilot.md)
+for the complete baseline comparison contract.
 
 Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
 the pilot is single-replica persistence on a dedicated home claim with no

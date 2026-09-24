@@ -42,7 +42,7 @@ repositories.
 The pilot Deployment opts into Reloader for both pilot Secrets:
 `secret.reloader.stakater.com/reload` lists
 `opencode-memory-pilot-provider,opencode-memory-pilot-server-auth`. Rotate
-the provider key or the server password in `kustomize-cluster` and let
+ the provider key or the server password in `kustomize-cluster` and let
 Reloader restart the pod; with a single `Recreate` replica that restart is a
 deliberate full stop, so rotate while no synthetic run is in flight.
 
@@ -52,8 +52,8 @@ deliberate full stop, so rotate while no synthetic run is in flight.
   `opencode web --hostname 0.0.0.0 --port 4096`. A Kubernetes `startupProbe`
   on port 4096 (period 10 seconds, failure threshold 120) gives slow first
   boots a twenty-minute budget before readiness and liveness probing begin.
-  The tcp probe covers server startup only: it verifies the listener and
-  does not establish plugin load or embedding-model readiness.
+  The tcp probe covers server startup only: it verifies the listener and does
+  not establish plugin load or embedding-model readiness.
 - Embeddings use the plugin's local ONNX default,
   `Xenova/nomic-embed-text-v1`, with `embeddingDimensions: 768` and
   `embeddingUseTaskPrefixes: true`. `embeddingApiUrl` and `embeddingApiKey`
@@ -68,20 +68,19 @@ deliberate full stop, so rotate while no synthetic run is in flight.
   stack and downloads the ONNX model from Hugging Face on first use.
 - Local ONNX embedding compatibility on the stock Alpine-based OpenCode
   image is UNVERIFIED. It is an activation gate: verify package
-  compatibility and native runtime behavior before registering or syncing
-  the pilot. Persistent home storage does not solve it — the model cache
-  persists under the storage path, but compatibility must be proven at
-  runtime.
+  compatibility and native runtime behavior before registering or syncing the
+  pilot. Persistent home storage does not solve it — the model cache persists
+  under the storage path, but compatibility must be proven at runtime.
 - The `opencode-mem@2.26.0` plugin installs from npm on first boot into the
   persistent home. Plugin settings are the seeded `opencode-mem.jsonc`:
-  storage under `/home/opencode/.opencode-mem/data`, capture on, cleanup
-  off, chat-message injection pinned to `injectOn: "first"` with
-  `maxMemories: 3` and `excludeCurrentSession: true`, and compaction pinned
-  to `memoryLimit: 10`. User-profile learning is effectively off because
-  that path is owned by the disabled web server (`webServerEnabled: false`),
-  not because of `injectProfile`; `injectProfile: false` additionally
-  prevents any stored profile from being injected, and
-  `userProfileAutoCleanupEnabled: false` keeps cleanup from touching it.
+  storage under `/home/opencode/.opencode-mem/data`, capture on, cleanup off,
+  chat-message injection pinned to `injectOn: "first"` with `maxMemories: 3`
+  and `excludeCurrentSession: true`, and compaction pinned to
+  `memoryLimit: 10`. User-profile learning is effectively off because that
+  path is owned by the disabled web server (`webServerEnabled: false`), not
+  because of `injectProfile`; `injectProfile: false` additionally prevents
+  any stored profile from being injected, and `userProfileAutoCleanupEnabled:
+  false` keeps cleanup from touching it.
 - The only enabled provider is `zai-coding-plan/glm-5.3` through
   `{env:ZHIPU_API_KEY}`. The schema-supported built-in agents build, plan,
   general, and explore are disabled; no other built-in names are guessed.
@@ -116,22 +115,28 @@ data.
   first, and exclude credentials — `.auth-token` is treated as a credential
   and is never included — and never copy the whole home directory or
   `auth.json`. No agent may read or upload credentials.
-- OpenCode's own session database is also on the home PVC; it is outside
-  the plugin backup scope, not outside the claim.
+- OpenCode's own session database is also on the home PVC; it is outside the
+  plugin backup scope, not outside the claim.
 - Never delete lock files automatically; a stale lock is an operator
   decision.
 
 ## Baseline and checksum parity
 
-The pilot tests compare the production render against the inspected baseline
-commit `32a6b91` plus one explicitly enumerated, hygiene-required formatting
-correction: the baseline `files/agents/qa-engineer.md` lacks a final newline
-and the comparison appends exactly one before rendering. Agent semantics
-are unchanged. Because of that correction the rendered production ConfigMap
-checksum differs from the published 0.4.0 chart, and a normal production pod
-rollout on the chart version pin can occur even when the pilot is disabled.
-No claim is made that the current production manifest or checksum exactly
-matches the original baseline.
+The pilot tests compare the production render against the historical 0.4.0
+baseline commit `32a6b91` plus two explicitly approved, comparison-only
+changes: the baseline `files/agents/qa-engineer.md` lacks a final newline and
+the nine primary agent files (`career.md`, `default.md`, `grillmaster.md`,
+`homerepair.md`, `homesteader.md`, `lawnmowerman.md`, `makeitwork.md`,
+`teacher.md`, and `xnoto.md`) change from `openai/gpt-5.6-terra` with
+`variant: default` to `openai/gpt-6-sol` with no variant. The test applies
+those exact frontmatter changes to the extracted baseline before rendering;
+all other bytes and source/render equality checks remain unchanged.
+Because these approved changes include the QA formatting correction and the
+nine primary model updates, the rendered production ConfigMap checksum can
+differ from the published 0.4.0 chart, and a normal production pod rollout
+on the chart version pin can occur even when the pilot is disabled. No claim
+is made that the current production manifest or checksum exactly matches the
+original baseline.
 
 ## Security posture
 
