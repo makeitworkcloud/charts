@@ -75,7 +75,7 @@ test-opencode-server-agents:
 		grep -Fq 'Skip routine changes within an established pattern.' "opencode-server/files/agents/$$agent.md"; \
 		grep -Fq 'This design review does not replace pre-PR reviews.' "opencode-server/files/agents/$$agent.md"; \
 	done; \
-	grep -Fqx 'version: 0.4.1' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.4.2' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
 	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
@@ -134,6 +134,9 @@ test-opencode-server-agents:
 		! grep -Fqi 'instead of attempting a fallback' <<< "$$policy"; \
 	done; \
 	for agent in $$primary_agents; do \
+		frontmatter="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' "opencode-server/files/agents/$$agent.md")"; \
+		grep -Fqx 'model: openai/gpt-6-sol' <<< "$$frontmatter"; \
+		! grep -Eq '^variant:' <<< "$$frontmatter"; \
 		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Fqi 'without a custom project name' <<< "$$policy"; \
 		grep -Fqi 'retry once' <<< "$$policy"; \
@@ -207,7 +210,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.1.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.2.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \

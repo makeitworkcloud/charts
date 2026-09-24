@@ -19,6 +19,16 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
 
+The nine primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`,
+`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) select
+`openai/gpt-6-sol` without a variant override. Subagent model selections and the
+global fallback model are unchanged. `opencode models openai` checks the model
+catalog; use `opencode models openai --refresh` if the model is absent. Catalog
+presence does not prove provider entitlement or successful inference. After an
+approved rollout, verify the model in a fresh session; existing sessions may
+retain their selected model. Configuration is loaded at server startup, not
+hot-reloaded.
+
 The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-5.6-terra` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### Cloud architecture design review
