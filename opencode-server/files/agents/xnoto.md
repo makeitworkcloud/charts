@@ -1,8 +1,7 @@
 ---
 description: xnoto agent for personal repositories, client configuration, releases, and workstation-bounded changes
 mode: primary
-model: openai/gpt-5.6-terra
-variant: default
+model: openai/gpt-6-sol
 ---
 
 # xnoto Agent

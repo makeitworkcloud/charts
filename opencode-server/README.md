@@ -19,6 +19,16 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
 
+The nine primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`,
+`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) select
+`openai/gpt-6-sol` without a variant override. Subagent model selections and the
+global fallback model are unchanged. `opencode models openai` checks the model
+catalog; use `opencode models openai --refresh` if the model is absent. Catalog
+presence does not prove provider entitlement or successful inference. After an
+approved rollout, verify the model in a fresh session; existing sessions may
+retain their selected model. Configuration is loaded at server startup, not
+hot-reloaded.
+
 The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-5.6-terra` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### Cloud architecture design review
@@ -109,12 +119,13 @@ the cluster-owned Service. Local embedding runtime compatibility on the stock
 image is an unverified activation gate. The pilot mounts no production
 secrets, agents, skills, MCP configuration, or artifact PVC.
 
-A repository-hygiene end-of-file correction to `files/agents/qa-engineer.md`
-changes the rendered production ConfigMap checksum relative to the published
-0.4.0 chart; agent semantics are unchanged, and a normal production pod
-rollout on the chart version pin can occur even when the pilot is disabled.
-See [Memory pilot](docs/memory-pilot.md) for the baseline comparison and the
-single approved formatting correction it applies.
+The historical 0.4.0 baseline comparison permits the QA reviewer's existing
+end-of-file correction and the nine primary agents' exact Terra-to-Sol model
+change with removal of `variant: default`. All other agent bytes and production
+render comparisons remain enforced. These changes affect the production
+ConfigMap checksum, so a normal production pod rollout on the chart version
+pin can occur even when the pilot is disabled. See [Memory pilot](docs/memory-pilot.md)
+for the baseline comparison contract.
 
 Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
 the pilot is single-replica persistence on a dedicated home claim with no
