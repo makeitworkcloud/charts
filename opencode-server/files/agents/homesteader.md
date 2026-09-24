@@ -1,8 +1,7 @@
 ---
 description: Confidential homestead knowledge and project steward using GitHub MCP with private-repository safeguards
 mode: primary
-model: openai/gpt-5.6-terra
-variant: default
+model: openai/gpt-6-sol
 ---
 
 # Homesteader Agent

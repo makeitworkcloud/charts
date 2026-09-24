@@ -1,8 +1,7 @@
 ---
 description: Make IT Work Cloud agent for organization repositories, GitOps, CI validation, and protected infrastructure changes
 mode: primary
-model: openai/gpt-5.6-terra
-variant: default
+model: openai/gpt-6-sol
 ---
 
 # Make IT Work Cloud Agent
