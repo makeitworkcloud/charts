@@ -4,20 +4,143 @@ Opt-in isolated rendering of `opencode-server` for the Make IT Work Cloud
 memory pilot. Enabling it is a deployment-mode switch, not an additive
 feature: one Application renders either production or the pilot, never both.
 
+## Integration contract
+
+| Value | Required pilot setting |
+| --- | --- |
+| `memoryPilot.enabled` | `true` |
+| `fullnameOverride` | exactly `opencode-memory-pilot` |
+| `persistence.existingClaim` | exactly `opencode-memory-pilot-home` |
+| `memoryPilot.providerSecretName` | exactly `opencode-memory-pilot-provider` (key `ZHIPU_API_KEY`) |
+| `memoryPilot.serverSecretName` | exactly `opencode-memory-pilot-server-auth` (key `password`) |
+
+Namespace `opencode`. Rendering fails on any other value for these names,
+which prevents accidental production collisions — including fullname helper
+truncation edge cases and production credential overrides. The pilot never
+mounts production secrets (`opencode-zai`, `opencode-kimi`,
+`opencode-minimax`, `opencode-openai-auth`, `opencode-server-auth`), the
+artifact PVC, packaged production agents, skills, MCP configuration, or any
+`auth.json` seed.
+
+## What renders
+
+- one ConfigMap `opencode-memory-pilot-config` containing exactly
+  `opencode.json`, `opencode-mem.jsonc`, and a minimal `AGENTS.md`, seeded
+  into `/home/opencode/.config/opencode` through the same init-container
+  `emptyDir` copy as production, with no `auth.json` seeding;
+- one Deployment `opencode-memory-pilot` with `replicas: 1` and
+  `strategy: Recreate`.
+
+OpenCode still serves port 4096 behind a cluster-owned Service in
+`kustomize-cluster`, exactly like production. Cross-repo comparison of that
+Service against this Deployment is deferred to activation and performed
+against the published chart; pull-request checks do not fetch other
+repositories.
+
+## Secret rotation
+
+The pilot Deployment opts into Reloader for both pilot Secrets:
+`secret.reloader.stakater.com/reload` lists
+`opencode-memory-pilot-provider,opencode-memory-pilot-server-auth`. Rotate
+the provider key or the server password in `kustomize-cluster` and let
+Reloader restart the pod; with a single `Recreate` replica that restart is a
+deliberate full stop, so rotate while no synthetic run is in flight.
+
+## Runtime shape
+
+- OpenCode `1.18.29` (digest-pinned) starts directly with
+  `opencode web --hostname 0.0.0.0 --port 4096`. A Kubernetes `startupProbe`
+  on port 4096 (period 10 seconds, failure threshold 120) gives slow first
+  boots a twenty-minute budget before readiness and liveness probing begin.
+  The tcp probe covers server startup only: it verifies the listener and
+  does not establish plugin load or embedding-model readiness.
+- Embeddings use the plugin's local ONNX default,
+  `Xenova/nomic-embed-text-v1`, with `embeddingDimensions: 768` and
+  `embeddingUseTaskPrefixes: true`. `embeddingApiUrl` and `embeddingApiKey`
+  are omitted, as is the manual `memoryProvider`/`memoryApiUrl` block, which
+  only activates when explicitly configured. No remote embedding-inference
+  API or fallback memory-model API is configured. The configured Z.AI
+  provider is used for conversation and extraction inference; npm package
+  installation and first-use Hugging Face model downloads still require
+  egress.
+- Removing the former embedding sidecar does not remove Hugging Face
+  dependencies: the plugin still ships its local `@huggingface/transformers`
+  stack and downloads the ONNX model from Hugging Face on first use.
+- Local ONNX embedding compatibility on the stock Alpine-based OpenCode
+  image is UNVERIFIED. It is an activation gate: verify package
+  compatibility and native runtime behavior before registering or syncing
+  the pilot. Persistent home storage does not solve it — the model cache
+  persists under the storage path, but compatibility must be proven at
+  runtime.
+- The `opencode-mem@2.26.0` plugin installs from npm on first boot into the
+  persistent home. Plugin settings are the seeded `opencode-mem.jsonc`:
+  storage under `/home/opencode/.opencode-mem/data`, capture on, cleanup
+  off, chat-message injection pinned to `injectOn: "first"` with
+  `maxMemories: 3` and `excludeCurrentSession: true`, and compaction pinned
+  to `memoryLimit: 10`. User-profile learning is effectively off because
+  that path is owned by the disabled web server (`webServerEnabled: false`),
+  not because of `injectProfile`; `injectProfile: false` additionally
+  prevents any stored profile from being injected, and
+  `userProfileAutoCleanupEnabled: false` keeps cleanup from touching it.
+- The only enabled provider is `zai-coding-plan/glm-5.3` through
+  `{env:ZHIPU_API_KEY}`. The schema-supported built-in agents build, plan,
+  general, and explore are disabled; no other built-in names are guessed.
+  The default agent is the synthetic-only `memory-pilot` primary.
+- Tooling is constrained by permission rules, not the deprecated `tools`
+  field: the global permission denies every tool (`"*": "deny"`) except
+  `memory` and the plugin's `StructuredOutput` path, which constrains any
+  enabled agent, and the `memory-pilot` agent repeats a deny-all-except-
+  memory permission itself. The plugin's internal structured-output agent
+  supplies its own permission behavior.
+
+## Synthetic data only
+
+While `chatMessage.enabled` is true the plugin persists raw prompts, and the
+pilot has no independent toggle for that. Every conversation reaching this
+instance must be treated as synthetic pilot data. The synthetic-only rule is
+documented operating policy, not an enforced sandbox: the `memory` tool can
+import and export files, so treat every path and payload as synthetic pilot
+data.
+
+## Persistence
+
+- The pilot is single-replica `Recreate` on a dedicated home claim: no high
+  availability and no node-loss protection. `Recreate` reduces the chance of
+  two writers overlapping the store; it is not proof of database safety.
+- Storage acceptance for this pilot is the persistent home PVC as-is: the
+  plugin stores memory data and the local embedding cache under
+  `/home/opencode/.opencode-mem/data`.
+- Backup and restore automation is deferred; no backup design is specified
+  here. If an operator takes a manual copy, scope it to the plugin memory
+  inventory (database, shards, raw-prompt records), classify the content
+  first, and exclude credentials — `.auth-token` is treated as a credential
+  and is never included — and never copy the whole home directory or
+  `auth.json`. No agent may read or upload credentials.
+- OpenCode's own session database is also on the home PVC; it is outside
+  the plugin backup scope, not outside the claim.
+- Never delete lock files automatically; a stale lock is an operator
+  decision.
+
 ## Baseline and checksum parity
 
-The pilot tests compare the production render against the historical 0.4.0
-baseline commit `32a6b91` plus two explicitly approved, comparison-only
-changes: the baseline `files/agents/qa-engineer.md` lacks a final newline and
-the nine primary agent files (`career.md`, `default.md`, `grillmaster.md`,
-`homerepair.md`, `homesteader.md`, `lawnmowerman.md`, `makeitwork.md`,
-`teacher.md`, and `xnoto.md`) change from `openai/gpt-5.6-terra` with
-`variant: default` to `openai/gpt-6-sol` with no variant. The test applies
-those exact frontmatter changes to the extracted baseline before rendering;
-all other bytes and source/render equality checks remain unchanged.
-Because these approved changes include the QA formatting correction and the
-nine primary model updates, the rendered production ConfigMap checksum can
-differ from the published 0.4.0 chart, and a normal production pod rollout
-on the chart version pin can occur even when the pilot is disabled. No claim
-is made that the current production manifest or checksum exactly matches the
-original baseline.
+The pilot tests retain the historical 0.4.0 baseline commit `32a6b91` and
+allow only two enumerated categories of agent changes. The baseline
+`files/agents/qa-engineer.md` lacks a final newline; the render comparison
+appends exactly one. The nine primary files (`career.md`, `default.md`,
+`grillmaster.md`, `homerepair.md`, `homesteader.md`, `lawnmowerman.md`,
+`makeitwork.md`, `teacher.md`, and `xnoto.md`) receive the exact frontmatter
+replacement from `openai/gpt-5.6-terra` plus `variant: default` to
+`openai/gpt-6-sol` with no variant override. The test asserts the old block
+exists exactly once in each extracted baseline header before replacing it;
+all other agent bytes and production render comparisons remain enforced.
+These changes affect the production ConfigMap checksum relative to the
+published 0.4.0 chart, so a normal production pod rollout on the chart version
+pin can occur even when the pilot is disabled. No claim is made that the
+current production manifest or checksum exactly matches the original baseline.
+
+## Security posture
+
+Non-root UID/GID/fsGroup 1000, read-only root filesystems, all capabilities
+dropped, no Service Account token automount, no Service resources rendered,
+no resource requests or limits (single-node repo policy), and no production
+credential grants.
