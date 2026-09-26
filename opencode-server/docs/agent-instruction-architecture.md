@@ -87,6 +87,30 @@ selects `default` for unqualified sessions. Changing `default_agent` is a
 separate user-facing routing decision, not an incidental result of this
 instruction refactor.
 
+### Session knowledge-read policy
+
+The eight named primary agents (`makeitwork`, `xnoto`, `career`, `teacher`,
+`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) each carry a
+short, self-contained, role-local session knowledge-read policy next to their
+existing knowledge sections. On the first substantive task in a fresh session
+that could rely on recalled agent-specific facts or duplicate earlier
+research, the agent decides whether its knowledge home is relevant, verifies
+current access, reads its own subset README through the validated
+default-branch cache route with the standard GitHub verified-SHA fallback,
+and then only the task-relevant documents the README cites; it reports the
+knowledge home as unavailable instead of assuming remembered facts. It does
+not repeat the index or provenance checks on every turn — it rechecks them
+only when the task, context, or freshness changes — and it writes only
+sparse, necessary, verified durable facts under its existing subset write
+policy. The generic `default` agent intentionally does not carry this policy;
+it has no knowledge home.
+
+This is a policy-directed attempt to improve session-start knowledge reads,
+not a guaranteed automatic enforcement mechanism: adherence depends on each
+runtime agent following its packaged instructions, and no backend enforcement
+is claimed. Multiuser knowledge isolation and backup/restore automation
+remain deferred.
+
 ### Cached repository source reads
 
 Use the cached graph for discovery and an exact source read only when its
@@ -290,6 +314,6 @@ maintenance burden for:
 Revisit this design when OpenCode adds supported agent inheritance or prompt
 composition, when the chart's ConfigMap/mount strategy changes, when a new
 primary or repository-capable subagent is introduced, when agent-knowledge
-subtree authority changes, when the canonical git-sync writer mapping for the
-repository cache changes, or when evidence shows that direct primary-agent
+subtree authority changes, when the canonical git-sync writer mapping for
+the repository cache changes, or when evidence shows that direct primary-agent
 instructions no longer improve instruction adherence.

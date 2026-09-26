@@ -124,19 +124,23 @@ data.
 ## Baseline and checksum parity
 
 The pilot tests retain the historical 0.4.0 baseline commit `32a6b91` and
-allow only two enumerated categories of agent changes. The baseline
+allow only three enumerated categories of agent changes. The baseline
 `files/agents/qa-engineer.md` lacks a final newline; the render comparison
 appends exactly one. The nine primary files (`career.md`, `default.md`,
 `grillmaster.md`, `homerepair.md`, `homesteader.md`, `lawnmowerman.md`,
 `makeitwork.md`, `teacher.md`, and `xnoto.md`) receive the exact frontmatter
 replacement from `openai/gpt-5.6-terra` plus `variant: default` to
-`openai/gpt-6-sol` with no variant override. The test asserts the old block
-exists exactly once in each extracted baseline header before replacing it;
-all other agent bytes and production render comparisons remain enforced.
-These changes affect the production ConfigMap checksum relative to the
-published 0.4.0 chart, so a normal production pod rollout on the chart version
-pin can occur even when the pilot is disabled. No claim is made that the
-current production manifest or checksum exactly matches the original baseline.
+`openai/gpt-6-sol` with no variant override. Eight of those primary files
+(all except `default.md`) additionally receive the exact session
+knowledge-read policy paragraph inserted before one asserted per-file anchor
+heading. The test asserts the old block exists exactly once in each extracted
+baseline header before replacing it, and that each knowledge-read anchor
+occurs exactly once before inserting; all other agent bytes and production
+render comparisons remain enforced. These changes affect the production
+ConfigMap checksum relative to the published 0.4.0 chart, so a normal
+production pod rollout on the chart version pin can occur even when the pilot
+is disabled. No claim is made that the current production manifest or
+checksum exactly matches the original baseline.
 
 ## Security posture
 
