@@ -55,12 +55,16 @@ The four Kimi subagents (`kimi`, `kimi-256k`, `docs-writer`, and
 separate global Kimi provider
 ([models.dev commit](https://github.com/anomalyco/models.dev/commit/ae065079d839cd1e4d824007aa8acef87ff5465f));
 selecting that separate global provider would be its own owner decision
-requiring a separate account. The migration changes only ids: the
+requiring confirmation of the appropriate account. The chart migration changes only ids: the
 `files/opencode.json` global fallback model, enabled-provider allowlist entry,
 and provider key, plus the four agent model prefixes. Model suffixes (`k3` and
 `k3-256k`), variants, prompt bytes, the `{env:KIMI_API_KEY}` reference, and the
 `opencode-kimi` Secret wiring are unchanged, and no custom SDK, base URL, or
-model definition is introduced. Chart CI is static validation, not inference.
+model definition is introduced. The upstream catalog migration also switches
+the provider from the Anthropic protocol to the OpenAI-compatible protocol,
+so the preserved endpoint and model ids do not prove identical wire behavior;
+fresh-session inference and tool-call smoke tests remain a rollout gate.
+Chart CI is static validation, not inference.
 After a confirmed rollout, check that the deployed OpenCode model catalog lists
 the `kimi-code-plan-cn` keys, then verify fresh-session inference and tool
 calls.
