@@ -673,7 +673,7 @@ class WorkflowContract(unittest.TestCase):
 
     def test_base_revision_env_uses_event_context(self):
         self.assertIn("PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}", self.content)
-        self.assertIn("PUSH_BEFORE_SHA: ${{ github.before }}", self.content)
+        self.assertIn("PUSH_BEFORE_SHA: ${{ github.event.before }}", self.content)
         self.assertNotIn("${{ github.before }}", self.content)
 
     def test_validation_pipeline_steps_fail_closed(self):
