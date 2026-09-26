@@ -153,7 +153,7 @@ class BaselineParity(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-        self.assertEqual(proc.returncode == 0, proc.stderr)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
         return [doc for doc in yaml.safe_load_all(proc.stdout) if doc is not None]
 
     def _raw_configmap_include(self, chart_path):
@@ -174,7 +174,7 @@ class BaselineParity(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(proc.returncode == 0, proc.stderr)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
             for doc in yaml.safe_load_all(proc.stdout):
                 if isinstance(doc, dict) and "probe" in doc:
                     return doc["probe"]
