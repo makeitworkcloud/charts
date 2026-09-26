@@ -49,7 +49,7 @@ test-opencode-server-agents:
 	grep -Fqx 'Use `CHANGE` mode only for a completed diff and all affected workflows. Assess the implemented integration contract and supplied validation evidence. Flag needless bespoke automation even where no supplied contract expressly prohibits it.' opencode-server/files/agents/devops-engineer.md; \
 	grep -Fqx '## VERDICT: ADVANCE / HOLD / REJECT' opencode-server/files/agents/devops-engineer.md; \
 	for agent in default makeitwork xnoto career teacher; do grep -Fq '`devops-engineer` for CI, workflow, shared-workflow, artifact,' "opencode-server/files/agents/$$agent.md"; done; \
-	expected_cloud="$$(printf '%s\n' '---' 'description: Read-only preimplementation cloud architecture review for new services or material service-selection, topology, state, recovery, scaling, or cost changes; challenges supplied designs for requirements fit and unnecessary complexity, not routine changes or completed-code review' 'mode: subagent' 'model: openai/gpt-5.6-terra' 'variant: default' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
+	expected_cloud="$$(printf '%s\n' '---' 'description: Read-only preimplementation cloud architecture review for new services or material service-selection, topology, state placement, recovery, scaling, or cost changes; challenges supplied designs for requirements fit and unnecessary complexity, not routine changes or completed-code review' 'mode: subagent' 'model: openai/gpt-5.6-terra' 'variant: default' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
 	actual_cloud="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' opencode-server/files/agents/cloud-architecture-reviewer.md)"; \
 	test "$$actual_cloud" = "$$expected_cloud"; \
 	grep -Fqx '## Required inputs' opencode-server/files/agents/cloud-architecture-reviewer.md; \
@@ -75,7 +75,7 @@ test-opencode-server-agents:
 		grep -Fq 'Skip routine changes within an established pattern.' "opencode-server/files/agents/$$agent.md"; \
 		grep -Fq 'This design review does not replace pre-PR reviews.' "opencode-server/files/agents/$$agent.md"; \
 	done; \
-	grep -Fqx 'version: 0.4.2' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.4.3' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
 	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
@@ -210,7 +210,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.2.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.3.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \
