@@ -48,6 +48,38 @@ APPROVED_LUNA_MODEL_FILES = (
     "luna.md",
     "qa-engineer.md",
 )
+APPROVED_KB_READ_ADDITION_FILES = (
+    "career.md",
+    "grillmaster.md",
+    "homerepair.md",
+    "homesteader.md",
+    "lawnmowerman.md",
+    "makeitwork.md",
+    "teacher.md",
+    "xnoto.md",
+)
+KB_READ_ADDITION_ANCHORS = {
+    "career.md": b"\n\n## Runtime boundaries\n",
+    "grillmaster.md": b"\n\n## Cooking workflow\n",
+    "homerepair.md": b"\n\n## Safety and escalation\n",
+    "homesteader.md": b"\n\n## Workflow\n",
+    "lawnmowerman.md": b"\n\n## Working with images\n",
+    "makeitwork.md": b"\n\n## Specialized workflows\n",
+    "teacher.md": b"\n\n## Boundaries\n",
+    "xnoto.md": b"\n\n## xnoto invariants\n",
+}
+KB_READ_ADDITION = (
+    b"On the first substantive task in a fresh session that could rely on\n"
+    b"recalled agent-specific facts or duplicate earlier research, decide first\n"
+    b"whether your knowledge home is relevant. When it is, verify current access,\n"
+    b"read your own subset README through the same validated default-branch cache\n"
+    b"route as other repository reads (standard fallback reasons apply), and then\n"
+    b"only the task-relevant documents it cites; if the knowledge home is\n"
+    b"unavailable, report that instead of assuming remembered facts. Do not repeat\n"
+    b"the index or provenance checks on every turn; recheck them only when the\n"
+    b"task, context, or freshness changes. Write only sparse, necessary, verified\n"
+    b"durable facts, under the existing subset write policy."
+)
 
 
 def run_helm(extra):
@@ -132,6 +164,18 @@ class BaselineParity(unittest.TestCase):
         for name in APPROVED_LUNA_MODEL_FILES:
             self._replace_frontmatter_line(agents_dir, name, luna_old, luna_new)
 
+    def _apply_approved_kb_read_addition(self, baseline_chart):
+        agents_dir = os.path.join(baseline_chart, "files", "agents")
+        for name in APPROVED_KB_READ_ADDITION_FILES:
+            path = os.path.join(agents_dir, name)
+            with open(path, "rb") as handle:
+                content = handle.read()
+            anchor = KB_READ_ADDITION_ANCHORS[name]
+            self.assertEqual(content.count(anchor), 1, name)
+            content = content.replace(anchor, b"\n\n" + KB_READ_ADDITION + anchor)
+            with open(path, "wb") as handle:
+                handle.write(content)
+
     def _extract_baseline(self, tmp):
         archive = subprocess.run(
             ["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"],
@@ -145,6 +189,7 @@ class BaselineParity(unittest.TestCase):
             tar.extractall(tmp, filter="data")
         baseline_chart = os.path.join(tmp, "opencode-server")
         self._apply_approved_model_changes(baseline_chart)
+        self._apply_approved_kb_read_addition(baseline_chart)
         return baseline_chart
 
     def _render_chart(self, chart_path):
@@ -236,6 +281,48 @@ class BaselineParity(unittest.TestCase):
                     self.assertEqual(current_bytes, baseline_bytes + b"\n")
                 else:
                     self.assertEqual(current_bytes, baseline_bytes, name)
+
+
+class KnowledgeReadPolicyContract(unittest.TestCase):
+    def test_kb_read_addition_present_only_in_named_primary_agents(self):
+        agents_dir = os.path.join(CHART_DIR, "files", "agents")
+        for name in sorted(os.listdir(agents_dir)):
+            with open(os.path.join(agents_dir, name), "rb") as handle:
+                content = handle.read()
+            expected = 1 if name in APPROVED_KB_READ_ADDITION_FILES else 0
+            self.assertEqual(content.count(KB_READ_ADDITION), expected, name)
+
+    def test_named_primary_agents_carry_session_kb_read_policy(self):
+        for name in APPROVED_KB_READ_ADDITION_FILES:
+            path = os.path.join(CHART_DIR, "files", "agents", name)
+            with open(path, "r", encoding="utf-8") as handle:
+                policy = " ".join(handle.read().split())
+            self.assertIn("first substantive task in a fresh session", policy, name)
+            self.assertIn("whether your knowledge home is relevant", policy, name)
+            self.assertIn("read your own subset README", policy, name)
+            self.assertIn("task-relevant documents it cites", policy, name)
+            self.assertIn("instead of assuming remembered facts", policy, name)
+            self.assertIn(
+                "Do not repeat the index or provenance checks on every turn", policy, name
+            )
+            self.assertIn("existing subset write policy", policy, name)
+
+    def test_docs_describe_policy_directed_attempt_not_guaranteed_enforcement(self):
+        for relative in (
+            os.path.join("docs", "agent-instruction-architecture.md"),
+            "README.md",
+        ):
+            with open(os.path.join(CHART_DIR, relative), "r", encoding="utf-8") as handle:
+                text = " ".join(handle.read().split())
+            self.assertIn("policy-directed attempt", text, relative)
+            self.assertIn(
+                "not a guaranteed automatic enforcement mechanism", text, relative
+            )
+            self.assertIn(
+                "knowledge isolation and backup/restore automation remain deferred",
+                text,
+                relative,
+            )
 
 
 class DefaultRendering(unittest.TestCase):
@@ -586,7 +673,7 @@ class WorkflowContract(unittest.TestCase):
 
     def test_base_revision_env_uses_event_context(self):
         self.assertIn("PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}", self.content)
-        self.assertIn("PUSH_BEFORE_SHA: ${{ github.event.before }}", self.content)
+        self.assertIn("PUSH_BEFORE_SHA: ${{ github.before }}", self.content)
         self.assertNotIn("${{ github.before }}", self.content)
 
     def test_validation_pipeline_steps_fail_closed(self):
