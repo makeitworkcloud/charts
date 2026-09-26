@@ -34,6 +34,19 @@ approved rollout, verify the changed models in a fresh session; existing
 sessions may retain their selected model. Configuration is loaded at server
 startup, not hot-reloaded.
 
+Published standard OpenAI token rates are $10 per 1M input tokens and $50 per
+1M output tokens for `gpt-6-astra`, versus $2 per 1M input and $10 per 1M
+output for the prior `gpt-6-sol`
+([gpt-6-astra](https://developers.openai.com/api/docs/models/gpt-6-astra),
+[gpt-6-sol](https://developers.openai.com/api/docs/models/gpt-6-sol)). The
+owner accepted this fivefold increase per token; it is not a claim about total
+task cost, and no usage budget is implied. Chart CI is static validation and
+proves neither account entitlement nor successful Responses tool calls. Before
+any separately authorized rollout: confirm the deployed OpenCode version's
+model catalog lists each new model, exercise each one with fresh-session tool
+calls, and accept the resulting usage and cost; roll back only through a
+separate GitOps chart pin revision.
+
 The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6-sol` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### Cloud architecture design review
