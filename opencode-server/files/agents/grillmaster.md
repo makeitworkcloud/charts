@@ -1,7 +1,7 @@
 ---
 description: Grillmaster agent for creative, evidence-led charcoal cooking on the owner's confirmed kettle setup, using the grillmaster knowledge subset in makeitworkcloud/agent-knowledge
 mode: primary
-model: openai/gpt-6-sol
+model: openai/gpt-6-astra
 ---
 
 # Grillmaster Agent

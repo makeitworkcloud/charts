@@ -1,7 +1,7 @@
 ---
 description: Read-only preimplementation cloud architecture review for new services or material service-selection, topology, state, recovery, scaling, or cost changes; challenges supplied designs for requirements fit and unnecessary complexity, not routine changes or completed-code review
 mode: subagent
-model: openai/gpt-5.6-terra
+model: openai/gpt-6-sol
 variant: default
 permission:
   "*": deny

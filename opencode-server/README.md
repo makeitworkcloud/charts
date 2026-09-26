@@ -21,19 +21,37 @@ A change to any packaged file is chart content and requires a new `Chart.yaml` v
 
 The nine primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`,
 `grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) select
-`openai/gpt-6-sol` without a variant override. Subagent model selections and the
+`openai/gpt-6-astra` without a variant override. The six Terra-tier subagents
+(`terra`, `adversarial-code-reviewer`, `cloud-architecture-reviewer`,
+`devops-engineer`, `infra-security-reviewer`, and `recruiter-resume-reviewer`)
+select `openai/gpt-6-sol`, and the two Luna-tier subagents (`luna` and
+`qa-engineer`) select `openai/gpt-6-luna`; existing variants are preserved. The
+GLM, MiniMax, and Kimi subagents and the
 global fallback model are unchanged. `opencode models openai` checks the model
-catalog; use `opencode models openai --refresh` if the model is absent. Catalog
+catalog; use `opencode models openai --refresh` if a model is absent. Catalog
 presence does not prove provider entitlement or successful inference. After an
-approved rollout, verify the model in a fresh session; existing sessions may
-retain their selected model. Configuration is loaded at server startup, not
-hot-reloaded.
+approved rollout, verify the changed models in a fresh session; existing
+sessions may retain their selected model. Configuration is loaded at server
+startup, not hot-reloaded.
 
-The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-5.6-terra` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
+Published standard OpenAI token rates are $10 per 1M input tokens and $50 per
+1M output tokens for `gpt-6-astra`, versus $2 per 1M input and $10 per 1M
+output for the prior `gpt-6-sol`
+([gpt-6-astra](https://developers.openai.com/api/docs/models/gpt-6-astra),
+[gpt-6-sol](https://developers.openai.com/api/docs/models/gpt-6-sol)). The
+owner accepted this fivefold increase per token; it is not a claim about total
+task cost, and no usage budget is implied. Chart CI is static validation and
+proves neither account entitlement nor successful Responses tool calls. Before
+any separately authorized rollout: confirm the deployed OpenCode version's
+model catalog lists each new model, exercise each one with fresh-session tool
+calls, and accept the resulting usage and cost; roll back only through a
+separate GitOps chart pin revision.
+
+The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6-sol` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### Cloud architecture design review
 
-The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-5.6-terra` with the default variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
+The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6-sol` with the default variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
 
 The review is requirements-led and simplicity-biased: it prefers established vendor- or canonical-owner-maintained solutions, challenges unsupported complexity, and no cloud vendor is preferred by default. The five code-capable primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`) route material designs to it with a compact design brief and skip routine changes within an established pattern; the existing pre-pull-request review gates are unchanged, and this design review does not replace them.
 
@@ -120,10 +138,13 @@ image is an unverified activation gate. The pilot mounts no production
 secrets, agents, skills, MCP configuration, or artifact PVC.
 
 The historical 0.4.0 baseline comparison permits the QA reviewer's existing
-end-of-file correction and the nine primary agents' exact Terra-to-Sol model
-change with removal of `variant: default`. All other agent bytes and production
-render comparisons remain enforced. These changes affect the production
-ConfigMap checksum, so a normal production pod rollout on the chart version
+end-of-file correction and exactly seventeen approved model-header changes: the
+nine primary agents' exact Terra-to-Astra model change with removal of
+`variant: default`, the six Terra-tier subagents' exact Terra-to-Sol model-line
+change with each variant preserved, and the two Luna-tier subagents' exact
+Luna-to-GPT-6 model-line change. All other agent bytes and production render
+comparisons remain enforced. These changes affect the production ConfigMap
+checksum, so a normal production pod rollout on the chart version
 pin can occur even when the pilot is disabled. See [Memory pilot](docs/memory-pilot.md)
 for the baseline comparison contract.
 

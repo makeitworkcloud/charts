@@ -154,7 +154,7 @@ authorization, and final synthesis; it verifies material findings. Independent
 scopes may run in parallel.
 
 [`files/agents/terra.md`](../files/agents/terra.md) defines `terra`, a
-full-capable, generic execution subagent using `openai/gpt-5.6-terra` with
+full-capable, generic execution subagent using `openai/gpt-6-sol` with
 the default variant. A primary may select it for bounded coding, debugging, or
 repository tasks when it needs execution capacity. It does not change the
 `default` primary-agent selection or delegate primary ownership; the assigning
@@ -163,7 +163,7 @@ criteria in the task prompt.
 
 [`files/agents/devops-engineer.md`](../files/agents/devops-engineer.md) defines
 a parent-directed, read-only DevOps integration and delivery reviewer using
-`openai/gpt-5.6-terra` with no variant override. It reviews supplied DESIGN
+`openai/gpt-6-sol` with no variant override. It reviews supplied DESIGN
 proposals and completed CHANGE diffs for CI, workflow, reusable-workflow,
 artifact, GitOps-handoff, runner, and delivery-integration contracts. All
 native and MCP tools are denied through a wildcard permission rule; the parent
@@ -173,7 +173,7 @@ retains implementation, mutation, and final authority.
 defines a supplied-evidence, read-only cloud architecture design reviewer that
 the code-capable primaries dispatch before implementing a new cloud service or
 a material change to service selection, topology, state placement, recovery,
-scaling, or recurring cost. It runs on `openai/gpt-5.6-terra` with the default
+scaling, or recurring cost. It runs on `openai/gpt-6-sol` with the default
 variant, all native and MCP tools denied, and a bounded 500-800-word review
 budget; it does not switch models, dispatch specialists, or retrieve evidence
 itself. It may recommend a specialist for a named material risk; the primary
@@ -230,7 +230,7 @@ unspecialized work.
 
 The existing `make test-opencode-server-agents` target statically covers the
 `cloud-architecture-reviewer` packaging: exact frontmatter (description,
-Terra model, default variant, subagent mode, wildcard and `edit`/`bash` tool
+Sol model, default variant, subagent mode, wildcard and `edit`/`bash` tool
 denies), the mandatory headings and policy markers, the routing markers in
 the five code-capable primaries, the 24-agent inventory with ConfigMap and
 mount keys, and byte-exact archive inclusion. Functional review quality is
