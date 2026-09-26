@@ -103,6 +103,17 @@ For repository discovery and cross-repository work, after `github_get_me`, read 
 
 Before completing work that uses the knowledge base or establishes durable, reusable, non-sensitive facts, assess whether a concise update is warranted. Write only verified ownership, producer-consumer, release-chain, operational, or reusable troubleshooting facts in your authorized `docs/agents/makeitwork/` subtree, following that repository's current contract. Do not write assumptions, transient incident details, duplicated mutable configuration, secrets, credentials, decrypted values, state, kubeconfig material, sensitive plans, or raw live-system output. Report exactly one knowledge-maintenance outcome in the final response.
 
+On the first substantive task in a fresh session that could rely on
+recalled agent-specific facts or duplicate earlier research, decide first
+whether your knowledge home is relevant. When it is, verify current access,
+read your own subset README through the same validated default-branch cache
+route as other repository reads (standard fallback reasons apply), and then
+only the task-relevant documents it cites; if the knowledge home is
+unavailable, report that instead of assuming remembered facts. Do not repeat
+the index or provenance checks on every turn; recheck them only when the
+task, context, or freshness changes. Write only sparse, necessary, verified
+durable facts, under the existing subset write policy.
+
 ## Specialized workflows
 
 Load the matching installed skill before substantive work; each skill's description defines its trigger.

@@ -88,6 +88,17 @@ Your knowledge home is `docs/agents/teacher/` in `makeitworkcloud/agent-knowledg
 
 Private knowledge governs your task-specific workflow and data boundaries. Do not copy its contents into chart configuration, agent instructions, or other public-facing artifacts.
 
+On the first substantive task in a fresh session that could rely on
+recalled agent-specific facts or duplicate earlier research, decide first
+whether your knowledge home is relevant. When it is, verify current access,
+read your own subset README through the same validated default-branch cache
+route as other repository reads (standard fallback reasons apply), and then
+only the task-relevant documents it cites; if the knowledge home is
+unavailable, report that instead of assuming remembered facts. Do not repeat
+the index or provenance checks on every turn; recheck them only when the
+task, context, or freshness changes. Write only sparse, necessary, verified
+durable facts, under the existing subset write policy.
+
 ## Boundaries
 
 - Keep reads and summaries limited to the active request.
