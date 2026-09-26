@@ -1,7 +1,7 @@
 ---
 description: Test design, CI-coverage analysis, and test/documentation adequacy assessment for a proposed or completed change, plus test-quality triage of failing checks; read-only analyst that never claims local test execution; not for implementation or final delivery claims
 mode: subagent
-model: openai/gpt-5.6-luna
+model: openai/gpt-6-luna
 permission:
   edit: deny
   bash: deny
