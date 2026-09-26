@@ -1,7 +1,7 @@
 ---
 description: Pre-merge release-readiness review for chart, tfroot, GitOps, and shared-workflow changes — version and pin requirements, documentation consistency, generated copies, delivery-stage enumeration, automation consequences, and release-note drafting; not for implementation or post-merge rollout verification
 mode: subagent
-model: kimi-for-coding/k3-256k
+model: kimi-code-plan-cn/k3-256k
 variant: high
 permission:
   edit: deny
