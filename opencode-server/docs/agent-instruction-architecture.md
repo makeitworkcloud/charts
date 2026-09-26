@@ -314,6 +314,6 @@ maintenance burden for:
 Revisit this design when OpenCode adds supported agent inheritance or prompt
 composition, when the chart's ConfigMap/mount strategy changes, when a new
 primary or repository-capable subagent is introduced, when agent-knowledge
-subtree authority changes, when the canonical git-sync writer mapping for
-the repository cache changes, or when evidence shows that direct primary-agent
+subtree authority changes, when the canonical git-sync writer mapping for the
+repository cache changes, or when evidence shows that direct primary-agent
 instructions no longer improve instruction adherence.
