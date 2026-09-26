@@ -116,22 +116,30 @@ data.
   first, and exclude credentials — `.auth-token` is treated as a credential
   and is never included — and never copy the whole home directory or
   `auth.json`. No agent may read or upload credentials.
-- OpenCode's own session database is also on the home PVC; it is outside
-  the plugin backup scope, not outside the claim.
+- OpenCode's own session database is also on the home PVC; it is outside the
+  plugin backup scope, not outside the claim.
 - Never delete lock files automatically; a stale lock is an operator
   decision.
 
 ## Baseline and checksum parity
 
 The pilot tests retain the historical 0.4.0 baseline commit `32a6b91` and
-allow only two enumerated categories of agent changes. The baseline
+allow only enumerated agent changes: the QA reviewer's existing end-of-file
+correction plus exactly seventeen approved model-header changes. The baseline
 `files/agents/qa-engineer.md` lacks a final newline; the render comparison
 appends exactly one. The nine primary files (`career.md`, `default.md`,
 `grillmaster.md`, `homerepair.md`, `homesteader.md`, `lawnmowerman.md`,
 `makeitwork.md`, `teacher.md`, and `xnoto.md`) receive the exact frontmatter
 replacement from `openai/gpt-5.6-terra` plus `variant: default` to
-`openai/gpt-6-sol` with no variant override. The test asserts the old block
-exists exactly once in each extracted baseline header before replacing it;
+`openai/gpt-6-astra` with no variant override. The six Terra-tier files
+(`adversarial-code-reviewer.md`, `cloud-architecture-reviewer.md`,
+`devops-engineer.md`, `infra-security-reviewer.md`,
+`recruiter-resume-reviewer.md`, and `terra.md`) receive the exact model-line
+replacement from `openai/gpt-5.6-terra` to `openai/gpt-6-sol` with each
+existing variant preserved. The two Luna-tier files (`luna.md` and
+`qa-engineer.md`) receive the exact model-line replacement from
+`openai/gpt-5.6-luna` to `openai/gpt-6-luna`. The test asserts each old block
+exists exactly once in the extracted baseline header before replacing it;
 all other agent bytes and production render comparisons remain enforced.
 These changes affect the production ConfigMap checksum relative to the
 published 0.4.0 chart, so a normal production pod rollout on the chart version
