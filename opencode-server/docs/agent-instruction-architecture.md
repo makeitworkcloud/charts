@@ -73,8 +73,8 @@ impact, and explicit owner approval before it is created.
 The `agent-knowledge` exception is intentionally narrow: when the repository's
 current contract grants a named primary agent authority over its own
 `docs/agents/<agent>/` subtree, a verified, non-sensitive update is committed
-directly to `main` with a scoped descriptive commit. No branch, pull request, or
-merge operation is needed for that repository-local action. Pull requests
+directly to `main` with a scoped descriptive commit. No branch, pull request,
+or merge operation is needed for that repository-local action. Pull requests
 remain available for owner-requested review and are required outside the
 agent's own subtree. The generic `default` agent has no autonomous knowledge
 subtree and must not use the exception until a human owner establishes one or
@@ -134,9 +134,9 @@ provenance and coverage evidence passes all checks. This is the exact recipe:
    is unavailable, read current content and label it a different snapshot.
    GitHub stays authoritative for access, visibility, default HEAD, branch
    protections, pull requests, reviews, checks, releases, and write
-   preconditions — freshness-critical facts, not an ordinary need for
-   exact content. For a requested branch/PR SHA different from the
-   verified default snapshot, use GitHub at the requested SHA. Primaries may pass
+   preconditions — freshness-critical facts, not an ordinary need for exact
+   content. For a requested branch/PR SHA different from the verified
+   default snapshot, use GitHub at the requested SHA. Primaries may pass
    current authorization, the verified snapshot, and full-index evidence to
    delegated workers; that evidence does not extend worker authority.
 

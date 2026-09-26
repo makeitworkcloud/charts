@@ -116,8 +116,8 @@ data.
   first, and exclude credentials — `.auth-token` is treated as a credential
   and is never included — and never copy the whole home directory or
   `auth.json`. No agent may read or upload credentials.
-- OpenCode's own session database is also on the home PVC; it is outside the
-  plugin backup scope, not outside the claim.
+- OpenCode's own session database is also on the home PVC; it is outside
+  the plugin backup scope, not outside the claim.
 - Never delete lock files automatically; a stale lock is an operator
   decision.
 
