@@ -65,6 +65,21 @@ Updating `agent-knowledge` is a separate documentation change and does not requi
 
 The private repository is a discovery aid, not a secret store or canonical desired state. Access depends on the runtime GitHub identity. Primary agents do not package mutable repository topology; if private knowledge is unavailable or conflicts with current source, agents use direct GitHub discovery, report the limitation, and never guess.
 
+The eight named primary agents (`makeitwork`, `xnoto`, `career`, `teacher`,
+`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) carry a
+self-contained session knowledge-read policy: on the first substantive task
+in a fresh session that could rely on recalled agent-specific facts or
+duplicate earlier research, they decide whether their knowledge home is
+relevant, verify current access, read their own subset README through the
+validated default-branch cache route or the GitHub verified-SHA fallback, and
+then only the task-relevant documents it cites, reporting the knowledge home
+as unavailable instead of assuming remembered facts; they recheck index and
+provenance only when the task, context, or freshness changes, and write only
+sparse, necessary, verified durable facts under the existing subset policy.
+This is a policy-directed attempt, not a guaranteed automatic enforcement
+mechanism; multiuser knowledge isolation and backup/restore automation
+remain deferred.
+
 ## Prerequisites
 
 The consuming cluster supplies:
@@ -120,9 +135,11 @@ image is an unverified activation gate. The pilot mounts no production
 secrets, agents, skills, MCP configuration, or artifact PVC.
 
 The historical 0.4.0 baseline comparison permits the QA reviewer's existing
-end-of-file correction and the nine primary agents' exact Terra-to-Sol model
-change with removal of `variant: default`. All other agent bytes and production
-render comparisons remain enforced. These changes affect the production
+end-of-file correction, the nine primary agents' exact Terra-to-Sol model
+change with removal of `variant: default`, and the eight named primary
+agents' exact session knowledge-read policy paragraph inserted before one
+asserted per-file anchor. All other agent bytes and production render
+comparisons remain enforced. These changes affect the production
 ConfigMap checksum, so a normal production pod rollout on the chart version
 pin can occur even when the pilot is disabled. See [Memory pilot](docs/memory-pilot.md)
 for the baseline comparison contract.
