@@ -178,7 +178,7 @@ authorization, and final synthesis; it verifies material findings. Independent
 scopes may run in parallel.
 
 [`files/agents/terra.md`](../files/agents/terra.md) defines `terra`, a
-full-capability, generic execution subagent using `openai/gpt-6-sol` with
+full-capable, generic execution subagent using `openai/gpt-6-sol` with
 the default variant. A primary may select it for bounded coding, debugging, or
 repository tasks when it needs execution capacity. It does not change the
 `default` primary-agent selection or delegate primary ownership; the assigning
