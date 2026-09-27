@@ -62,6 +62,12 @@ APPROVED_KIMI_PROVIDER_CONFIG_LINES = (
     (b'"enabled_providers": ["kimi-for-coding",', b'"enabled_providers": ["kimi-code-plan-cn",'),
     (b'"provider": {"kimi-for-coding": {"options": {"apiKey": "{env:KIMI_API_KEY}"}}},', b'"provider": {"kimi-code-plan-cn": {"options": {"apiKey": "{env:KIMI_API_KEY}"}}},'),
 )
+# Exact old/new Git blob identities, not an exemption for arbitrary current skills.
+APPROVED_RETAINED_SKILL_BLOBS = {
+    "cloud-artifact-transfer": ("424566ff6d069d567a38ff64ba2f7e70d29c3ac7", "0aec869178afb68c8ad69db359c262309b510c28"),
+    "s3-presigned-file-delivery": ("6e8619323d81fd721feb2290e7090993b6c41fb4", "1c8aed1a3cb0bd90f1ba885b02a80a06dac8d90d"),
+    "career-external-documents": ("b56757c6811efe5970bb0d7332853a856145eea2", "3b87f6012c2ba249cc60f6fd2e07d9251d0531ed"),
+}
 
 
 def run_helm(extra):
@@ -172,6 +178,29 @@ class BaselineParity(unittest.TestCase):
         with open(config_path, "wb") as handle:
             handle.write(content)
 
+    def _apply_approved_retained_delivery(self, baseline_chart):
+        config_path = os.path.join(baseline_chart, "files", "opencode.json")
+        with open(config_path, "rb") as handle:
+            content = handle.read()
+        anchor = b'    "agent-pipe_inspect_artifact": "allow",\n'
+        addition = b'    "agent-pipe_remove_artifact": "ask",\n'
+        self.assertEqual(content.count(anchor), 1)
+        self.assertNotIn(b'"agent-pipe_remove_artifact"', content)
+        with open(config_path, "wb") as handle:
+            handle.write(content.replace(anchor, anchor + addition))
+        for name, (old_blob, new_blob) in APPROVED_RETAINED_SKILL_BLOBS.items():
+            relative = os.path.join("files", "skills", name, "SKILL.md")
+            baseline_path = os.path.join(baseline_chart, relative)
+            with open(baseline_path, "rb") as handle:
+                old = handle.read()
+            with open(os.path.join(CHART_DIR, relative), "rb") as handle:
+                new = handle.read()
+            for content, expected in ((old, old_blob), (new, new_blob)):
+                header = ("blob %d\0" % len(content)).encode("ascii")
+                self.assertEqual(hashlib.sha1(header + content).hexdigest(), expected, relative)
+            with open(baseline_path, "wb") as handle:
+                handle.write(new)
+
     def _extract_baseline(self, tmp):
         archive = subprocess.run(["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"], capture_output=True, cwd=REPO_ROOT)
         self.assertEqual(archive.returncode, 0, archive.stderr.decode("utf-8", "replace"))
@@ -181,6 +210,7 @@ class BaselineParity(unittest.TestCase):
         self._apply_approved_model_changes(baseline_chart)
         self._apply_approved_knowledge_policy(baseline_chart)
         self._apply_approved_provider_migration(baseline_chart)
+        self._apply_approved_retained_delivery(baseline_chart)
         return baseline_chart
 
     def _render_chart(self, chart_path):
