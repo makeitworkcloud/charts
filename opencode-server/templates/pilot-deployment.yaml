@@ -11,6 +11,9 @@
 {{- if ne .Values.memoryPilot.serverSecretName "opencode-memory-pilot-server-auth" -}}
 {{- fail "memoryPilot.enabled=true requires memoryPilot.serverSecretName exactly opencode-memory-pilot-server-auth" -}}
 {{- end -}}
+{{- if ne .Values.memoryPilot.embeddingSecretName "opencode-memory-pilot-embeddings" -}}
+{{- fail "memoryPilot.enabled=true requires memoryPilot.embeddingSecretName exactly opencode-memory-pilot-embeddings" -}}
+{{- end -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,7 +22,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
     ignore-check.kube-linter.io/unset-cpu-requirements: "single-node policy"
     ignore-check.kube-linter.io/unset-memory-requirements: "single-node policy"
-    secret.reloader.stakater.com/reload: {{ printf "%s,%s" .Values.memoryPilot.providerSecretName .Values.memoryPilot.serverSecretName | quote }}
+    secret.reloader.stakater.com/reload: {{ printf "%s,%s,%s" .Values.memoryPilot.providerSecretName .Values.memoryPilot.serverSecretName .Values.memoryPilot.embeddingSecretName | quote }}
 spec:
   replicas: 1
   strategy:
@@ -63,7 +66,22 @@ spec:
       containers:
         - name: opencode
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
-          args: [web, --hostname, 0.0.0.0, --port, "4096"]
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              case "${OPENCODE_EMBEDDING_API_KEY:-}" in
+                ""|*[[:space:]]*)
+                  printf '%s\n' 'Embedding API key is missing or contains whitespace' >&2
+                  exit 1
+                  ;;
+              esac
+              exec opencode "$@"
+            - opencode-embedding-preflight
+            - web
+            - --hostname
+            - 0.0.0.0
+            - --port
+            - "4096"
           env:
             - name: HOME
               value: /home/opencode
@@ -73,6 +91,9 @@ spec:
             - name: OPENCODE_SERVER_PASSWORD
               valueFrom:
                 secretKeyRef: {name: {{ .Values.memoryPilot.serverSecretName }}, key: password}
+            - name: OPENCODE_EMBEDDING_API_KEY
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.memoryPilot.embeddingSecretName }}, key: apiToken}
           ports:
             - name: http
               containerPort: 4096

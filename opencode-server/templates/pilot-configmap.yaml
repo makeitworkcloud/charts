@@ -36,7 +36,7 @@ data:
       "storagePath": "/home/opencode/.opencode-mem/data",
       "webServerEnabled": false,
       "autoCleanupEnabled": false,
-      "autoCaptureEnabled": true,
+      "autoCaptureEnabled": false,
       "opencodeProvider": "zai-coding-plan",
       "opencodeModel": "glm-5.3",
       "injectProfile": false,
@@ -51,19 +51,22 @@ data:
         "enabled": true,
         "memoryLimit": 10
       },
-      "embeddingModel": "Xenova/nomic-embed-text-v1",
-      "embeddingDimensions": 768,
-      "embeddingUseTaskPrefixes": true
+      "embeddingApiUrl": "https://api.openai.com/v1",
+      "embeddingApiKey": "env://OPENCODE_EMBEDDING_API_KEY",
+      "embeddingModel": "text-embedding-3-small",
+      "embeddingDimensions": 1536,
+      "embeddingUseTaskPrefixes": false
     }
   AGENTS.md: |-
     # Memory pilot
 
     This OpenCode instance is the isolated Make IT Work Cloud memory pilot. It
-    runs the opencode-mem plugin with local ONNX embeddings and serves only
-    synthetic memory traffic.
+    runs the opencode-mem plugin with OpenAI HTTP embeddings and serves only
+    synthetic memory traffic. Embedding inputs leave the cluster and are billed.
 
     - The default agent is `memory-pilot`; its only allowed tool is `memory`.
     - No MCP servers, packaged production agents, or skills are configured.
+    - Automatic capture is disabled for initial explicit memory validation.
     - All conversations are synthetic pilot data; raw prompts persist in the
       memory store while chat-message injection is enabled.
     - The synthetic-only rule is operating policy, not an enforced sandbox; the

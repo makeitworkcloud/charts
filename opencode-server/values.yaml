@@ -21,3 +21,4 @@ memoryPilot:
   enabled: false
   providerSecretName: opencode-memory-pilot-provider
   serverSecretName: opencode-memory-pilot-server-auth
+  embeddingSecretName: opencode-memory-pilot-embeddings
