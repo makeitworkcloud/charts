@@ -17,6 +17,7 @@
     "edit": {"/artifacts/*": "allow", "/repos/*": "allow"},
     "agent-pipe_download_artifact": "ask",
     "agent-pipe_inspect_artifact": "allow",
+    "agent-pipe_remove_artifact": "ask",
     "agent-pipe_upload_artifact": "ask",
     "agent-pipe_verify_download": "allow"
   },

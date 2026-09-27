@@ -1,53 +1,95 @@
 ---
 name: s3-presigned-file-delivery
-description: Use when the user asks to download, share, or get a link to an S3 object, or to hand a session artifact to storage through a presigned URL.
+description: Use when the user asks to download, share, or get a fresh link to a retained S3 artifact, or to hand a session artifact to storage through a presigned URL.
 ---
 
-# s3-presigned-file-delivery
+# S3 presigned file delivery
 
-Deliver a file from AWS S3 to the user as a clickable, time-limited download link using the direct `aws` ClusterIP proxy client. Use when the user asks to download, share, or "get a link to" an S3 object, or to hand a session artifact to storage.
+Use the direct `aws` MCP for metadata and presigning and the existing
+`agent-pipe` MCP for bytes. Apply `cloud-artifact-transfer` boundaries and exact
+transfer/removal approvals. No new service, credentials, native exec or S3
+DeleteObject permission is granted.
 
-Apply the `cloud-artifact-transfer` skill's transfer boundaries and approval
-rules. This skill adds the `agent-pipe` S3 profile and delivery-specific policy.
+## Retention and preflight
 
-## Default delivery bucket
+The private `agent-pipe` bucket supports two separate intended policies:
+`deliveries/` via profile `agent-pipe` keeps its one-day expiration;
+`presentations/` via profile `agent-presentations` makes owner-approved,
+user-directed non-sensitive decks eligible for expiration after 90 days.
+Retention is not a 90-day signed URL and lifecycle expiration is asynchronous,
+not an exact purge guarantee. Do not store submissions or sensitive documents.
+Never presign or link `mitw-tf-*-infra` state buckets.
 
-Use the private `agent-pipe` bucket by default after its OpenTofu root has been applied and functional access has been verified. It is for short-lived, non-secret agent-to-user artifacts only — PDFs, reports, and other user-requested outputs — under the `deliveries/` prefix.
+Before storing, use the direct AWS MCP to confirm the approved account identity,
+bucket owner and actual region, all four effective Public Access Block controls,
+no public bucket policy/ACL access, encryption at rest and bucket-owner-enforced
+ownership. Verify the applied lifecycle rules cover `presentations/` at 90 days
+without a broader/overlapping earlier expiration, and preserve `deliveries/`
+at one day. Verify bucket versioning and exact-key versions/delete markers:
+unexpected existing versions or versioning outside the approved retention
+contract block the write. If enabled, noncurrent-version expiration must also
+be explicitly approved and bounded; do not assume current-object expiry removes
+older versions. Use a new collision-resistant key, not overwrite/reuse.
+Confirm the managed role's intended PutObject/GetObject and metadata access
+for that prefix. Successful presigning is not proof of permissions or storage.
+Absent infrastructure/profile/image prerequisites mean archive INCOMPLETE;
+retain `request_id` and offer temporary vendor delivery, not a persisted claim.
+Never alter IAM, lifecycle, ACLs or versioning to get past a failure.
 
-- Never use `agent-pipe` for OpenTofu state, credentials, decrypted SOPS values, kubeconfigs, logs containing sensitive data, or a submission archive.
-- Public access is blocked; encryption at rest and bucket-owner-enforced ownership are required infrastructure controls.
-- The managed MCP role may write only `deliveries/*`; preserve that boundary in object keys.
-- S3 lifecycle expiration makes objects eligible for deletion one day after creation. A presigned URL is much shorter-lived and does not extend object retention.
-- Use another bucket only when the user explicitly directs it. Never presign or link `mitw-tf-*-infra` state buckets.
+Use `presentations/<session-id>/<artifact-id>/presentation.pptx`. The session ID
+must be actual trusted session metadata, or a newly allocated unique delivery
+token explicitly labeled as such if unavailable; never guess. Do not embed
+names, application details or sensitive data. The staging relative path is the
+same under `/artifacts`. The helper supports only approved exact S3 hosts;
+stop if the verified region's generated endpoint does not match the profile.
 
-## Capability
+## Upload and tested delivery
 
-`aws_aws___get_presigned_url` on the direct `aws` ClusterIP proxy client mints signed GET (download) or PUT (upload) URLs. The AWS upstream tool name retains its `aws___` prefix; direct OpenCode tool names never use the `makeitwork_` aggregate prefix. The bucket stays private; the link works for anyone holding it until it expires. Downloads succeed only for objects the signing role (`opencode-managed-mcp`) can read (`s3:GetObject`).
+1. Confirm a regular non-sensitive staged file, positive size at most 104857600
+   bytes for decks, and SHA-256 via `agent-pipe_inspect_artifact`. Compare with
+   the download result when staged from SlideSpeak.
+2. Obtain exact upload approval for artifact, bucket/key, profile and retention.
+   Mint a PUT using `aws_aws___get_presigned_url`, `operation: upload`, the
+   verified region and `expires_in: 900`. Do not add `s3_params` requiring
+   headers the helper cannot send. Pass the original URL unchanged to
+   `agent-pipe_upload_artifact`; the exact permission prompt remains required.
+3. Compare a fresh local inspection with the original bytes/hash and upload
+   byte count. Use `aws_aws___run_script` for `HeadObject` of the exact key;
+   check ContentLength, encryption, LastModified, VersionId and safe metadata
+   against the intended upload and approved versioning. Never return raw object
+   bytes or credentials. ETag is not a SHA-256 integrity check.
+4. Mint a GET with `operation: download`, the same bucket/key/region and
+   `expires_in: 900`. Call `agent-pipe_verify_download` with the storage profile
+   and exact unchanged URL. Require a full-body `bytes` and `sha256` match to
+   the staged file. Do not substitute HEAD, curl, a fetch tool or URL rewriting.
+5. Only on success return the SAME tested URL as `[Download presentation](url)`
+   with an approximately 15-minute expiry (or less if signing credentials expire
+   sooner). This transient tested S3 GET is the sole exception to the generic
+   no-signed-URL-output rule. Never save the URL in a file or durable record.
+6. Return a durable reference `s3://<bucket>/<key>` with region, `request_id`,
+   measured bytes, SHA-256, creation time and requested `retention_days: 90`
+   for presentations. Record only this non-sensitive metadata in the session's
+   authorized record, not signed URLs, source documents or submissions. Report
+   requested retention separately from verified applied lifecycle evidence.
+7. Only after verified storage and returning that durable reference may the
+   user approve `agent-pipe_remove_artifact` for the exact staged path and hash.
+   No automatic local cleanup or S3 deletion is allowed.
 
-## Preflight
+## Fresh links and bounded failure handling
 
-1. Confirm the AWS account and target region through the direct `aws` integration; never infer either from a bucket name.
-2. Verify `agent-pipe` exists and its Public Access Block has all four protections enabled. If the bucket or the managed-role permissions are absent, report the infrastructure gate; do not fall back to a public bucket.
-3. Use a collision-resistant key such as `deliveries/<session-id>/<filename>`. Do not use a user name, application name, or sensitive data in an object key.
-4. Inspect the source and object metadata for sensitivity before delivery. A presigned link can be shared by anyone holding it until it expires.
+On a later request, recover the bucket/key/region and expected bytes/hash from
+the durable record, recheck access and exact-object metadata, mint a fresh
+900-second GET and fully verify it against the recorded identity before
+returning that tested link. Do not regenerate or re-upload the presentation.
+If the record is missing, ask for its reference; never guess a key or digest.
+If the object is expired/missing or changed, report it rather than claiming the
+archive still exists or silently accepting replacement bytes.
 
-## Procedure
-
-### In-session artifact on the isolated artifacts PVC
-
-1. Confirm the artifact is a user-directed, non-secret file under `/artifacts/`; the `agent-pipe` MCP service cannot access the OpenCode home PVC.
-2. Mint a PUT URL with `aws_aws___get_presigned_url` for `agent-pipe` and the chosen `deliveries/...` key with `expires_in: 900`.
-3. **Obtain explicit user confirmation** for the exact artifact path and S3 key before the PUT. This is a live S3 mutation.
-4. Call `agent-pipe_upload_artifact` with profile `agent-pipe`, the artifact's relative path, and the generated URL unmodified. The OpenCode permission prompt is required; do not approve the action without the user's explicit confirmation.
-5. Verify with `aws_aws___run_script` using `HeadObject` for the bucket and key; do not print object bytes in the conversation.
-6. Mint a GET URL with `aws_aws___get_presigned_url` with `expires_in: 900`, then call `agent-pipe_verify_download` with profile `agent-pipe` and that exact, unchanged URL. Continue only on a successful result. This is a GET request, not a HEAD request; do not substitute a fetch tool or alter/re-encode the SigV4 query string.
-7. If the GET test fails, mint a fresh URL and test it again. Do not claim delivery or return an untested link. On success, return the **same tested URL** as a Markdown download link, state that it expires in about 15 minutes, and offer to re-issue it.
-
-## Failure modes
-
-- Fetch tools return 400: they re-encoded the query string and broke SigV4. The link is valid for browsers/curl/wget — hand it to the user, don't re-fetch it through URL-rewriting tools.
-- `InvalidToken` on a newly minted GET URL: do not infer that the object is missing or alter the URL. Mint a fresh GET URL and perform the exact curl GET test before returning it. A successful PUT or `HeadObject` does not prove a GET URL is usable.
-- 403 on upload or download: the signing role lacks the corresponding object permission, even though URL signing itself may succeed.
-- HEAD fails against a GET-signed URL: the method is part of the signature.
-- Links cannot be revoked before expiry; keep TTLs short.
-- S3 lifecycle deletion is asynchronous after the one-day eligibility point; never treat it as an immediate purge mechanism.
+Allow at most one fresh signed URL and one sequential retry per failed transfer
+or verification for expiry/transient errors, never for an unresolved permission,
+profile, hash or capacity failure. After an ambiguous PUT, inspect the exact
+key first; if already correct, verify and deliver without a second PUT. A
+changed object or unexpected versions block retry. Never fall back to public
+storage, alter signatures, or hand out an untested link. Signed URLs are bearer
+capabilities; short expiry is not revocation. Do not claim they cannot be
+invalidated by credential or policy changes.

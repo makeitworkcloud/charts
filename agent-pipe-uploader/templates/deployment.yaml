@@ -10,6 +10,9 @@ metadata:
     {{- include "agent-pipe-uploader.labels" . | nindent 4 }}
 spec:
   replicas: 1
+  # Old images ignore profile operations; do not overlap them with the new image.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: {{ include "agent-pipe-uploader.fullname" . }}
