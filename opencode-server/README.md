@@ -227,7 +227,15 @@ of publishing the chart.
 
 Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
 the pilot is single-replica persistence on a dedicated home claim with no
-high-availability or node-loss protection.
+high-availability or node-loss protection. All three isolated credentials
+(provider, server-auth, and embedding) are activation prerequisites.
+
+Backup/restore automation and hardening remain deferred, with no node-loss
+recovery guarantee. Any manual operator copy is scoped to plugin memory
+inventory, database shards, and raw prompt records: classify content first,
+exclude `.auth-token`, `auth.json`, and all other credentials unconditionally,
+and never export the whole home. OpenCode's session database shares the home
+PVC but is outside the plugin backup scope.
 
 ## Delivery lifecycle
 

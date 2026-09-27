@@ -147,6 +147,13 @@ data.
 - Never delete lock files automatically; a stale lock is an operator
   decision.
 
+Backup/restore automation and hardening remain deferred, with no node-loss
+recovery guarantee. Any manual operator copy is scoped to plugin memory
+inventory, database shards, and raw prompt records: classify content first,
+exclude `.auth-token`, `auth.json`, and all other credentials unconditionally,
+and never export the whole home. OpenCode's session database shares the home
+PVC but is outside the plugin backup scope.
+
 ## Baseline and checksum parity
 
 The pilot tests retain the historical 0.4.0 baseline commit `32a6b91` and
@@ -199,8 +206,8 @@ production delivery path with pilot activation.
 Pilot version selection, Application registration, and manual sync are
 independent actions, each requiring separate confirmation of its exact target
 and operation. Before activation, resolve existing-store metadata and any
-separately approved migration or empty-store decision, ensure both isolated
-provider and embedding credentials are supplied, and approve the paid-test
+separately approved migration or empty-store decision, ensure all three isolated
+provider, server-auth, and embedding credentials are supplied, and approve the paid-test
 scope even for startup warmup. Exact-image HTTP memory write/search remains
 a required runtime validation, not an outcome established by these docs or
 static chart checks.
