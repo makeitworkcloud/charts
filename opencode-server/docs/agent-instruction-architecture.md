@@ -87,29 +87,65 @@ selects `default` for unqualified sessions. Changing `default_agent` is a
 separate user-facing routing decision, not an incidental result of this
 instruction refactor.
 
-### Session knowledge-read policy
+### Knowledge-first advice and owner-context routing
 
 The eight named primary agents (`makeitwork`, `xnoto`, `career`, `teacher`,
-`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) each carry a
-short, self-contained, role-local session knowledge-read policy next to their
-existing knowledge sections. On the first substantive task in a fresh session
-that could rely on recalled agent-specific facts or duplicate earlier
-research, the agent decides whether its knowledge home is relevant, verifies
-current access, reads its own subset README through the validated
-default-branch cache route with the standard GitHub verified-SHA fallback,
-and then only the task-relevant documents the README cites; it reports the
-knowledge home as unavailable instead of assuming remembered facts. It does
-not repeat the index or provenance checks on every turn — it rechecks them
-only when the task, context, or freshness changes — and it writes only
-sparse, necessary, verified durable facts under its existing subset write
-policy. The generic `default` agent intentionally does not carry this policy;
-it has no knowledge home.
+`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) each carry an
+early, self-contained `## Knowledge-first advice` section before operating
+rules. Before substantive owner-specific advice, each presumes its authorized
+knowledge home relevant, verifies private access, reads its own subset README
+and entry instructions through validated cache or verified-SHA fallback, then
+follows nested indexes to only the canonical facts, constraints, prior decisions
+and corrections needed for that task. If the index does not resolve the topic,
+the agent searches topically, not across the whole corpus. Retrieval must
+precede a personalized recommendation or external research that needs owner
+facts. Applying recorded constraints matters more than citing an index. The
+agent distinguishes confirmed facts, dated observations, estimates, and
+superseded guidance; decision-changing conflicts require current evidence or
+the smallest owner question, not an invented reconciliation. Imminent safety
+guidance does not wait for a knowledge read.
 
-This is a policy-directed attempt to improve session-start knowledge reads,
-not a guaranteed automatic enforcement mechanism: adherence depends on each
-runtime agent following its packaged instructions, and no backend enforcement
-is claimed. Multiuser knowledge isolation and backup/restore automation
-remain deferred.
+For unchanged followups, verified context may be reused. New subjects, task or
+agent changes require relevant records to be refreshed; missing evidence after
+compaction or resume must be reestablished. Existing read routing rechecks
+access and provenance when context, task, or freshness changes, not every turn.
+When private knowledge is unavailable, dependent owner-specific conclusions
+are withheld and any general information is explicitly labeled. Concise
+privacy-safe source paths and revisions explain how constraints affected an
+answer without dumping private content or sending it to unrelated services.
+These read requirements do not change the separate write scope or mutation
+gates. In particular, the homesteader must explicitly read remote
+`workspace/AGENTS.md` and `workspace/property.md` as a baseline, then relevant
+site, climate, water, and project records before planting or land-use advice;
+feasibility precedes a tailored procedure. The owner's pertinent private
+context may be summarized minimally in the authorized conversation, not copied
+into public chart content.
+
+The generic `default` agent has `## Owner-context routing` instead of a
+knowledge home: for owner-specific domain advice it identifies a specialist,
+retrieves only within verified read authority or suggests switching when that
+scope is unavailable, without claiming a handoff occurred or silently using
+generic advice. It has no autonomous knowledge subtree or write authority.
+This is a policy-directed attempt, not a guaranteed automatic enforcement
+mechanism. Static CI can prove wording, source parity, and packaging; actual
+retrieval and application require fresh-session functional testing. Multiuser
+knowledge isolation and backup/restore automation remain deferred.
+
+### Manual fresh-session acceptance
+
+After a separately approved rollout, use fresh sessions and inspect tool
+retrieval and advice, not only prompt wording. Use synthetic or owner-approved
+inputs; do not include private knowledge in public reports.
+
+| Case | Required evidence |
+| --- | --- |
+| Owner-specific request with no KB reminder | Agent verifies access, reads the subset entry and relevant canonical record before advice, and applies a recorded constraint. |
+| Task or subject shift | New relevant record is read; unchanged verified context is reused without unbounded re-reading. |
+| Correction or supersession | Current evidence resolves the conflict, or the agent asks the smallest decision-changing question instead of reviving stale guidance. |
+| KB unavailable | Agent reports the limitation, withholds dependent owner-specific claims, labels general information, and never bypasses private access. |
+| Generic recommendation conflicts with owner constraint | Agent rejects or adapts it and explains which privacy-safe constraint changed the advice. |
+| Urgent safety | Immediate safety response precedes any retrieval. |
+| Confidentiality | Relevant private context is minimized in the owner's conversation, with no raw dump or unrelated external input. |
 
 ### Cached repository source reads
 
