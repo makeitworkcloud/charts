@@ -130,7 +130,15 @@ explicit knowledge-first sections placed before their named agents' operating
 rules, one owner-context routing section for `default`, the homesteader's
 explicit confidentiality and workflow replacements, and the approved Kimi
 provider-id migration of four further frontmatter model-prefix updates and
-three exact `files/opencode.json` config-line substitutions. The baseline
+three exact `files/opencode.json` config-line substitutions. In addition, the
+comparison permits exactly one approved new agent file,
+`files/agents/mechanic.md`, which does not exist in the historical 0.4.0
+baseline: the test asserts its absence in the extracted baseline and copies
+the current chart source in after the historical transforms. The historical
+constants — the seventeen approved model-header changes, the eight
+knowledge-first sections, the `default` owner-context section, the
+homesteader substitutions, and the Kimi migration — are unchanged. The
+baseline
 `files/agents/qa-engineer.md` lacks a final newline; the render comparison
 appends exactly one. The nine primary files (`career.md`, `default.md`,
 `grillmaster.md`, `homerepair.md`, `homesteader.md`, `lawnmowerman.md`,
