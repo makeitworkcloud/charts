@@ -16,7 +16,7 @@ CHART_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 REPO_ROOT = os.path.abspath(os.path.join(CHART_DIR, ".."))
 BASELINE_SHA = "32a6b91cc3a881b861bdac087655c3935bb15454"
 PROD_IMAGE = "ghcr.io/anomalyco/opencode:1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
-EMBEDDING_MODEL = "Xenova/nomic-embed-text-v1"
+EMBEDDING_MODEL = "text-embedding-3-small"
 PILOT_FULLNAME = "opencode-memory-pilot"
 PILOT_CLAIM = "opencode-memory-pilot-home"
 PILOT_ARGS = [
@@ -508,7 +508,7 @@ class PilotRendering(unittest.TestCase):
         self.assertEqual(mem["storagePath"], "/home/opencode/.opencode-mem/data")
         self.assertFalse(mem["webServerEnabled"])
         self.assertFalse(mem["autoCleanupEnabled"])
-        self.assertTrue(mem["autoCaptureEnabled"])
+        self.assertFalse(mem["autoCaptureEnabled"])
         self.assertEqual(mem["opencodeProvider"], "zai-coding-plan")
         self.assertEqual(mem["opencodeModel"], "glm-5.3")
         self.assertFalse(mem["injectProfile"])
@@ -526,15 +526,15 @@ class PilotRendering(unittest.TestCase):
             mem["compaction"], {"enabled": True, "memoryLimit": 10}
         )
         self.assertEqual(mem["embeddingModel"], EMBEDDING_MODEL)
-        self.assertEqual(mem["embeddingDimensions"], 768)
-        self.assertTrue(mem["embeddingUseTaskPrefixes"])
+        self.assertEqual(mem["embeddingDimensions"], 1536)
+        self.assertFalse(mem["embeddingUseTaskPrefixes"])
+        self.assertEqual(mem["embeddingApiUrl"], "https://api.openai.com/v1")
+        self.assertEqual(mem["embeddingApiKey"], "env://OPENCODE_EMBEDDING_API_KEY")
         for key in (
             "memoryProvider",
             "memoryModel",
             "memoryApiUrl",
             "memoryApiKey",
-            "embeddingApiUrl",
-            "embeddingApiKey",
         ):
             self.assertNotIn(key, mem, key)
 
@@ -556,7 +556,7 @@ class PilotRendering(unittest.TestCase):
         deployment_annotations = self.deployment["metadata"]["annotations"]
         self.assertEqual(
             deployment_annotations["secret.reloader.stakater.com/reload"],
-            "opencode-memory-pilot-provider,opencode-memory-pilot-server-auth",
+            "opencode-memory-pilot-provider,opencode-memory-pilot-server-auth,opencode-memory-pilot-embeddings",
         )
 
     def test_pod_security_context(self):
@@ -572,12 +572,29 @@ class PilotRendering(unittest.TestCase):
         names = [item["name"] for item in self.spec["initContainers"]]
         self.assertEqual(names, ["seed-opencode-config"])
         self.assertNotIn("auth.json", self.rendered)
+        for item in self.spec["initContainers"]:
+            self.assertNotIn("env", item)
+            self.assertNotIn("envFrom", item)
 
     def test_opencode_container(self):
         item = container(self.spec, "opencode")
         self.assertEqual(item["image"], PROD_IMAGE)
-        self.assertNotIn("command", item)
-        self.assertEqual(item["args"], ["web", "--hostname", "0.0.0.0", "--port", "4096"])
+        self.assertEqual(item["command"], ["/bin/sh", "-ec"])
+        self.assertEqual(len(item["args"]), 7)
+        self.assertEqual(
+            item["args"][0],
+            'case "${OPENCODE_EMBEDDING_API_KEY:-}" in\n'
+            '  ""|*[[:space:]]*)\n'
+            "    printf '%s\\n' 'Embedding API key is missing or contains whitespace' >&2\n"
+            "    exit 1\n"
+            "    ;;\n"
+            "esac\n"
+            'exec opencode "$@"\n',
+        )
+        self.assertEqual(
+            item["args"][1:],
+            ["opencode-embedding-preflight", "web", "--hostname", "0.0.0.0", "--port", "4096"],
+        )
         self.assertEqual(
             item["startupProbe"],
             {"tcpSocket": {"port": "http"}, "periodSeconds": 10, "failureThreshold": 120},
@@ -592,7 +609,25 @@ class PilotRendering(unittest.TestCase):
             server_password,
             {"name": "opencode-memory-pilot-server-auth", "key": "password"},
         )
+        self.assertEqual(
+            env_entry(item, "OPENCODE_EMBEDDING_API_KEY"),
+            {
+                "name": "OPENCODE_EMBEDDING_API_KEY",
+                "valueFrom": {
+                    "secretKeyRef": {
+                        "name": "opencode-memory-pilot-embeddings",
+                        "key": "apiToken",
+                    },
+                },
+            },
+        )
         env_names = {entry["name"] for entry in item["env"]}
+        self.assertEqual(
+            env_names,
+            {"HOME", "ZHIPU_API_KEY", "OPENCODE_SERVER_PASSWORD", "OPENCODE_EMBEDDING_API_KEY"},
+        )
+        self.assertEqual(len(item["env"]), len(env_names))
+        self.assertNotIn("envFrom", item)
         self.assertNotIn("KIMI_API_KEY", env_names)
         self.assertNotIn("MINIMAX_API_KEY", env_names)
         self.assertEqual(item["ports"], [{"name": "http", "containerPort": 4096}])
@@ -603,6 +638,58 @@ class PilotRendering(unittest.TestCase):
             mounts,
             {"home": "/home/opencode", "config": "/home/opencode/.config/opencode", "tmp": "/tmp"},
         )
+
+    @unittest.skipUnless(os.environ.get("CI") == "true", "native guard test runs only in CI")
+    def test_embedding_preflight_guard(self):
+        item = container(self.spec, "opencode")
+        with tempfile.TemporaryDirectory(prefix="opencode-embedding-guard-") as tmp:
+            fake_opencode = os.path.join(tmp, "opencode")
+            with open(fake_opencode, "w", encoding="utf-8") as handle:
+                handle.write(
+                    "#!/bin/sh\n"
+                    '[ "$#" -eq 5 ] || exit 2\n'
+                    '[ "$1" = web ] || exit 2\n'
+                    '[ "$2" = --hostname ] || exit 2\n'
+                    '[ "$3" = 0.0.0.0 ] || exit 2\n'
+                    '[ "$4" = --port ] || exit 2\n'
+                    '[ "$5" = 4096 ] || exit 2\n'
+                    "printf '%s\\n' 'embedding-guard-ok'\n"
+                )
+            os.chmod(fake_opencode, 0o700)
+            cases = (
+                ("absent", None),
+                ("empty", ""),
+                ("space", " "),
+                ("tab", "\t"),
+                ("newline", "\n"),
+                ("embedded-space", "synthetic token"),
+                ("embedded-tab", "synthetic\ttoken"),
+                ("embedded-newline", "synthetic\ntoken"),
+                ("valid", "synthetic-token-not-a-credential"),
+            )
+            for name, token in cases:
+                with self.subTest(case=name):
+                    env = {"PATH": tmp, "LC_ALL": "C"}
+                    if token is not None:
+                        env["OPENCODE_EMBEDDING_API_KEY"] = token
+                    proc = subprocess.run(
+                        item["command"] + item["args"],
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+                    if name == "valid":
+                        self.assertEqual(proc.returncode, 0)
+                        self.assertEqual(proc.stdout, "embedding-guard-ok\n")
+                        self.assertEqual(proc.stderr, "")
+                    else:
+                        self.assertEqual(proc.returncode, 1)
+                        self.assertEqual(proc.stdout, "")
+                        self.assertEqual(
+                            proc.stderr,
+                            "Embedding API key is missing or contains whitespace\n",
+                        )
 
     def test_no_tei_assets_in_pilot_render(self):
         self.assertEqual([item["name"] for item in self.spec["containers"]], ["opencode"])
@@ -735,6 +822,18 @@ class UnsafePilotValues(unittest.TestCase):
             ],
             "requires memoryPilot.serverSecretName",
         )
+
+    def test_enabled_with_unsafe_embedding_secret_fails(self):
+        for name, secret in (
+            ("empty", ""),
+            ("production", "opencode-openai-auth"),
+            ("near-miss", "opencode-memory-pilot-embedding"),
+        ):
+            with self.subTest(case=name):
+                self.assert_render_fails(
+                    PILOT_ARGS + ["--set", "memoryPilot.embeddingSecretName=" + secret],
+                    "requires memoryPilot.embeddingSecretName",
+                )
 
 
 class WorkflowContract(unittest.TestCase):
