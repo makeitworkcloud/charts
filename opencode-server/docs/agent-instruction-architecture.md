@@ -43,9 +43,10 @@ verified-snapshot fallback.
 generic primary-agent definition and the example for new primary agents. It
 contains the complete primary operating policy directly in its own prompt.
 
-Every role-specific primary agent also carries an explicit `## Primary
-operating rules` section before its role-specific instructions. The section is
-self-contained and covers GitHub identity and routing, Make IT Work Cloud
+Every role-specific primary agent carries an early knowledge-first section,
+followed by an explicit `## Primary operating rules` section and its remaining
+role-specific instructions. The operating section is self-contained and covers
+GitHub identity and routing, Make IT Work Cloud
 repository discovery through the `codebase-memory` graph index for public
 repositories and
 owner-approved private repositories present in the read-only cache, proactive
