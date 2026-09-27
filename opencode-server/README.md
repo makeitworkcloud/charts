@@ -106,19 +106,26 @@ Updating `agent-knowledge` is a separate documentation change and does not requi
 The private repository is a discovery aid, not a secret store or canonical desired state. Access depends on the runtime GitHub identity. Primary agents do not package mutable repository topology; if private knowledge is unavailable or conflicts with current source, agents use direct GitHub discovery, report the limitation, and never guess.
 
 The eight named primary agents (`makeitwork`, `xnoto`, `career`, `teacher`,
-`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) carry a
-self-contained session knowledge-read policy: on the first substantive task
-in a fresh session that could rely on recalled agent-specific facts or
-duplicate earlier research, they decide whether their knowledge home is
-relevant, verify current access, read their own subset README through the
-validated default-branch cache route or the GitHub verified-SHA fallback, and
-then only the task-relevant documents it cites, reporting the knowledge home
-as unavailable instead of assuming remembered facts; they recheck index and
-provenance only when the task, context, or freshness changes, and write only
-sparse, necessary, verified durable facts under the existing subset policy.
-This is a policy-directed attempt, not a guaranteed automatic enforcement
-mechanism; multiuser knowledge isolation and backup/restore automation
-remain deferred.
+`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) now put
+knowledge-first advice before their operating rules: for substantive
+owner-specific questions they presume their authorized subset is relevant,
+read its README and entry instructions, follow nested indexes to scoped
+canonical facts and prior decisions, and use bounded topical search if needed.
+They retrieve before recommendations or owner-dependent external research,
+apply constraints, distinguish confirmed from dated or superseded claims, and
+ask only decision-changing questions after retrieval. Unchanged followups can
+reuse verified context; task shifts and compaction require newly relevant or
+missing evidence. Private access and cache provenance remain governed by the
+validated read route, not checked on every turn. If knowledge is unavailable,
+owner-dependent conclusions are withheld, general information is labeled, and
+imminent safety guidance is not delayed. `default` has separate owner-context
+routing: it may retrieve within verified read scope or suggest switching to an
+authorized specialist; it has no autonomous knowledge subtree or write scope.
+Read guidance never expands any subset's write authority. This is a
+policy-directed attempt, not a guaranteed automatic enforcement mechanism;
+CI checks wording and render parity, while actual retrieval and application
+require fresh-session functional evidence. Multiuser knowledge isolation and
+backup/restore automation remain deferred.
 
 ## Prerequisites
 
@@ -179,17 +186,16 @@ end-of-file correction and exactly seventeen approved model-header changes: the
 nine primary agents' exact Terra-to-Astra model change with removal of
 `variant: default`, the six Terra-tier subagents' exact Terra-to-Sol model-line
 change with each variant preserved, and the two Luna-tier subagents' exact
-Luna-to-GPT-6 model-line change, plus the eight named primary agents' exact
-session knowledge-read policy paragraph inserted before one asserted per-file
-anchor, plus the four Kimi subagents' exact model-prefix line updates from
-`kimi-for-coding` to `kimi-code-plan-cn` and the three exact `opencode.json`
-config-line substitutions — global fallback model, enabled-provider allowlist
-entry, and provider key — each asserted to occur exactly once. All other agent
-bytes and production render comparisons remain enforced. These changes affect
-the production ConfigMap
-checksum, so a normal production pod rollout on the chart version
-pin can occur even when the pilot is disabled. See [Memory pilot](docs/memory-pilot.md)
-for the baseline comparison contract.
+Luna-to-GPT-6 model-line change; it also permits the eight named primary
+agents' explicit knowledge-first sections before their operating rules, the
+`default` owner-context section, and the homesteader confidentiality/workflow
+substitutions, plus the four Kimi subagents' exact model-prefix line updates
+from `kimi-for-coding` to `kimi-code-plan-cn` and the three exact
+`opencode.json` config-line substitutions. All other agent bytes and
+production render comparisons remain enforced. These changes affect the
+production ConfigMap checksum, so a normal production pod rollout on the
+chart version pin can occur even when the pilot is disabled. See
+[Memory pilot](docs/memory-pilot.md) for the baseline comparison contract.
 
 Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
 the pilot is single-replica persistence on a dedicated home claim with no
