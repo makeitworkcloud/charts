@@ -165,14 +165,41 @@ an isolated memory pilot: the production ConfigMap and Deployment are suppressed
 and the chart emits only a pilot ConfigMap and a single-replica `Recreate`
 Deployment. Rendering is locked to the reviewed contract: `fullnameOverride`
 must be exactly `opencode-memory-pilot`, `persistence.existingClaim` exactly
-`opencode-memory-pilot-home`, and the pilot provider and server-auth Secret
-names exactly the pilot defaults; any other value, including the production
-names, fails rendering. The pilot runs OpenCode with only the pinned
-`opencode-mem` plugin and its local ONNX embeddings — no sidecar, no remote
-embedding endpoint, and no new images — while OpenCode serves port 4096 behind
-the cluster-owned Service. Local embedding runtime compatibility on the stock
-image is an unverified activation gate. The pilot mounts no production
-secrets, agents, skills, MCP configuration, or artifact PVC.
+`opencode-memory-pilot-home`, and the pilot provider, server-auth, and embedding
+Secret names exactly the pilot defaults; any other value, including the
+production names, fails rendering. Chart 0.4.6 uses the pinned `opencode-mem`
+plugin with remote OpenAI embeddings at `https://api.openai.com/v1`:
+`text-embedding-3-small`, 1536 dimensions, task prefixes disabled, and
+`embeddingApiKey: "env://OPENCODE_EMBEDDING_API_KEY"`. There is no custom image,
+sidecar, or extraction-provider switch; the isolated
+`zai-coding-plan/glm-5.3` provider still requires its own credential.
+
+`memoryPilot.embeddingSecretName` must be exactly
+`opencode-memory-pilot-embeddings`, with key `apiToken` injected only at runtime
+as `OPENCODE_EMBEDDING_API_KEY`. Reloader watches all three pilot Secrets:
+`opencode-memory-pilot-provider`, `opencode-memory-pilot-server-auth`, and
+`opencode-memory-pilot-embeddings`. The owner encrypts the embedding Secret in
+`kustomize-cluster` under the existing SOPS `apiToken` match; no plaintext
+secret contents belong in configuration or Git, and no global OpenAI key
+environment variable is needed. This embedding key never replaces production
+OpenAI OAuth. The pilot mounts no production secrets, agents, skills, MCP
+configuration, or artifact PVC.
+
+Startup uses `/bin/sh -ec` to reject a missing, empty, or any-whitespace-containing
+embedding key with a fixed message that never logs the key, then
+`exec opencode web --hostname 0.0.0.0 --port 4096` with unchanged server arguments.
+The guard prevents local fallback caused by empty configuration; it does not
+prove API validity. Historical local ONNX writes failed; the pinned remote path
+bypasses local model loading, but real HTTP memory write/search on the exact
+image remains UNTESTED. npm dependencies still ship and install; neither package
+removal nor blocked network access is claimed. Startup may perform billable
+remote warmup, so even startup requires an approved paid-test scope.
+
+`autoCaptureEnabled: false` is the initial setting, but the existing enabled
+`chatMessage` path still persists raw SYNTHETIC prompts. The disabled web server
+and profile settings remain unchanged. Existing 768-dimensional vector state
+must not be silently reused or reset: inspect metadata and obtain separate
+approval for migration or an empty store, with no automatic deletion.
 
 The historical 0.4.0 baseline comparison permits the QA reviewer's existing
 end-of-file correction and exactly seventeen approved model-header changes: the
@@ -191,10 +218,16 @@ checksum, so a normal production pod rollout on the chart version
 pin can occur even when the pilot is disabled. See [Memory pilot](docs/memory-pilot.md)
 for the baseline comparison contract.
 
+The 0.4.6 remote-embedding change leaves production rendering unchanged from
+0.4.5; the historical baseline comparison above remains in force. Versioned
+publication may still trigger an automatic PRODUCTION pin pull request with
+auto-merge enabled. Pilot version selection, Application registration, and manual
+sync are independent, separately confirmation-gated actions, not consequences
+of publishing the chart.
+
 Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
 the pilot is single-replica persistence on a dedicated home claim with no
-high-availability or node-loss protection, and backup and restore automation
-is deferred.
+high-availability or node-loss protection.
 
 ## Delivery lifecycle
 
