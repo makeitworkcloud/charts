@@ -5,67 +5,74 @@ description: Use when generating presentation decks with SlideSpeak through the 
 
 # Career external documents
 
-Use SlideSpeak only for presentation decks the owner asks for. This retained
-workflow applies to ALL user-directed non-sensitive SlideSpeak decks, not only
-career presentations. Text resumes and documents retain their existing document
-pipeline; this skill grants no workstation access or new external service.
+Use the existing SlideSpeak MCP only for decks the owner requests. Offer this
+retained workflow for all user-directed non-sensitive decks, not just career
+presentations. Text resumes/documents keep their existing document pipeline.
+No new external service, workstation access or credential handling is granted.
 
-## Generate once, then offer retention
+## Generate once and select delivery
 
-1. Confirm the requested deck and external-generation content scope. Use the
-   existing SlideSpeak MCP proxy only. Generate once, poll within the tool's
-   task contract and retain the returned `request_id` (not just `task_id`).
-2. Offer the approved private 90-day retained delivery with fresh 900-second
-   S3 links on request. Retention approval does not waive exact download,
-   upload or removal permission prompts. Do not archive without those approvals.
-3. Load `cloud-artifact-transfer` and `s3-presigned-file-delivery`. Before
-   storing, complete their account/region/privacy/lifecycle/versioning and
-   deployed-helper/profile prerequisites. Use the same existing bucket and
-   artifact PVC, never a new service or public storage.
-4. Call `slidespeak_downloadPresentation(request_id)` to obtain a temporary
-   export capability. Verify safe URL metadata (HTTPS, exact allowed host,
-   nonempty object path and required SigV4 parameter names) before enabling
-   transfer. Never print the signed vendor URL or query values. Official
-   [download documentation](https://docs.slidespeak.co/v1/reference/download)
-   describes `slidespeak-files.s3.amazonaws.com` and refreshing by `request_id`;
-   documentation alone does not prove every live export's regional host,
-   path or signature shape. The configured second exact host is
-   `slidespeak-files.s3.us-east-2.amazonaws.com`; validate an actual response
-   safely before use. A mismatch is a blocker, not an allowlist expansion.
-5. After the exact download prompt, stage with profile `slidespeak-exports` at
-   `presentations/<session-id>/<artifact-id>/presentation.pptx` relative to
-   `/artifacts`. Use a trusted actual session ID or explicitly labeled unique
-   delivery token, never guess. Require positive size at most 100 MiB, inspect
-   the staged regular file and compare full SHA-256 and measured bytes.
-6. After the exact upload prompt, use `agent-presentations` with the same key
-   in the private `agent-pipe` bucket. Follow the S3 skill's HeadObject metadata
-   and full GET hash/byte verification, then return the durable reference and
-   SAME tested short-lived S3 link. Only afterward offer separately approved
-   exact-file cleanup with `expected_sha256`.
-7. Record only non-sensitive bucket/key/region, `request_id`, bytes, SHA-256,
-   creation time and requested retention metadata in the authorized session
-   record. Never persist signed URLs or submitted-application artifacts.
-   Fresh-link requests reuse the verified S3 reference without generation.
+1. Confirm external-generation content and requested `response_format` before
+   generation: `powerpoint` produces PPTX, `pdf` produces PDF. If omitted,
+   verify the tool's documented default. Record the effective requested format
+   with the returned `request_id`, not merely `task_id`. Never infer format
+   from an untrusted URL/file extension or expand/parse bytes to guess it.
+2. Generate once and poll within the tool contract. Offer approved private
+   90-day retention and fresh tested 900-second S3 links on request. The owner
+   may decline retention; it never waives exact download/upload/removal prompts.
+3. For accepted retention load `cloud-artifact-transfer` and
+   `s3-presigned-file-delivery`. Complete their retained-deck storage and
+   deployed-helper gates; use the existing bucket/PVC only. Stage at most one
+   deck per request, sequentially, within 100 MiB. The shared 1 GiB PVC has
+   no reservation/quota: report uncertain capacity without guaranteeing space;
+   stop on known insufficiency. ENOSPC fails/cleans the helper's partial
+   temporary file; never blindly retry or evict another artifact.
+4. Call `slidespeak_downloadPresentation(request_id)` for the existing deck.
+   Before helper transfer, verify safe metadata: HTTPS, exact profile hostname,
+   nonempty object path and required unique SigV4 fields. Preserve the URL
+   signature; do not print it except for the explicit temporary-delivery case
+   below. The [download docs](https://docs.slidespeak.co/v1/reference/download)
+   show `slidespeak-files.s3.amazonaws.com` and refresh by `request_id`; verify
+   actual responses rather than assume regional/path/signature shape. The only
+   additional configured host is `slidespeak-files.s3.us-east-2.amazonaws.com`.
+   A mismatch blocks helper transfer, not permission to expand the allowlist.
+5. After exact download approval, use `slidespeak-exports` with normalized path
+   `presentations/<session-id>/<artifact-id>/presentation.<ext>` under
+   `/artifacts`. Use trusted session metadata or an explicitly labeled unique
+   delivery token, never guess. Set `<ext>` to `pptx` for the verified
+   `powerpoint` request, or `pdf` for the verified `pdf` request. Require positive
+   size <=100 MiB; compare full download and inspection bytes/SHA-256.
+6. After exact upload approval use `agent-presentations` and that same key in
+   `agent-pipe`. Follow HeadObject and full S3 GET bytes/hash verification.
+   Return the durable reference and same tested S3 link. Only afterward offer
+   separately prompted local removal with the exact expected SHA-256.
+7. Record only non-sensitive bucket/key/region, `request_id`, effective format,
+   bytes, SHA-256, creation time and requested retention metadata in the
+   authorized session record. Never persist signed URLs or submissions.
+   Fresh retained links reuse S3 identity without generation.
 
-## Incomplete delivery
+## Temporary delivery and incomplete archives
 
-If AWS, image, profile, capacity or source-shape prerequisites are missing,
-report archive INCOMPLETE and retain `request_id`. Offer temporary vendor
- delivery through the existing SlideSpeak export/reference workflow, clearly
-not retained; return a non-signed presentation reference if available, never
-print a vendor signed URL or claim that a request ID proves a persisted S3
-object. If no safe deliverable reference is available, state that limitation.
-For an expired export, request a fresh URL once with the SAME `request_id` and
-retry once sequentially within the approved scope; never generate again to fix
-an expired URL. Do not auto-delete local files to resolve capacity.
+If retention is unavailable or declined, preserve `request_id` and offer the
+GET download URL returned by `slidespeak_downloadPresentation` for that exact
+request as `[Download artifact](url)`. This explicit exception allows transient
+vendor GET user output, NEVER PUT URLs or durable URL persistence. Require a
+tool-produced HTTPS download URL, not an arbitrary supplied/page URL; do not
+rewrite it or bypass authentication. Label it TEMPORARY, NOT ARCHIVED; the
+provider's expiry is unspecified unless the tool reports it, so do not promise
+900 seconds or another known TTL. Offer a fresh vendor link using the SAME
+`request_id`, not regeneration. Do not claim helper verification if unavailable.
+If an attempted archive failed, say archive INCOMPLETE; a vendor link or request
+ID is not proof of S3 persistence. If the tool cannot return a usable download,
+report that limitation. Refresh an expired URL once and retry once sequentially
+within approved scope; no loop, new generation or automatic deletion.
 
 ## Availability and data boundary
 
-SlideSpeak authentication stays in the cluster-owned direct proxy. On service,
-authentication or plan failure, stop and report it: no retry loop, OAuth,
-credential handling or replacement service. Do not transfer secrets or
-sensitive documents. Send only the deck content the owner explicitly requested;
-never send `career-data.yaml`, tracker contents or whole documents wholesale
-unless the owner named that document for external generation. Retention approval
-is for non-sensitive generated decks, not submissions or sensitive source
-records; existing sensitive-document and submission policies are unchanged.
+Authentication remains in the cluster-owned SlideSpeak proxy. On service,
+authentication or plan failure stop/report, never OAuth, request credentials,
+retry-loop or substitute another service. Send only explicitly requested deck
+content, never `career-data.yaml`, tracker content or whole documents wholesale
+unless the owner named the document for external generation. Secrets, sensitive
+documents and submissions remain excluded from retention; approval for generated
+non-sensitive decks does not change those policies.
