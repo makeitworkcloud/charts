@@ -69,11 +69,11 @@ After a confirmed rollout, check that the deployed OpenCode model catalog lists
 the `kimi-code-plan-cn` keys, then verify fresh-session inference and tool
 calls.
 
-The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6-sol` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
+The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, permissions, and delivery integration. It uses `openai/gpt-6-sol` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### Cloud architecture design review
 
-The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6-sol` with the default variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
+The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6-sol` with the default variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
 
 The review is requirements-led and simplicity-biased: it prefers established vendor- or canonical-owner-maintained solutions, challenges unsupported complexity, and no cloud vendor is preferred by default. The five code-capable primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`) route material designs to it with a compact design brief and skip routine changes within an established pattern; the existing pre-pull-request review gates are unchanged, and this design review does not replace them.
 
@@ -161,9 +161,34 @@ persisted OAuth grant.
 - Deployment with an init container that seeds immutable chart configuration into an `emptyDir`
 - ConfigMap containing OpenCode configuration, agents, and skills
 
-The chart mounts the cluster-owned artifact PVC only into the OpenCode container. The independent `agent-pipe-uploader` chart mounts that PVC read-only and has no AWS credentials; it exposes the cluster-internal presigned-upload API for explicit, user-approved artifact delivery.
+The chart mounts the cluster-owned artifact PVC only into the OpenCode container.
+The independent `agent-pipe-uploader` chart mounts that PVC read-write for
+new downloads and separately approved exact-file cleanup, never the OpenCode
+home PVC. It has no AWS credentials and exposes only the cluster-internal
+profile-scoped transfer and hash-checked local removal tools.
 
 Configuration is loaded when OpenCode starts. A reconciled chart update replaces the pod through the ConfigMap checksum annotation; it is not hot-reloaded into an existing process.
+
+### Retained presentations
+
+Version 0.4.7 adds only `agent-pipe_remove_artifact: ask` to permissions and
+updates the three existing artifact/delivery/SlideSpeak skills. All other
+permissions, agents, models, MCP endpoints and memory-pilot behavior remain
+unchanged. User-directed non-sensitive decks may use the existing private
+bucket's `presentations/` prefix for approved 90-day retention, full bytes/SHA-256
+verification, durable references and fresh tested 900-second S3 links on request.
+Download, upload and exact-file removal each retain their approval prompts.
+There is no new service, dependency, native exec or S3 delete grant.
+
+This is staged, not deployed functionality. The uploader image pin is an
+UNPUBLISHED source-SHA placeholder and MUST be replaced by a verified
+main-published immutable SHA/digest before chart merge. Follow
+[Retained presentation rollout](../docs/retained-presentation-artifacts.md):
+applied storage prerequisites, published helper image, corrected chart pin,
+uploader 0.3.0 manual GitOps pin and verified reconciliation, THEN server
+0.4.7 release and its existing automatic GitOps pin. Split the combined staging
+branch into ordered producer/consumer releases; do not auto-pin the consumer
+before its helper is ready. Workflow automation is unchanged.
 
 ## Memory pilot (opt-in)
 
@@ -191,8 +216,11 @@ agents' explicit knowledge-first sections before their operating rules, the
 `default` owner-context section, and the homesteader confidentiality/workflow
 substitutions, plus the four Kimi subagents' exact model-prefix line updates
 from `kimi-for-coding` to `kimi-code-plan-cn` and the three exact
-`opencode.json` config-line substitutions. All other agent bytes and
-production render comparisons remain enforced. These changes affect the
+`opencode.json` config-line substitutions. The retained-delivery extension
+allows only one exact cleanup-permission insertion and the three named skills'
+old/new Git blob identities, checked before substitution. No baseline SHA,
+agent guard or rendered ConfigMap comparison is bypassed. All other agent bytes
+and production render comparisons remain enforced. These changes affect the
 production ConfigMap checksum, so a normal production pod rollout on the
 chart version pin can occur even when the pilot is disabled. See
 [Memory pilot](docs/memory-pilot.md) for the baseline comparison contract.

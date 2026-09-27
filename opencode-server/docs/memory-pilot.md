@@ -155,6 +155,17 @@ replacement from `kimi-for-coding` to `kimi-code-plan-cn`, and the baseline
 global fallback model, the enabled-provider allowlist entry, and the provider
 key. The test asserts each old block exists exactly once before replacing it;
 all other agent bytes and production render comparisons remain enforced.
+
+The retained-presentation extension adds one exact
+`agent-pipe_remove_artifact: ask` permission line after an asserted unique
+anchor and permits replacements of only `cloud-artifact-transfer`,
+`s3-presigned-file-delivery` and `career-external-documents` skills. Both old
+baseline and new approved bytes must match hard-coded Git blob identities
+before substitution. Reading a current skill is not approval of its content:
+a different byte sequence fails, rather than silently updating the baseline.
+The historical SHA, #118's literal knowledge-policy guards, all model/agent
+checks and full production render/ConfigMap comparisons remain unchanged.
+
 Static checks cannot prove actual knowledge retrieval or application; use the
 fresh-session acceptance matrix in [Agent instruction architecture](agent-instruction-architecture.md)
 after separately approved rollout. These changes affect the production
