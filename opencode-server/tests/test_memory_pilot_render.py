@@ -25,6 +25,13 @@ APPROVED_PRIMARY_MODEL_FILES = ("career.md", "default.md", "grillmaster.md", "ho
 APPROVED_TERRA_MODEL_FILES = ("adversarial-code-reviewer.md", "cloud-architecture-reviewer.md", "devops-engineer.md", "infra-security-reviewer.md", "recruiter-resume-reviewer.md", "terra.md")
 APPROVED_LUNA_MODEL_FILES = ("luna.md", "qa-engineer.md")
 APPROVED_KNOWLEDGE_FILES = ("career.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "makeitwork.md", "teacher.md", "xnoto.md")
+# New agent files that did not exist in the historical 0.4.0 baseline. Each
+# entry is asserted absent in the extracted baseline and then copied from the
+# current chart source into the extracted baseline after the historical
+# migration transforms, so render and byte comparisons stay enforced for all
+# historical files while the new file is compared against itself.
+APPROVED_NEW_AGENT_FILES = ("mechanic.md",)
+KNOWLEDGE_POLICY_CONTRACT_FILES = APPROVED_KNOWLEDGE_FILES + APPROVED_NEW_AGENT_FILES
 # Literal policy additions, not snippets derived from the current prompts.
 KNOWLEDGE_FIRST_PARAGRAPHS = {
     "career.md": "Before substantive owner-specific fit, resume, or interview advice, presume your authorized `docs/agents/career/` knowledge home is relevant. Verify private access and read its subset README and entry instructions through the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter. Follow nested indexes to confirmed background, goals, constraints, prior decisions and corrections for the active role or application; do not invent qualifications. If the index does not resolve the topic, use bounded topical search, never bulk-read journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on career facts; apply the constraints, not just a README citation.",
@@ -172,6 +179,17 @@ class BaselineParity(unittest.TestCase):
         with open(config_path, "wb") as handle:
             handle.write(content)
 
+    def _apply_approved_new_agent_files(self, baseline_chart):
+        baseline_agents = os.path.join(baseline_chart, "files", "agents")
+        current_agents = os.path.join(CHART_DIR, "files", "agents")
+        for name in APPROVED_NEW_AGENT_FILES:
+            baseline_path = os.path.join(baseline_agents, name)
+            self.assertFalse(os.path.exists(baseline_path), name)
+            with open(os.path.join(current_agents, name), "rb") as handle:
+                content = handle.read()
+            with open(baseline_path, "wb") as handle:
+                handle.write(content)
+
     def _extract_baseline(self, tmp):
         archive = subprocess.run(["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"], capture_output=True, cwd=REPO_ROOT)
         self.assertEqual(archive.returncode, 0, archive.stderr.decode("utf-8", "replace"))
@@ -181,6 +199,7 @@ class BaselineParity(unittest.TestCase):
         self._apply_approved_model_changes(baseline_chart)
         self._apply_approved_knowledge_policy(baseline_chart)
         self._apply_approved_provider_migration(baseline_chart)
+        self._apply_approved_new_agent_files(baseline_chart)
         return baseline_chart
 
     def _render_chart(self, chart_path):
@@ -251,6 +270,9 @@ class BaselineParity(unittest.TestCase):
                 else:
                     self.assertEqual(current_bytes, baseline_bytes, name)
 
+    def test_approved_new_agent_file_set_is_exactly_mechanic(self):
+        self.assertEqual(APPROVED_NEW_AGENT_FILES, ("mechanic.md",))
+
 
 class KnowledgeFirstPolicyContract(unittest.TestCase):
     def test_named_primary_agents_have_early_bounded_policy(self):
@@ -258,7 +280,7 @@ class KnowledgeFirstPolicyContract(unittest.TestCase):
         for name in sorted(os.listdir(agents_dir)):
             with open(os.path.join(agents_dir, name), "r", encoding="utf-8") as handle:
                 text = handle.read()
-            expected = 1 if name in APPROVED_KNOWLEDGE_FILES else 0
+            expected = 1 if name in KNOWLEDGE_POLICY_CONTRACT_FILES else 0
             self.assertEqual(text.count("## Knowledge-first advice"), expected, name)
             self.assertNotIn("On the first substantive task in a fresh session", text, name)
             if not expected:
@@ -276,6 +298,7 @@ class KnowledgeFirstPolicyContract(unittest.TestCase):
             "homerepair.md": ("assets.md", "jobs/README.md", "before diagnosis"),
             "homesteader.md": ("workspace/AGENTS.md", "workspace/property.md", "not automatically loaded", "site, climate, water", "feasibility and prerequisites", "minimal pertinent context", "advice alone is not authorization"),
             "lawnmowerman.md": ("actual machine and engine", "service history", "manufacturer"),
+            "mechanic.md": ("actual vehicle record", "service history", "manufacturer documentation"),
             "makeitwork.md": ("advisory planning", "decisions, exceptions, ownership", "canonical repository"),
             "xnoto.md": ("advisory planning", "decisions, exceptions, ownership", "canonical repository"),
             "default.md": ("## Owner-context routing", "no autonomous `agent-knowledge` subtree or write scope", "suggest switching to the specialist", "do not pretend a handoff occurred", "imminent safety advice"),
@@ -298,6 +321,72 @@ class KnowledgeFirstPolicyContract(unittest.TestCase):
             self.assertIn("not a guaranteed automatic enforcement mechanism", text, relative)
             self.assertIn("knowledge isolation and backup/restore automation remain deferred", text, relative)
             self.assertIn("actual retrieval and application", text, relative)
+
+
+class MechanicAgentContract(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        path = os.path.join(CHART_DIR, "files", "agents", "mechanic.md")
+        with open(path, "r", encoding="utf-8") as handle:
+            cls.content = handle.read()
+        cls.policy = " ".join(cls.content.split()).lower()
+
+    def test_frontmatter_is_astra_primary_without_variant(self):
+        parts = self.content.split("---\n", 2)
+        self.assertEqual(len(parts), 3)
+        header = parts[1]
+        self.assertIn("description: ", header)
+        self.assertEqual(header.count("mode: primary\n"), 1)
+        self.assertEqual(header.count("model: openai/gpt-6-astra\n"), 1)
+        self.assertNotIn("variant:", header)
+
+    def test_knowledge_home_namespace_and_layout(self):
+        self.assertIn("docs/agents/mechanic/", self.content)
+        self.assertNotIn("docs/agents/lawnmowerman/", self.content)
+        for marker in (
+            "vehicles.md",
+            "vehicles/<stable-nickname>.md",
+            "procedures/<vehicle-id>/<task>.md",
+            "templates/vehicle.md",
+            "templates/procedure.md",
+        ):
+            self.assertIn(marker, self.content, marker)
+
+    def test_automotive_safety_privacy_documentation_markers(self):
+        for marker in (
+            "stop driving",
+            "tow",
+            "brake",
+            "steering",
+            "fuel leak",
+            "overheating",
+            "oil-pressure",
+            "roadworthy",
+            "owner confirms",
+            "vin",
+            "recall",
+            "freeze-frame",
+            "jack stands",
+            "high-voltage",
+            "airbag",
+            "pretensioner",
+            "adas",
+            "refrigerant",
+            "torque",
+            "redact",
+            "observed",
+            "suspected",
+            "oem",
+            "applicability",
+        ):
+            self.assertIn(marker, self.policy, marker)
+
+    def test_production_configmap_mounts_mechanic(self):
+        config_map = by_kind(render_docs([]), "ConfigMap")
+        self.assertEqual(
+            config_map["data"]["mechanic.md"],
+            chart_file("files", "agents", "mechanic.md"),
+        )
 
 
 class DefaultRendering(unittest.TestCase):
@@ -497,7 +586,7 @@ class PilotRendering(unittest.TestCase):
             assert_hardened(self, item)
 
     def test_no_production_content_in_pilot_render(self):
-        for forbidden in ("opencode-kimi", "opencode-minimax", "opencode-openai-auth", "opencode-zai", "opencode-home", "opencode-artifacts", "agent-pipe", "grillmaster", "mcp-apify", "artifactsExistingClaim"):
+        for forbidden in ("opencode-kimi", "opencode-minimax", "opencode-openai-auth", "opencode-zai", "opencode-home", "opencode-artifacts", "agent-pipe", "grillmaster", "mechanic.md", "mcp-apify", "artifactsExistingClaim"):
             self.assertNotIn(forbidden, self.rendered, forbidden)
 
 
