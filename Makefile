@@ -1,4 +1,4 @@
-.PHONY: changed-charts list-charts list-charts-json package-chart test test-changed-charts test-opencode-server-agents test-opencode-server-memory-pilot
+.PHONY: changed-charts list-charts list-charts-json package-chart test test-changed-charts test-opencode-server-agents test-opencode-server-memory-pilot test-retained-presentations
 
 SHELL := /bin/bash
 CHARTS := $(shell find . -maxdepth 2 -name Chart.yaml -printf '%h\n' | cut -d'/' -f2 | sort -u)
@@ -28,6 +28,7 @@ test:
 	@$(MAKE) test-changed-charts
 	@$(MAKE) test-opencode-server-agents
 	@$(MAKE) test-opencode-server-memory-pilot
+	@$(MAKE) test-retained-presentations
 
 test-changed-charts:
 	@set -euo pipefail; \
@@ -85,7 +86,7 @@ test-opencode-server-agents:
 		grep -Fqx 'model: openai/gpt-6-luna' <<< "$$luna_frontmatter"; \
 		test "$$(grep -Ec '^variant:' <<< "$$luna_frontmatter")" -eq 0; \
 	done; \
-	grep -Fqx 'version: 0.4.6' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.4.7' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
 	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
@@ -220,7 +221,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.6.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.7.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \
@@ -237,3 +238,6 @@ test-opencode-server-agents:
 
 test-opencode-server-memory-pilot:
 	@python3 opencode-server/tests/test_memory_pilot_render.py
+
+test-retained-presentations:
+	@python3 agent-pipe-uploader/tests/test_retained_presentation_render.py
