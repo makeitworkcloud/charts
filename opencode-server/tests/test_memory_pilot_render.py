@@ -19,28 +19,13 @@ PROD_IMAGE = "ghcr.io/anomalyco/opencode:1.18.29@sha256:ecc3bf96ee55dad226d9cde5
 EMBEDDING_MODEL = "Xenova/nomic-embed-text-v1"
 PILOT_FULLNAME = "opencode-memory-pilot"
 PILOT_CLAIM = "opencode-memory-pilot-home"
-PILOT_ARGS = [
-    "--set", "memoryPilot.enabled=true",
-    "--set", "fullnameOverride=" + PILOT_FULLNAME,
-    "--set", "persistence.existingClaim=" + PILOT_CLAIM,
-]
+PILOT_ARGS = ["--set", "memoryPilot.enabled=true", "--set", "fullnameOverride=" + PILOT_FULLNAME, "--set", "persistence.existingClaim=" + PILOT_CLAIM]
 BASELINE_QA_ENGINEER = os.path.join("opencode-server", "files", "agents", "qa-engineer.md")
-APPROVED_PRIMARY_MODEL_FILES = (
-    "career.md", "default.md", "grillmaster.md", "homerepair.md",
-    "homesteader.md", "lawnmowerman.md", "makeitwork.md", "teacher.md", "xnoto.md",
-)
-APPROVED_TERRA_MODEL_FILES = (
-    "adversarial-code-reviewer.md", "cloud-architecture-reviewer.md",
-    "devops-engineer.md", "infra-security-reviewer.md",
-    "recruiter-resume-reviewer.md", "terra.md",
-)
+APPROVED_PRIMARY_MODEL_FILES = ("career.md", "default.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "makeitwork.md", "teacher.md", "xnoto.md")
+APPROVED_TERRA_MODEL_FILES = ("adversarial-code-reviewer.md", "cloud-architecture-reviewer.md", "devops-engineer.md", "infra-security-reviewer.md", "recruiter-resume-reviewer.md", "terra.md")
 APPROVED_LUNA_MODEL_FILES = ("luna.md", "qa-engineer.md")
-APPROVED_KNOWLEDGE_FILES = (
-    "career.md", "grillmaster.md", "homerepair.md", "homesteader.md",
-    "lawnmowerman.md", "makeitwork.md", "teacher.md", "xnoto.md",
-)
-# These literal additions are the approved 0.4.6 policy delta to the historical baseline.
-# Never derive the expected baseline from the current agent source.
+APPROVED_KNOWLEDGE_FILES = ("career.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "makeitwork.md", "teacher.md", "xnoto.md")
+# Literal policy additions, not snippets derived from the current prompts.
 KNOWLEDGE_FIRST_PARAGRAPHS = {
     "career.md": "Before substantive owner-specific fit, resume, or interview advice, presume your authorized `docs/agents/career/` knowledge home is relevant. Verify private access and read its subset README and entry instructions through the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter. Follow nested indexes to confirmed background, goals, constraints, prior decisions and corrections for the active role or application; do not invent qualifications. If the index does not resolve the topic, use bounded topical search, never bulk-read journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on career facts; apply the constraints, not just a README citation.",
     "teacher.md": "Before substantive owner-specific teaching advice, presume your authorized `docs/agents/teacher/` knowledge home is relevant. Verify private access and read its subset README and entry instructions through the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter. Follow nested indexes to select the correct teaching context and recorded audience, objectives, source restrictions, delivery needs, prior decisions, and corrections. If the index does not resolve the topic, use bounded topical search, never bulk-read journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on teaching context; apply constraints, not just a README citation.",
@@ -71,10 +56,7 @@ HOMESTEADER_WORKFLOW_NEW = """1. For advisory work, retrieve the scoped baseline
 3. For a proposed edit, state the verified repository, branch, subset, and relevant repository instructions before changes. Advice alone is not authorization to edit.
 4. For a scoped update in `docs/agents/homesteader/`, preserve the existing layout and history, and commit it directly to `main` only after confirming the repository is private, accessible, and the applicable fact-confirmation rules are met. No pull-request check applies to that governance-approved knowledge commit.
 5. Do not perform GitHub writes outside your own subtree, create repositories, change visibility, or transfer content across repositories unless the owner explicitly requests that exact operation after the target repository has been verified as private."""
-APPROVED_KIMI_PROVIDER_MODEL_SUFFIXES = {
-    "kimi.md": b"k3", "kimi-256k.md": b"k3-256k",
-    "docs-writer.md": b"k3-256k", "release-engineer.md": b"k3-256k",
-}
+APPROVED_KIMI_PROVIDER_MODEL_SUFFIXES = {"kimi.md": b"k3", "kimi-256k.md": b"k3-256k", "docs-writer.md": b"k3-256k", "release-engineer.md": b"k3-256k"}
 APPROVED_KIMI_PROVIDER_CONFIG_LINES = (
     (b'"model": "kimi-for-coding/k3",', b'"model": "kimi-code-plan-cn/k3",'),
     (b'"enabled_providers": ["kimi-for-coding",', b'"enabled_providers": ["kimi-code-plan-cn",'),
@@ -151,14 +133,10 @@ class BaselineParity(unittest.TestCase):
         primary_new = b"mode: primary\nmodel: openai/gpt-6-astra\n"
         for name in APPROVED_PRIMARY_MODEL_FILES:
             self._replace_frontmatter_line(agents_dir, name, primary_old, primary_new)
-        terra_old = b"model: openai/gpt-5.6-terra\n"
-        terra_new = b"model: openai/gpt-6-sol\n"
         for name in APPROVED_TERRA_MODEL_FILES:
-            self._replace_frontmatter_line(agents_dir, name, terra_old, terra_new)
-        luna_old = b"model: openai/gpt-5.6-luna\n"
-        luna_new = b"model: openai/gpt-6-luna\n"
+            self._replace_frontmatter_line(agents_dir, name, b"model: openai/gpt-5.6-terra\n", b"model: openai/gpt-6-sol\n")
         for name in APPROVED_LUNA_MODEL_FILES:
-            self._replace_frontmatter_line(agents_dir, name, luna_old, luna_new)
+            self._replace_frontmatter_line(agents_dir, name, b"model: openai/gpt-5.6-luna\n", b"model: openai/gpt-6-luna\n")
 
     def _apply_approved_knowledge_policy(self, baseline_chart):
         agents_dir = os.path.join(baseline_chart, "files", "agents")
@@ -171,12 +149,10 @@ class BaselineParity(unittest.TestCase):
             if name == "default.md":
                 addition = DEFAULT_ROUTING
             else:
-                addition = ("## Knowledge-first advice\n\n" + KNOWLEDGE_FIRST_PARAGRAPHS[name]
-                            + "\n\n" + KNOWLEDGE_FOLLOWUPS.get(name, COMMON_KNOWLEDGE_FOLLOWUP))
+                addition = ("## Knowledge-first advice\n\n" + KNOWLEDGE_FIRST_PARAGRAPHS[name] + "\n\n" + KNOWLEDGE_FOLLOWUPS.get(name, COMMON_KNOWLEDGE_FOLLOWUP))
             content = content.replace(anchor, b"\n\n" + addition.encode("utf-8") + anchor)
             if name == "homesteader.md":
-                for old, new in ((HOMESTEADER_CONFIDENTIALITY_OLD, HOMESTEADER_CONFIDENTIALITY_NEW),
-                                 (HOMESTEADER_WORKFLOW_OLD, HOMESTEADER_WORKFLOW_NEW)):
+                for old, new in ((HOMESTEADER_CONFIDENTIALITY_OLD, HOMESTEADER_CONFIDENTIALITY_NEW), (HOMESTEADER_WORKFLOW_OLD, HOMESTEADER_WORKFLOW_NEW)):
                     before = old.encode("utf-8")
                     self.assertEqual(content.count(before), 1, old)
                     content = content.replace(before, new.encode("utf-8"))
@@ -185,12 +161,8 @@ class BaselineParity(unittest.TestCase):
 
     def _apply_approved_provider_migration(self, baseline_chart):
         agents_dir = os.path.join(baseline_chart, "files", "agents")
-        old_prefix = b"model: kimi-for-coding/"
-        new_prefix = b"model: kimi-code-plan-cn/"
         for name, model_suffix in APPROVED_KIMI_PROVIDER_MODEL_SUFFIXES.items():
-            old_line = old_prefix + model_suffix + b"\n"
-            new_line = new_prefix + model_suffix + b"\n"
-            self._replace_frontmatter_line(agents_dir, name, old_line, new_line)
+            self._replace_frontmatter_line(agents_dir, name, b"model: kimi-for-coding/" + model_suffix + b"\n", b"model: kimi-code-plan-cn/" + model_suffix + b"\n")
         config_path = os.path.join(baseline_chart, "files", "opencode.json")
         with open(config_path, "rb") as handle:
             content = handle.read()
@@ -201,10 +173,7 @@ class BaselineParity(unittest.TestCase):
             handle.write(content)
 
     def _extract_baseline(self, tmp):
-        archive = subprocess.run(
-            ["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"],
-            capture_output=True, cwd=REPO_ROOT,
-        )
+        archive = subprocess.run(["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"], capture_output=True, cwd=REPO_ROOT)
         self.assertEqual(archive.returncode, 0, archive.stderr.decode("utf-8", "replace"))
         with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tar:
             tar.extractall(tmp, filter="data")
@@ -296,15 +265,7 @@ class KnowledgeFirstPolicyContract(unittest.TestCase):
                 continue
             section = text.split("## Knowledge-first advice\n", 1)[1].split("\n## Primary operating rules\n", 1)[0]
             self.assertLess(text.index("## Knowledge-first advice"), text.index("## Primary operating rules"), name)
-            for marker in ("presume your authorized", "subset README", "entry instructions",
-                           "nested indexes", "bounded topical search", "Retrieve before personalized",
-                           "apply constraints", "owner-confirmed facts", "dated observations",
-                           "superseded guidance", "decision-changing conflicts", "after retrieval",
-                           "unchanged followups", "agent change", "compaction or resume",
-                           "Recheck access and provenance", "not every turn", "knowledge is unavailable",
-                           "withhold owner-specific conclusions", "general information explicitly",
-                           "imminent safety advice", "privacy-safe source path and revision",
-                           "no additional write or mutation authority"):
+            for marker in ("presume your authorized", "subset README", "entry instructions", "nested indexes", "bounded", "Retrieve before personalized", "apply", "owner-confirmed facts", "dated observations", "superseded guidance", "decision-changing conflicts", "after retrieval", "unchanged followups", "agent change", "compaction or resume", "Recheck access and provenance", "not every turn", "unavailable", "withhold owner-specific conclusions", "general information explicitly", "imminent safety advice", "privacy-safe source path and revision", "no additional write or mutation authority"):
                 self.assertIn(marker.lower(), section.lower(), (name, marker))
 
     def test_role_specific_prerequisites_and_default_routing(self):
