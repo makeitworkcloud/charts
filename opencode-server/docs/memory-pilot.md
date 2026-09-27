@@ -155,8 +155,15 @@ key. The test asserts each old block
 exists exactly once in the extracted baseline header before replacing it,
 that each knowledge-read anchor occurs exactly once before inserting, and
 that each of the three Kimi config lines occurs exactly once before
-substituting; all other agent bytes and production render comparisons remain
-enforced.
+substituting. In addition, the comparison permits exactly one approved new
+agent file, `files/agents/mechanic.md`, which does not exist in the
+historical 0.4.0 baseline: the test asserts its absence in the extracted
+baseline and copies the current chart source in after the historical
+transforms. The historical constants — the nine primary model migrations,
+the eight session knowledge-read paragraph insertions, and the seventeen
+approved model-header changes — are unchanged; the mechanic agent did not
+exist in the historical baseline. All other agent bytes and production
+render comparisons remain enforced.
 These changes affect the production ConfigMap checksum relative to the
 published 0.4.0 chart, so a normal production pod rollout on the chart version
 pin can occur even when the pilot is disabled. No claim is made that the

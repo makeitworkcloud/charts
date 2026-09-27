@@ -89,8 +89,9 @@ instruction refactor.
 
 ### Session knowledge-read policy
 
-The eight named primary agents (`makeitwork`, `xnoto`, `career`, `teacher`,
-`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) each carry a
+The nine named primary agents (`makeitwork`, `xnoto`, `career`, `teacher`,
+`grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, and `mechanic`)
+each carry a
 short, self-contained, role-local session knowledge-read policy next to their
 existing knowledge sections. On the first substantive task in a fresh session
 that could rely on recalled agent-specific facts or duplicate earlier
@@ -159,8 +160,8 @@ provenance and coverage evidence passes all checks. This is the exact recipe:
    GitHub stays authoritative for access, visibility, default HEAD, branch
    protections, pull requests, reviews, checks, releases, and write
    preconditions — freshness-critical facts, not an ordinary need for exact
-   content. For a requested branch/PR SHA different from the verified
-   default snapshot, use GitHub at the requested SHA. Primaries may pass
+   content. For a requested branch/PR SHA different from the verified default
+   snapshot, use GitHub at the requested SHA. Primaries may pass
    current authorization, the verified snapshot, and full-index evidence to
    delegated workers; that evidence does not extend worker authority.
 
@@ -245,10 +246,10 @@ GitOps-handoff, runner, or delivery-integration contracts — before the pull
 request is opened; `qa-engineer`, `release-engineer`, or `docs-writer` are
 dispatched conditionally for validation, release, or documentation risk. The
 lifestyle primaries (`grillmaster`, `homerepair`, `homesteader`,
-`lawnmowerman`) intentionally do not carry the pre-pull-request gate because
-they do not author code, chart, or workflow changes; they still reach these
-subagents discretionally through description-based routing, as does all other
-unspecialized work.
+`lawnmowerman`, `mechanic`) intentionally do not carry the pre-pull-request
+gate because they do not author code, chart, or workflow changes; they still
+reach these subagents discretionally through description-based routing, as
+does all other unspecialized work.
 
 ### Cloud architecture review acceptance
 
@@ -256,7 +257,7 @@ The existing `make test-opencode-server-agents` target statically covers the
 `cloud-architecture-reviewer` packaging: exact frontmatter (description,
 Sol model, default variant, subagent mode, wildcard and `edit`/`bash` tool
 denies), the mandatory headings and policy markers, the routing markers in
-the five code-capable primaries, the 24-agent inventory with ConfigMap and
+the five code-capable primaries, the 25-agent inventory with ConfigMap and
 mount keys, and byte-exact archive inclusion. Functional review quality is
 verified manually, only after a separately approved rollout, in a fresh
 session: a sound, proportional design returns `ADVANCE`; a missing proposal

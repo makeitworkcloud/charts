@@ -19,9 +19,9 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
 
-The nine primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`,
-`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) select
-`openai/gpt-6-astra` without a variant override. The six Terra-tier subagents
+The ten primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`,
+`grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, and `mechanic`)
+select `openai/gpt-6-astra` without a variant override. The six Terra-tier subagents
 (`terra`, `adversarial-code-reviewer`, `cloud-architecture-reviewer`,
 `devops-engineer`, `infra-security-reviewer`, and `recruiter-resume-reviewer`)
 select `openai/gpt-6-sol`, and the two Luna-tier subagents (`luna` and
@@ -79,6 +79,37 @@ The review is requirements-led and simplicity-biased: it prefers established ven
 
 `ADVANCE` means the design is reasonable to begin implementing — not approval, authorization, deployment, health, or functional verification. The reviewer does not automatically request a higher variant or a second reviewer, and model comparisons such as Kimi remain deferred with no savings benchmark claimed. CI validates packaging and instruction contracts, not review quality; after a separately approved rollout, a fresh session should verify the agent inventory, tool denial, and representative review cases as described in [Agent instruction architecture](docs/agent-instruction-architecture.md).
 
+### Mechanic agent
+
+The `mechanic` primary agent
+([`files/agents/mechanic.md`](files/agents/mechanic.md)) is a lifestyle
+primary for owner-assisted car and truck maintenance and diagnostics. It
+identifies the vehicle through owner-confirmed VIN transcription and build
+facts (year, market, build date, engine, transmission, drivetrain, and
+modifications), keeps photo observations separate from hypotheses and never
+declares roadworthiness from a photo, applies safety triage first
+(stop-driving and tow conditions), sources specifications and procedures from
+official OEM documentation first with recorded applicability, and keeps the
+full VIN private to the vehicle record — never in filenames, commits, pull
+requests, logs, or general web searches. High-voltage hybrid/EV and
+airbag/pretensioner work is professional-only, and brakes, steering, fuel,
+structural, refrigerant, and ADAS work defers to qualified service when
+tools, training, or documentation are missing. Like the other lifestyle
+primaries it carries no pre-pull-request review gate.
+
+The mechanic knowledge home is the private `docs/agents/mechanic/` subset in
+`makeitworkcloud/agent-knowledge` (vehicles registry, per-vehicle records,
+per-task procedures, and templates). That subset is authored separately and
+is a prerequisite for knowledge-backed operation: the agent reports the
+knowledge home as unavailable instead of assuming remembered facts.
+
+CI statically validates packaging and the instruction contract only. After a
+separately approved rollout, verify manually in a fresh session: the agent is
+selectable; it opens with safety triage on stop-driving symptoms; it refuses
+to judge roadworthiness from a photo; it requires owner confirmation of a VIN
+transcription; it separates observations from hypotheses; it cites sources
+with applicability; and it keeps the full VIN off public-safe surfaces.
+
 ### MCP routing
 
 `files/opencode.json` configures OpenCode as a direct in-cluster MCP client. Each integration connects to its own cluster-local ToolHive proxy Service in the `mcp` namespace; the configured client URLs are canonical. Direct tool names do not use the `makeitwork_` aggregate prefix. The `vmcp-gateway` VirtualMCPServer is reserved for external consumers and must not be configured as an OpenCode client.
@@ -105,9 +136,9 @@ Updating `agent-knowledge` is a separate documentation change and does not requi
 
 The private repository is a discovery aid, not a secret store or canonical desired state. Access depends on the runtime GitHub identity. Primary agents do not package mutable repository topology; if private knowledge is unavailable or conflicts with current source, agents use direct GitHub discovery, report the limitation, and never guess.
 
-The eight named primary agents (`makeitwork`, `xnoto`, `career`, `teacher`,
-`grillmaster`, `homerepair`, `homesteader`, and `lawnmowerman`) carry a
-self-contained session knowledge-read policy: on the first substantive task
+The nine named primary agents (`makeitwork`, `xnoto`, `career`, `teacher`,
+`grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, and `mechanic`)
+carry a self-contained session knowledge-read policy: on the first substantive task
 in a fresh session that could rely on recalled agent-specific facts or
 duplicate earlier research, they decide whether their knowledge home is
 relevant, verify current access, read their own subset README through the
@@ -184,9 +215,14 @@ session knowledge-read policy paragraph inserted before one asserted per-file
 anchor, plus the four Kimi subagents' exact model-prefix line updates from
 `kimi-for-coding` to `kimi-code-plan-cn` and the three exact `opencode.json`
 config-line substitutions — global fallback model, enabled-provider allowlist
-entry, and provider key — each asserted to occur exactly once. All other agent
-bytes and production render comparisons remain enforced. These changes affect
-the production ConfigMap
+entry, and provider key — each asserted to occur exactly once. In addition, the
+comparison permits exactly one approved new agent file,
+`files/agents/mechanic.md`, absent from the historical baseline: the test
+asserts its absence in the extracted baseline and copies the current chart
+source in after the historical transforms. The historical counts above are
+unchanged; the mechanic agent did not exist in the historical baseline. All
+other agent bytes and production render comparisons remain enforced. These
+changes affect the production ConfigMap
 checksum, so a normal production pod rollout on the chart version
 pin can occur even when the pilot is disabled. See [Memory pilot](docs/memory-pilot.md)
 for the baseline comparison contract.
