@@ -157,7 +157,7 @@ provider-id migration of four further frontmatter model-prefix updates and
 three exact `files/opencode.json` config-line substitutions. The baseline
 `files/agents/qa-engineer.md` lacks a final newline; the render comparison
 appends exactly one. The nine primary files (`career.md`, `default.md`,
-`grillmaster.md`, `homerepair.md`, `homesteader.md`, `homelawnmowerman.md`,
+`grillmaster.md`, `homerepair.md`, `homesteader.md`, `lawnmowerman.md`,
 `makeitwork.md`, `teacher.md`, and `xnoto.md`) receive the exact frontmatter
 replacement from `openai/gpt-5.6-terra` plus `variant: default` to
 `openai/gpt-6-astra` with no variant override. Eight of those primary files
