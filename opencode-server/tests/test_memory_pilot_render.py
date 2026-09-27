@@ -100,6 +100,15 @@ APPROVED_KIMI_PROVIDER_CONFIG_LINES = (
         b'"provider": {"kimi-code-plan-cn": {"options": {"apiKey": "{env:KIMI_API_KEY}"}}},',
     ),
 )
+# New agent files that did not exist in the historical 0.4.0 baseline. Each
+# entry is asserted absent in the extracted baseline and then copied from the
+# current chart source into the extracted baseline after the historical
+# migration transforms, so render and byte comparisons stay enforced for all
+# historical files while the new file is compared against itself.
+APPROVED_NEW_AGENT_FILES = (
+    "mechanic.md",
+)
+KB_READ_POLICY_CONTRACT_FILES = APPROVED_KB_READ_ADDITION_FILES + APPROVED_NEW_AGENT_FILES
 
 
 def run_helm(extra):
@@ -213,6 +222,17 @@ class BaselineParity(unittest.TestCase):
         with open(config_path, "wb") as handle:
             handle.write(content)
 
+    def _apply_approved_new_agent_files(self, baseline_chart):
+        baseline_agents = os.path.join(baseline_chart, "files", "agents")
+        current_agents = os.path.join(CHART_DIR, "files", "agents")
+        for name in APPROVED_NEW_AGENT_FILES:
+            baseline_path = os.path.join(baseline_agents, name)
+            self.assertFalse(os.path.exists(baseline_path), name)
+            with open(os.path.join(current_agents, name), "rb") as handle:
+                content = handle.read()
+            with open(baseline_path, "wb") as handle:
+                handle.write(content)
+
     def _extract_baseline(self, tmp):
         archive = subprocess.run(
             ["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"],
@@ -228,6 +248,7 @@ class BaselineParity(unittest.TestCase):
         self._apply_approved_model_changes(baseline_chart)
         self._apply_approved_kb_read_addition(baseline_chart)
         self._apply_approved_provider_migration(baseline_chart)
+        self._apply_approved_new_agent_files(baseline_chart)
         return baseline_chart
 
     def _render_chart(self, chart_path):
@@ -257,7 +278,7 @@ class BaselineParity(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(proc.returncode == 0, proc.stderr)
             for doc in yaml.safe_load_all(proc.stdout):
                 if isinstance(doc, dict) and "probe" in doc:
                     return doc["probe"]
@@ -320,6 +341,9 @@ class BaselineParity(unittest.TestCase):
                 else:
                     self.assertEqual(current_bytes, baseline_bytes, name)
 
+    def test_approved_new_agent_file_set_is_exactly_mechanic(self):
+        self.assertEqual(APPROVED_NEW_AGENT_FILES, ("mechanic.md",))
+
 
 class KnowledgeReadPolicyContract(unittest.TestCase):
     def test_kb_read_addition_present_only_in_named_primary_agents(self):
@@ -327,11 +351,11 @@ class KnowledgeReadPolicyContract(unittest.TestCase):
         for name in sorted(os.listdir(agents_dir)):
             with open(os.path.join(agents_dir, name), "rb") as handle:
                 content = handle.read()
-            expected = 1 if name in APPROVED_KB_READ_ADDITION_FILES else 0
+            expected = 1 if name in KB_READ_POLICY_CONTRACT_FILES else 0
             self.assertEqual(content.count(KB_READ_ADDITION), expected, name)
 
     def test_named_primary_agents_carry_session_kb_read_policy(self):
-        for name in APPROVED_KB_READ_ADDITION_FILES:
+        for name in KB_READ_POLICY_CONTRACT_FILES:
             path = os.path.join(CHART_DIR, "files", "agents", name)
             with open(path, "r", encoding="utf-8") as handle:
                 policy = " ".join(handle.read().split())
@@ -361,6 +385,73 @@ class KnowledgeReadPolicyContract(unittest.TestCase):
                 text,
                 relative,
             )
+
+
+class MechanicAgentContract(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        path = os.path.join(CHART_DIR, "files", "agents", "mechanic.md")
+        with open(path, "r", encoding="utf-8") as handle:
+            cls.content = handle.read()
+        cls.policy = " ".join(cls.content.split()).lower()
+
+    def test_frontmatter_is_astra_primary_without_variant(self):
+        parts = self.content.split("---\n", 2)
+        self.assertEqual(len(parts), 3)
+        header = parts[1]
+        self.assertIn("description: ", header)
+        self.assertEqual(header.count("mode: primary\n"), 1)
+        self.assertEqual(header.count("model: openai/gpt-6-astra\n"), 1)
+        self.assertNotIn("variant:", header)
+
+    def test_knowledge_home_namespace_and_session_paragraph(self):
+        self.assertIn("docs/agents/mechanic/", self.content)
+        self.assertNotIn("docs/agents/lawnmowerman/", self.content)
+        self.assertEqual(self.content.count(KB_READ_ADDITION.decode("utf-8")), 1)
+        for marker in (
+            "vehicles.md",
+            "vehicles/<stable-nickname>.md",
+            "procedures/<vehicle-id>/<task>.md",
+            "templates/vehicle.md",
+            "templates/procedure.md",
+        ):
+            self.assertIn(marker, self.content, marker)
+
+    def test_automotive_safety_privacy_documentation_markers(self):
+        for marker in (
+            "stop driving",
+            "tow",
+            "brake",
+            "steering",
+            "fuel leak",
+            "overheating",
+            "oil-pressure",
+            "roadworthy",
+            "owner confirms",
+            "vin",
+            "recall",
+            "freeze-frame",
+            "jack stands",
+            "high-voltage",
+            "airbag",
+            "pretensioner",
+            "adas",
+            "refrigerant",
+            "torque",
+            "redact",
+            "observed",
+            "suspected",
+            "oem",
+            "applicability",
+        ):
+            self.assertIn(marker, self.policy, marker)
+
+    def test_production_configmap_mounts_mechanic(self):
+        config_map = by_kind(render_docs([]), "ConfigMap")
+        self.assertEqual(
+            config_map["data"]["mechanic.md"],
+            chart_file("files", "agents", "mechanic.md"),
+        )
 
 
 class DefaultRendering(unittest.TestCase):
@@ -659,6 +750,7 @@ class PilotRendering(unittest.TestCase):
             "opencode-artifacts",
             "agent-pipe",
             "grillmaster",
+            "mechanic.md",
             "mcp-apify",
             "artifactsExistingClaim",
         ):
