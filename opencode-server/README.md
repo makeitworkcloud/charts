@@ -26,8 +26,7 @@ The nine primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`,
 `devops-engineer`, `infra-security-reviewer`, and `recruiter-resume-reviewer`)
 select `openai/gpt-6-sol`, and the two Luna-tier subagents (`luna` and
 `qa-engineer`) select `openai/gpt-6-luna`; existing variants are preserved. The
-GLM, MiniMax, and Kimi subagents and the
-global fallback model are unchanged. `opencode models openai` checks the model
+GLM and MiniMax subagents are unchanged. `opencode models openai` checks the model
 catalog; use `opencode models openai --refresh` if a model is absent. Catalog
 presence does not prove provider entitlement or successful inference. After an
 approved rollout, verify the changed models in a fresh session; existing
@@ -46,6 +45,29 @@ any separately authorized rollout: confirm the deployed OpenCode version's
 model catalog lists each new model, exercise each one with fresh-session tool
 calls, and accept the resulting usage and cost; roll back only through a
 separate GitOps chart pin revision.
+
+### Kimi provider-id migration
+
+The four Kimi subagents (`kimi`, `kimi-256k`, `docs-writer`, and
+`release-engineer`) and the global fallback model now select the
+`kimi-code-plan-cn` provider id. Upstream renamed `kimi-for-coding` to
+`kimi-code-plan-cn` for the same `api.kimi.com` endpoint and created a
+separate global Kimi provider
+([models.dev commit](https://github.com/anomalyco/models.dev/commit/ae065079d839cd1e4d824007aa8acef87ff5465f));
+selecting that separate global provider would be its own owner decision
+requiring confirmation of the appropriate account. The chart migration changes only ids: the
+`files/opencode.json` global fallback model, enabled-provider allowlist entry,
+and provider key, plus the four agent model prefixes. Model suffixes (`k3` and
+`k3-256k`), variants, prompt bytes, the `{env:KIMI_API_KEY}` reference, and the
+`opencode-kimi` Secret wiring are unchanged, and no custom SDK, base URL, or
+model definition is introduced. The upstream catalog migration also switches
+the provider from the Anthropic protocol to the OpenAI-compatible protocol,
+so the preserved endpoint and model ids do not prove identical wire behavior;
+fresh-session inference and tool-call smoke tests remain a rollout gate.
+Chart CI is static validation, not inference.
+After a confirmed rollout, check that the deployed OpenCode model catalog lists
+the `kimi-code-plan-cn` keys, then verify fresh-session inference and tool
+calls.
 
 The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6-sol` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
@@ -159,8 +181,12 @@ nine primary agents' exact Terra-to-Astra model change with removal of
 change with each variant preserved, and the two Luna-tier subagents' exact
 Luna-to-GPT-6 model-line change, plus the eight named primary agents' exact
 session knowledge-read policy paragraph inserted before one asserted per-file
-anchor. All other agent bytes and production render
-comparisons remain enforced. These changes affect the production ConfigMap
+anchor, plus the four Kimi subagents' exact model-prefix line updates from
+`kimi-for-coding` to `kimi-code-plan-cn` and the three exact `opencode.json`
+config-line substitutions — global fallback model, enabled-provider allowlist
+entry, and provider key — each asserted to occur exactly once. All other agent
+bytes and production render comparisons remain enforced. These changes affect
+the production ConfigMap
 checksum, so a normal production pod rollout on the chart version
 pin can occur even when the pilot is disabled. See [Memory pilot](docs/memory-pilot.md)
 for the baseline comparison contract.

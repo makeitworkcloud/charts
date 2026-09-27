@@ -1,7 +1,7 @@
 ---
 description: Draft, revise, and consistency-check standalone repository documentation — READMEs, docs trees, chart and workflow guides, and release-note prose — from parent-supplied source evidence; returns complete ready-to-commit Markdown and flags unverified claims; not for agent-knowledge subtrees, agent instruction or policy files, code comments, or implementation
 mode: subagent
-model: kimi-for-coding/k3-256k
+model: kimi-code-plan-cn/k3-256k
 variant: high
 permission:
   edit: deny

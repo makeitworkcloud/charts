@@ -80,6 +80,26 @@ KB_READ_ADDITION = (
     b"task, context, or freshness changes. Write only sparse, necessary, verified\n"
     b"durable facts, under the existing subset write policy."
 )
+APPROVED_KIMI_PROVIDER_MODEL_SUFFIXES = {
+    "kimi.md": b"k3",
+    "kimi-256k.md": b"k3-256k",
+    "docs-writer.md": b"k3-256k",
+    "release-engineer.md": b"k3-256k",
+}
+APPROVED_KIMI_PROVIDER_CONFIG_LINES = (
+    (
+        b'"model": "kimi-for-coding/k3",',
+        b'"model": "kimi-code-plan-cn/k3",',
+    ),
+    (
+        b'"enabled_providers": ["kimi-for-coding",',
+        b'"enabled_providers": ["kimi-code-plan-cn",',
+    ),
+    (
+        b'"provider": {"kimi-for-coding": {"options": {"apiKey": "{env:KIMI_API_KEY}"}}},',
+        b'"provider": {"kimi-code-plan-cn": {"options": {"apiKey": "{env:KIMI_API_KEY}"}}},',
+    ),
+)
 
 
 def run_helm(extra):
@@ -176,6 +196,23 @@ class BaselineParity(unittest.TestCase):
             with open(path, "wb") as handle:
                 handle.write(content)
 
+    def _apply_approved_provider_migration(self, baseline_chart):
+        agents_dir = os.path.join(baseline_chart, "files", "agents")
+        old_prefix = b"model: kimi-for-coding/"
+        new_prefix = b"model: kimi-code-plan-cn/"
+        for name, model_suffix in APPROVED_KIMI_PROVIDER_MODEL_SUFFIXES.items():
+            old_line = old_prefix + model_suffix + b"\n"
+            new_line = new_prefix + model_suffix + b"\n"
+            self._replace_frontmatter_line(agents_dir, name, old_line, new_line)
+        config_path = os.path.join(baseline_chart, "files", "opencode.json")
+        with open(config_path, "rb") as handle:
+            content = handle.read()
+        for old_line, new_line in APPROVED_KIMI_PROVIDER_CONFIG_LINES:
+            self.assertEqual(content.count(old_line), 1, old_line.decode("ascii"))
+            content = content.replace(old_line, new_line)
+        with open(config_path, "wb") as handle:
+            handle.write(content)
+
     def _extract_baseline(self, tmp):
         archive = subprocess.run(
             ["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"],
@@ -190,6 +227,7 @@ class BaselineParity(unittest.TestCase):
         baseline_chart = os.path.join(tmp, "opencode-server")
         self._apply_approved_model_changes(baseline_chart)
         self._apply_approved_kb_read_addition(baseline_chart)
+        self._apply_approved_provider_migration(baseline_chart)
         return baseline_chart
 
     def _render_chart(self, chart_path):
@@ -384,6 +422,40 @@ class DefaultRendering(unittest.TestCase):
     def test_default_render_carries_no_pilot_surfaces(self):
         for forbidden in ("memory-pilot", "opencode-mem", "text-embeddings-inference"):
             self.assertNotIn(forbidden, self.rendered, forbidden)
+
+    def test_opencode_json_uses_migrated_kimi_provider(self):
+        cfg = json.loads(self.config_map["data"]["opencode.json"])
+        self.assertEqual(cfg["model"], "kimi-code-plan-cn/k3")
+        self.assertEqual(
+            cfg["enabled_providers"],
+            ["kimi-code-plan-cn", "minimax-coding-plan", "openai", "zai-coding-plan"],
+        )
+        self.assertEqual(
+            cfg["provider"],
+            {"kimi-code-plan-cn": {"options": {"apiKey": "{env:KIMI_API_KEY}"}}},
+        )
+        self.assertNotIn("kimi-for-coding", cfg["provider"])
+        self.assertNotIn("kimi-for-coding", json.dumps(cfg))
+
+    def test_kimi_agent_headers_use_migrated_provider(self):
+        expected = {
+            "kimi.md": ("kimi-code-plan-cn/k3", "low"),
+            "kimi-256k.md": ("kimi-code-plan-cn/k3-256k", "high"),
+            "docs-writer.md": ("kimi-code-plan-cn/k3-256k", "high"),
+            "release-engineer.md": ("kimi-code-plan-cn/k3-256k", "high"),
+        }
+        for key, (model, variant) in expected.items():
+            parts = self.config_map["data"][key].split("---\n", 2)
+            self.assertEqual(len(parts), 3, key)
+            header = parts[1]
+            self.assertEqual(header.count("model: %s\n" % model), 1, key)
+            self.assertEqual(header.count("variant: %s\n" % variant), 1, key)
+            self.assertNotIn("kimi-for-coding", header, key)
+
+    def test_kimi_secret_env_ref_unchanged(self):
+        opencode = container(self.spec, "opencode")
+        kimi = env_entry(opencode, "KIMI_API_KEY")["valueFrom"]["secretKeyRef"]
+        self.assertEqual(kimi, {"name": "opencode-kimi", "key": "KIMI_API_KEY"})
 
 
 class PilotRendering(unittest.TestCase):
