@@ -126,7 +126,9 @@ data.
 The pilot tests retain the historical 0.4.0 baseline commit `32a6b91` and
 allow only enumerated agent changes: the QA reviewer's existing end-of-file
 correction plus exactly seventeen approved model-header changes, eight
-approved session knowledge-read paragraph insertions, and the approved Kimi
+explicit knowledge-first sections placed before their named agents' operating
+rules, one owner-context routing section for `default`, the homesteader's
+explicit confidentiality and workflow replacements, and the approved Kimi
 provider-id migration of four further frontmatter model-prefix updates and
 three exact `files/opencode.json` config-line substitutions. The baseline
 `files/agents/qa-engineer.md` lacks a final newline; the render comparison
@@ -134,33 +136,32 @@ appends exactly one. The nine primary files (`career.md`, `default.md`,
 `grillmaster.md`, `homerepair.md`, `homesteader.md`, `lawnmowerman.md`,
 `makeitwork.md`, `teacher.md`, and `xnoto.md`) receive the exact frontmatter
 replacement from `openai/gpt-5.6-terra` plus `variant: default` to
-`openai/gpt-6-astra` with no variant override. Eight of those primary files
-(all except `default.md`) additionally receive the exact session
-knowledge-read policy paragraph inserted before one asserted per-file anchor
-heading. The six Terra-tier files
-(`adversarial-code-reviewer.md`, `cloud-architecture-reviewer.md`,
-`devops-engineer.md`, `infra-security-reviewer.md`,
-`recruiter-resume-reviewer.md`, and `terra.md`) receive the exact model-line
-replacement from `openai/gpt-5.6-terra` to `openai/gpt-6-sol` with each
-existing variant preserved. The two Luna-tier files (`luna.md` and
-`qa-engineer.md`) receive the exact model-line replacement from
-`openai/gpt-5.6-luna` to `openai/gpt-6-luna`. The four Kimi subagents
-(`kimi.md` to `kimi-code-plan-cn/k3`; `kimi-256k.md`, `docs-writer.md`, and
-`release-engineer.md` to `kimi-code-plan-cn/k3-256k`, each existing variant
-preserved) receive the exact model-prefix line replacement from
-`kimi-for-coding` to `kimi-code-plan-cn`, and the baseline
+`openai/gpt-6-astra` with no variant override. The eight named primaries
+(all except `default.md`) receive explicit literal policy paragraphs with
+one asserted early anchor; `default` receives its own explicit read-only
+routing paragraph. The homesteader substitutions are independently asserted
+to occur once. The six Terra-tier files (`adversarial-code-reviewer.md`,
+`cloud-architecture-reviewer.md`, `devops-engineer.md`,
+`infra-security-reviewer.md`, `recruiter-resume-reviewer.md`, and `terra.md`)
+receive the exact model-line replacement from `openai/gpt-5.6-terra` to
+`openai/gpt-6-sol` with each existing variant preserved. The two Luna-tier
+files (`luna.md` and `qa-engineer.md`) receive the exact model-line
+replacement from `openai/gpt-5.6-luna` to `openai/gpt-6-luna`. The four Kimi
+subagents (`kimi.md` to `kimi-code-plan-cn/k3`; `kimi-256k.md`,
+`docs-writer.md`, and `release-engineer.md` to `kimi-code-plan-cn/k3-256k`,
+each existing variant preserved) receive the exact model-prefix line
+replacement from `kimi-for-coding` to `kimi-code-plan-cn`, and the baseline
 `files/opencode.json` receives exactly three config-line substitutions: the
 global fallback model, the enabled-provider allowlist entry, and the provider
-key. The test asserts each old block
-exists exactly once in the extracted baseline header before replacing it,
-that each knowledge-read anchor occurs exactly once before inserting, and
-that each of the three Kimi config lines occurs exactly once before
-substituting; all other agent bytes and production render comparisons remain
-enforced.
-These changes affect the production ConfigMap checksum relative to the
-published 0.4.0 chart, so a normal production pod rollout on the chart version
-pin can occur even when the pilot is disabled. No claim is made that the
-current production manifest or checksum exactly matches the original baseline.
+key. The test asserts each old block exists exactly once before replacing it;
+all other agent bytes and production render comparisons remain enforced.
+Static checks cannot prove actual knowledge retrieval or application; use the
+fresh-session acceptance matrix in [Agent instruction architecture](agent-instruction-architecture.md)
+after separately approved rollout. These changes affect the production
+ConfigMap checksum relative to the published 0.4.0 chart, so a normal
+production pod rollout on the chart version pin can occur even when the pilot
+is disabled. No claim is made that the current production manifest or checksum
+exactly matches the original baseline.
 
 ## Security posture
 
