@@ -64,9 +64,9 @@ APPROVED_KIMI_PROVIDER_CONFIG_LINES = (
 )
 # Exact old/new Git blob identities, not an exemption for arbitrary current skills.
 APPROVED_RETAINED_SKILL_BLOBS = {
-    "cloud-artifact-transfer": ("424566ff6d069d567a38ff64ba2f7e70d29c3ac7", "0aec869178afb68c8ad69db359c262309b510c28"),
-    "s3-presigned-file-delivery": ("6e8619323d81fd721feb2290e7090993b6c41fb4", "1c8aed1a3cb0bd90f1ba885b02a80a06dac8d90d"),
-    "career-external-documents": ("b56757c6811efe5970bb0d7332853a856145eea2", "3b87f6012c2ba249cc60f6fd2e07d9251d0531ed"),
+    "cloud-artifact-transfer": ("424566ff6d069d567a38ff64ba2f7e70d29c3ac7", "23c695331fc0946d1e568162958a1769581a8c20"),
+    "s3-presigned-file-delivery": ("6e8619323d81fd721feb2290e7090993b6c41fb4", "14100ea037882698121d64039f4dc62e42b57324"),
+    "career-external-documents": ("b56757c6811efe5970bb0d7332853a856145eea2", "c0955181b15536ce4b8b927a847c2502d2d5cc44"),
 }
 
 
