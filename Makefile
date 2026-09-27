@@ -85,16 +85,16 @@ test-opencode-server-agents:
 		grep -Fqx 'model: openai/gpt-6-luna' <<< "$$luna_frontmatter"; \
 		test "$$(grep -Ec '^variant:' <<< "$$luna_frontmatter")" -eq 0; \
 	done; \
-	grep -Fqx 'version: 0.4.5' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.4.6' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
 	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
 	rendered="$$(helm template test opencode-server)"; \
 	! grep -Fqi 'twilio' <<< "$$rendered"; \
-	primary_agents='default makeitwork xnoto career teacher grillmaster homerepair homesteader lawnmowerman'; \
+	primary_agents='default makeitwork xnoto career teacher grillmaster homerepair homesteader lawnmowerman mechanic'; \
 	repository_workers='kimi kimi-256k'; \
 	all_agents="$$(find opencode-server/files/agents -maxdepth 1 -type f -name '*.md' -printf '%f\n' | sed 's/\.md$$//' | sort)"; \
-	expected_agents="$$(printf '%s\n' adversarial-code-reviewer career cloud-architecture-reviewer default devops-engineer docs-writer glm glm-flash grillmaster homerepair homesteader infra-security-reviewer kimi kimi-256k lawnmowerman luna makeitwork minimax qa-engineer recruiter-resume-reviewer release-engineer teacher terra xnoto | sort)"; \
+	expected_agents="$$(printf '%s\n' adversarial-code-reviewer career cloud-architecture-reviewer default devops-engineer docs-writer glm glm-flash grillmaster homerepair homesteader infra-security-reviewer kimi kimi-256k lawnmowerman luna makeitwork mechanic minimax qa-engineer recruiter-resume-reviewer release-engineer teacher terra xnoto | sort)"; \
 	test "$$all_agents" = "$$expected_agents"; \
 	for agent in $$all_agents; do \
 		source="opencode-server/files/agents/$$agent.md"; \
@@ -220,7 +220,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.5.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.6.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \
