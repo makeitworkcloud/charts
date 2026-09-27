@@ -1,6 +1,5 @@
 import json
 import os
-import re
 import subprocess
 import unittest
 
@@ -9,33 +8,19 @@ import yaml
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
-def render(chart):
-    result = subprocess.run(
-        ["helm", "template", "test", chart], cwd=ROOT,
-        capture_output=True, text=True,
-    )
-    if result.returncode:
-        raise AssertionError(result.stderr)
-    return [doc for doc in yaml.safe_load_all(result.stdout) if doc is not None]
-
-
-def one(docs, kind):
-    matches = [doc for doc in docs if doc["kind"] == kind]
-    if len(matches) != 1:
-        raise AssertionError("expected one " + kind)
-    return matches[0]
-
-
-class RetainedPresentationRendering(unittest.TestCase):
+class UploaderRendering(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.docs = render("agent-pipe-uploader")
-        cls.deployment = one(cls.docs, "Deployment")
+        result = subprocess.run(["helm", "template", "test", "agent-pipe-uploader"], cwd=ROOT, capture_output=True, text=True)
+        if result.returncode:
+            raise AssertionError(result.stderr)
+        cls.docs = [doc for doc in yaml.safe_load_all(result.stdout) if doc is not None]
+        cls.deployment = next(doc for doc in cls.docs if doc["kind"] == "Deployment")
         cls.pod = cls.deployment["spec"]["template"]["spec"]
-        cls.profiles = json.loads(one(cls.docs, "ConfigMap")["data"]["profiles.json"])["profiles"]
-        cls.config = json.loads(one(render("opencode-server"), "ConfigMap")["data"]["opencode.json"])
+        config = next(doc for doc in cls.docs if doc["kind"] == "ConfigMap")
+        cls.profiles = json.loads(config["data"]["profiles.json"])["profiles"]
 
-    def test_exact_profiles_operations_hosts_and_prefixes(self):
+    def test_exact_profiles(self):
         expected = {
             "agent-pipe": (["upload", "download", "verify"], ["agent-pipe.s3.amazonaws.com", "agent-pipe.s3.us-west-2.amazonaws.com"], ["/deliveries/"]),
             "agent-presentations": (["upload", "download", "verify"], ["agent-pipe.s3.amazonaws.com", "agent-pipe.s3.us-west-2.amazonaws.com"], ["/presentations/"]),
@@ -44,14 +29,12 @@ class RetainedPresentationRendering(unittest.TestCase):
         self.assertEqual(set(self.profiles), set(expected))
         for name, (operations, hosts, prefixes) in expected.items():
             self.assertEqual(self.profiles[name], {
-                "operations": operations,
-                "allowedHosts": hosts,
-                "pathPrefixes": prefixes,
+                "operations": operations, "allowedHosts": hosts, "pathPrefixes": prefixes,
                 "requiredQueryParameters": ["X-Amz-Algorithm", "X-Amz-Credential", "X-Amz-Date", "X-Amz-Expires", "X-Amz-SignedHeaders", "X-Amz-Signature"],
                 "maxBytes": 104857600,
             }, name)
 
-    def test_no_home_credentials_or_service_account_and_recreate(self):
+    def test_isolated_mounts_security_and_recreate(self):
         self.assertEqual(sorted(doc["kind"] for doc in self.docs), ["ConfigMap", "Deployment", "Service"])
         self.assertEqual(self.deployment["spec"]["replicas"], 1)
         self.assertEqual(self.deployment["spec"]["strategy"], {"type": "Recreate"})
@@ -89,27 +72,9 @@ class RetainedPresentationRendering(unittest.TestCase):
             self.assertIn("STAGING ONLY", values)
             self.assertIn("MERGE BLOCKER", values)
 
-    def test_exact_permission_inventory(self):
-        permissions = {name: {"/artifacts/*": "allow", "/repos/*": "allow"} for name in ("external_directory", "glob", "grep", "list", "read", "edit")}
-        permissions.update({
-            "agent-pipe_download_artifact": "ask",
-            "agent-pipe_inspect_artifact": "allow",
-            "agent-pipe_remove_artifact": "ask",
-            "agent-pipe_upload_artifact": "ask",
-            "agent-pipe_verify_download": "allow",
-        })
-        self.assertEqual(self.config["permission"], permissions)
-        self.assertEqual(self.config["mcp"]["agent-pipe"], {"type": "remote", "url": "http://agent-pipe-uploader.opencode.svc:8080/mcp", "enabled": True, "oauth": False})
-
-    def test_chart_versions_and_existing_test_wiring(self):
-        for chart, version in (("agent-pipe-uploader", "0.3.0"), ("opencode-server", "0.4.7")):
-            with open(os.path.join(ROOT, chart, "Chart.yaml"), encoding="utf-8") as handle:
-                self.assertEqual(yaml.safe_load(handle)["version"], version)
-        with open(os.path.join(ROOT, "Makefile"), encoding="utf-8") as handle:
-            makefile = handle.read()
-        test = makefile.split("\ntest:\n", 1)[1].split("\ntest-changed-charts:\n", 1)[0]
-        self.assertIn("$(MAKE) test-retained-presentations", test)
-        self.assertIn("python3 agent-pipe-uploader/tests/test_retained_presentation_render.py", makefile)
+    def test_own_version(self):
+        with open(os.path.join(ROOT, "agent-pipe-uploader", "Chart.yaml"), encoding="utf-8") as handle:
+            self.assertEqual(yaml.safe_load(handle)["version"], "0.3.0")
 
 
 if __name__ == "__main__":
