@@ -61,6 +61,19 @@ def native_evidence(text):
     return {"markers": phrases, "unresolved_symbols": sorted(set(symbols))[:12]}
 
 
+def sanitize(text):
+    detail = text[-8192:]
+    detail = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', detail)
+    detail = re.sub(r'(?i)\b(?:https?|ftp|file)://[^\s<>"\x27]+', '[url]', detail)
+    detail = re.sub(r'(?i)\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+', '[credential]', detail)
+    detail = re.sub(r'(?i)\b(?:password|passwd|token|api[_-]?key|authorization|secret|cookie)["\x27]?\s*[:=]\s*(?:"[^"]*"|\x27[^\x27]*\x27|[^\s,;]+)', '[credential]', detail)
+    detail = re.sub(r'\b(?:sk-|ghp_|github_pat_|hf_)[A-Za-z0-9_-]+', '[credential]', detail)
+    detail = re.sub(r'\b[^\s:@/]+:[^\s@/]+@[^\s/]+', '[credential]', detail)
+    detail = re.sub(r'\?[^\s<>"\x27]+', '[query]', detail)
+    detail = re.sub(r'(?:[A-Za-z]:[\\/]|~/|\.\.?/|/)[^\s<>"\x27()]+', '[path]', detail)
+    return re.sub(r'[\x00-\x1f\x7f-\x9f]', ' ', detail)[:768]
+
+
 def run(args, timeout=60, check=True, cleanup=False, data=None):
     budget = timeout if cleanup else min(timeout, DEADLINE - time.monotonic())
     if budget <= 0:
@@ -70,19 +83,56 @@ def run(args, timeout=60, check=True, cleanup=False, data=None):
     except (subprocess.TimeoutExpired, OSError):
         raise Failure("container command timeout or unavailable") from None
     if check and result.returncode:
-        detail = result.stderr[-8192:]
-        detail = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', detail)
-        detail = re.sub(r'(?i)\b(?:https?|ftp|file)://[^\s<>"\x27]+', '[url]', detail)
-        detail = re.sub(r'(?i)\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+', '[credential]', detail)
-        detail = re.sub(r'(?i)\b(?:password|passwd|token|api[_-]?key|authorization|secret|cookie)["\x27]?\s*[:=]\s*(?:"[^"]*"|\x27[^\x27]*\x27|[^\s,;]+)', '[credential]', detail)
-        detail = re.sub(r'\b(?:sk-|ghp_|github_pat_|hf_)[A-Za-z0-9_-]+', '[credential]', detail)
-        detail = re.sub(r'\b[^\s:@/]+:[^\s@/]+@[^\s/]+', '[credential]', detail)
-        detail = re.sub(r'\?[^\s<>"\x27]+', '[query]', detail)
-        detail = re.sub(r'(?:[A-Za-z]:[\\/]|~/|\.\.?/|/)[^\s<>"\x27()]+', '[path]', detail)
-        detail = re.sub(r'[\x00-\x1f\x7f-\x9f]', ' ', detail)[:768]
         raise Failure("docker " + args[0] + " failed rc=" + str(result.returncode) + " "
-                      + json.dumps({"error": detail, **native_evidence(result.stderr + result.stdout)}))
+                      + json.dumps({"error": sanitize(result.stderr), **native_evidence(result.stderr + result.stdout)}))
     return result
+
+
+def observe(name):
+    evidence = {}
+    try:
+        template = '{' + ','.join('"' + key + '":{{json .State.' + key + '}}'
+                                 for key in ["Status", "Running", "ExitCode", "OOMKilled", "Error"]) + '}'
+        result = run(["inspect", "--format", template, name], timeout=15, check=False, cleanup=True)
+        evidence["inspect_returncode"] = result.returncode
+        if result.returncode:
+            return evidence
+        state = json.loads(result.stdout)
+        state["Error"] = sanitize(state["Error"])
+        evidence["state"] = state
+        if not state["Running"]:
+            return evidence
+        # Stock shell builtins only; no Node, raw maps, environment, or config.
+        script = '''mapped=unavailable
+if test -r /proc/1/maps; then
+    mapped=false
+    while IFS= read -r line; do
+        case "$line" in *"/opt/runtime/lib/libgcompat.so.0"*) mapped=true; break ;; esac
+    done < /proc/1/maps
+fi
+printf 'gcompat %s\\n' "$mapped"
+for file in /sys/fs/cgroup/memory.peak /sys/fs/cgroup/memory.current /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.events.local /sys/fs/cgroup/memory/memory.max_usage_in_bytes /sys/fs/cgroup/memory/memory.oom_control; do
+    test -r "$file" || continue
+    count=0
+    while read -r key value rest; do
+        count=$((count + 1))
+        test "$count" -le 16 || break
+        printf '%s %s %s\\n' "${file##*/}" "$key" "$value"
+    done < "$file"
+done'''
+        result = run(["exec", name, "/bin/sh", "-c", script], timeout=15, check=False, cleanup=True)
+        evidence["shell_returncode"] = result.returncode
+        for line in result.stdout[:4096].splitlines():
+            fields = line.split()
+            if len(fields) == 2 and fields[0] == "gcompat" and fields[1] in ("true", "false", "unavailable"):
+                evidence["host_gcompat_mapped"] = {"true": True, "false": False, "unavailable": None}[fields[1]]
+            elif len(fields) == 2 and fields[0] in ("memory.peak", "memory.current", "memory.max_usage_in_bytes") and fields[1].isdigit():
+                evidence.setdefault("cgroup", {})[fields[0]] = int(fields[1])
+            elif len(fields) == 3 and fields[0] in ("memory.events", "memory.events.local", "memory.oom_control") and fields[1] in ("oom", "oom_kill", "oom_group_kill", "under_oom") and fields[2].isdigit():
+                evidence.setdefault("cgroup", {})[fields[0] + "." + fields[1]] = int(fields[2])
+    except (Failure, ValueError, KeyError, TypeError) as error:
+        evidence["unavailable"] = type(error).__name__
+    return evidence
 
 
 def volume(suffix):
@@ -106,7 +156,8 @@ def request(name, port, route, post=None, timeout=30):
         headers["Authorization"] = "Bearer " + TOKEN
     if post is not None:
         headers["Content-Type"] = "application/json"
-    result = run(["exec", "-i", name, "node", "/probe/http.mjs"], timeout=timeout + 10,
+    # Per-exec client override does not modify PID 1 or the container's config.
+    result = run(["exec", "-i", "-e", "LD_PRELOAD=", name, "node", "/probe/http.mjs"], timeout=timeout + 10,
                  data=json.dumps({"port": port, "route": route, "post": post,
                                   "headers": headers, "timeout": timeout}))
     envelope = json.loads(result.stdout)
@@ -234,6 +285,7 @@ def arm_test(arm, runtime, inspect):
                  *HARDEN, *ENV, *preload, *mounts, "-v", runtime + ":/opt/runtime:ro",
                  "-v", FIXTURES + ":/probe:ro", "-w", HOME,
                  IMAGE, "web", "--hostname", "127.0.0.1", "--port", "4096"])
+            CURRENT[lifecycle + "_before_readiness"] = observe(name)
             CURRENT[lifecycle + "_probe"] = ready(name, arm)
             CURRENT["seconds"][lifecycle + "_bootstrap"] = round(time.monotonic() - start, 3)
             if lifecycle == "cold":
@@ -261,6 +313,7 @@ def arm_test(arm, runtime, inspect):
             CURRENT["onnx_elf"] = elf(runtime, inspect, home)
             if not CURRENT["onnx_elf"]["needed"]:
                 raise Failure("ONNX DT_NEEDED evidence absent after real embedding recall")
+            CURRENT[lifecycle + "_before_stop"] = observe(name)
             run(["stop", "--time=20", name], timeout=45)
             run(["rm", name])
             run(["volume", "rm", config])
@@ -270,6 +323,7 @@ def arm_test(arm, runtime, inspect):
         CURRENT["failure"] = str(error) if isinstance(error, Failure) else type(error).__name__
     finally:
         for name in names:
+            CURRENT.setdefault("before_cleanup", []).append(observe(name))
             try:
                 logs = run(["logs", "--tail=80", name], check=False, cleanup=True, timeout=10)
                 CURRENT.setdefault("native_diagnostics", []).append(native_evidence(logs.stdout + logs.stderr))

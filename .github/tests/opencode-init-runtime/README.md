@@ -67,6 +67,21 @@ be a loadable ELF library; presence or symbol export is not compatibility proof.
 First-write latency includes remaining background model warmup, not just compute.
 No warm success/timing is claimed when cold write fails.
 
+Before readiness and before cleanup, bounded observations capture only Docker
+State Status/Running/ExitCode/OOMKilled and a sanitized Error, PID 1 gcompat mapping
+as a boolean, and available cgroup memory peak/current and OOM counters. The
+mapping/counter reader uses stock shell builtins, not Node; unavailable samples
+are not zero or negative evidence. Exited containers may no longer expose their
+cgroup. Exit code 137 alone is not an OOM or native-compatibility diagnosis.
+
+Only the HTTP measurement client uses `docker exec -e LD_PRELOAD=` so a client
+loader failure cannot be confused with the application's response. This creates
+a process-local environment override, not a container configuration change; PID 1
+retains the exact candidate B preload. Stock-shell observations and application
+security/post-recall probes retain their original environment. This is measurement
+isolation, not a compatibility fallback: B still requires actual application
+security, mapped gcompat, real embeddings, and offline replacement recall to pass.
+
 `--no-scripts` is deliberate fresh binary/library extraction, not a complete
 bootable alternate root. Official 3.24 gcompat has no install hooks; Node's
 post-upgrade script only warns about obsolete npm. Runtime dependencies may have
