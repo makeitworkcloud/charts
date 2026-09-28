@@ -82,6 +82,24 @@ security/post-recall probes retain their original environment. This is measureme
 isolation, not a compatibility fallback: B still requires actual application
 security, mapped gcompat, real embeddings, and offline replacement recall to pass.
 
+After A/B, three observational preload cases use separate fresh HOME/config
+volumes: no configured plugins, context-mode only, and opencode-mem only. Each
+has a 120-second budget including setup, with the last 10 seconds reserved for
+final observations; bounded cleanup is separate. They request /config and keep
+observing process lifetime after readiness to expose background-init failures.
+Up to eight samples approximately 15 seconds apart record safe state, gcompat
+mapping, and available memory/OOM counters. They do not write memories or call
+an LLM. No configured plugins does not disable upstream built-in functionality.
+Diagnostic outcomes never replace the original B cold/write/recall/warm gate.
+The 50-minute job cap remains; A/B retain their original budgets and timeouts.
+
+Core dumps are disabled. Last-80-line synthetic logs are filtered to relevant
+assertion/panic/crash/illegal-instruction/segmentation/Bun/ONNX/plugin/stack-frame
+messages, excluding sensitive-keyword lines, then sanitized. At most 16 lines
+of 384 characters are retained per observation. No raw log/config/environment,
+core/binary dump, or host kernel log is collected. Missing excerpts are not proof
+of no crash; a signal-shaped exit code is not a root-cause diagnosis.
+
 `--no-scripts` is deliberate fresh binary/library extraction, not a complete
 bootable alternate root. Official 3.24 gcompat has no install hooks; Node's
 post-upgrade script only warns about obsolete npm. Runtime dependencies may have
@@ -96,8 +114,9 @@ Package revisions/transitive npm ranges and model revision are not frozen.
 Cold dependency resolution is not hermetic. Offline replacement tests reuse,
 not cache immutability, Kubernetes storage, ARM64, concurrency, DR, context host
 dispatch, real conversation learning, or production safety. No raw maps, auth
-files, response bodies or log dumps are printed; only fixed diagnostic markers,
-symbol names and bounded sanitized command/HTTP error fields are emitted.
+files, response bodies or raw log dumps are printed; only diagnostic markers,
+symbol names, selected sanitized crash lines, and bounded sanitized command/HTTP
+error fields are emitted.
 
 API/helper provenance: charts PR 113 at a34d8ef1646470c5d24275660c72d314f63b617b;
 images PR 58 at 4aa256927c02577f253b2cbb8a09652c021e99ff. Prior run 36366947984

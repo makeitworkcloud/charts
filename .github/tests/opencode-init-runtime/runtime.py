@@ -14,6 +14,8 @@ import time
 from urllib.parse import quote
 import uuid
 
+from diagnostics import run_cases
+
 IMAGE = "ghcr.io/anomalyco/opencode:1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
 HOME = "/home/opencode"
 CONFIG = HOME + "/.config/opencode"
@@ -27,7 +29,7 @@ FIXTURES = str(Path(__file__).resolve().parent)
 VOLUMES, CONTAINERS = [], []
 DEADLINE = time.monotonic() + 600  # Shared setup budget: pull, identity, provisioning, inspection.
 REPORT = {"arms": {}, "context_host_dispatch": "not tested; registration only"}
-HARDEN = ["--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges",
+HARDEN = ["--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges", "--ulimit=core=0",
           "--tmpfs=/tmp:rw,size=512m,mode=1777"]
 ENV = ["-e", "HOME=" + HOME, "-e", "XDG_CONFIG_HOME=" + HOME + "/.config",
        "-e", "XDG_CACHE_HOME=" + HOME + "/.cache", "-e", "XDG_DATA_HOME=" + HOME + "/.local/share",
@@ -52,13 +54,18 @@ class Failure(Exception):
 
 
 def native_evidence(text):
-    # Fixed phrases plus symbol identifiers only, never raw logs/argv/environment.
-    text = text[:65536]
+    # Only bounded, relevant synthetic crash context; never a raw log dump.
+    text = text[-65536:]
     phrases = [p for p in ["error loading shared library", "undefined symbol", "symbol not found",
                "invalid ELF", "Exec format error", "Permission denied", "Read-only file system",
                "certificate", "ENOTFOUND", "ECONNREFUSED", "timed out"] if p.lower() in text.lower()]
     symbols = re.findall(r"(?:undefined symbol[: ]+|Error relocating [^\n:]+: )([A-Za-z_][A-Za-z0-9_]{0,100})", text)
-    return {"markers": phrases, "unresolved_symbols": sorted(set(symbols))[:12]}
+    relevant = re.compile(r"assert|panic|crash|illegal.?instruction|segmentation|\bbun\b|onnx|plugin|^\s*at ", re.I)
+    sensitive = re.compile(r"authorization|bearer|token|password|secret|cookie|environment|config(?:uration)?\s*[:=]", re.I)
+    lines = [sanitize(line)[:384] for line in text.splitlines()[-80:]
+             if relevant.search(line) and not sensitive.search(line)]
+    return {"markers": phrases, "unresolved_symbols": sorted(set(symbols))[:12],
+            "crash_lines": lines[-16:]}
 
 
 def sanitize(text):
@@ -206,7 +213,7 @@ def elf(runtime, inspect, home=None, cleanup=False):
             "gcompat_exports___vsnprintf_chk": exported}
 
 
-def prepare_home(home, config, cold):
+def prepare_home(home, config, cold, plugins=PLUGINS):
     mounts = ["-v", home + ":" + HOME, "-v", config + ":" + CONFIG]
     helper(["--network=none", "--user=0:0", "--cap-add=CHOWN", *mounts],
            "chown -R 1000:1000 " + (HOME if cold else CONFIG))
@@ -217,7 +224,7 @@ def prepare_home(home, config, cold):
     seed += "IFS= read -r config; printf '%s\\n' \"$config\" > " + CONFIG + "/opencode.json; "
     seed += "IFS= read -r memory; printf '%s\\n' \"$memory\" > " + CONFIG + "/opencode-mem.jsonc"
     helper(["--network=none", "--user=1000:1000", *mounts], seed,
-           data=json.dumps(OPENCODE) + "\n" + json.dumps(MEMORY) + "\n")
+           data=json.dumps({**OPENCODE, "plugin": plugins}) + "\n" + json.dumps(MEMORY) + "\n")
     return mounts
 
 
@@ -374,6 +381,7 @@ def main():
         # Independent budgets; the expected control failure cannot starve/skip B.
         arm_test("A", runtime, inspect)
         arm_test("B", runtime, inspect)
+        run_cases(sys.modules[__name__], runtime)
     except Exception as error:
         REPORT["setup_failure"] = str(error) if isinstance(error, Failure) else type(error).__name__
     finally:
