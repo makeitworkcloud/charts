@@ -25,7 +25,7 @@ TAG = "opencode_project_" + hashlib.sha256(("path:" + HOME).encode()).hexdigest(
 PREFIX = "opencode-init-" + uuid.uuid4().hex
 FIXTURES = str(Path(__file__).resolve().parent)
 VOLUMES, CONTAINERS = [], []
-DEADLINE = time.monotonic() + 600
+DEADLINE = time.monotonic() + 600  # Shared setup budget: pull, identity, provisioning, inspection.
 REPORT = {"arms": {}, "context_host_dispatch": "not tested; registration only"}
 HARDEN = ["--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges",
           "--tmpfs=/tmp:rw,size=512m,mode=1777"]
@@ -222,12 +222,7 @@ def arm_test(arm, runtime, inspect):
                  "-v", FIXTURES + ":/probe:ro", "-w", HOME,
                  IMAGE, "web", "--hostname", "127.0.0.1", "--port", "4096"])
             CURRENT[lifecycle + "_probe"] = ready(name, arm)
-            if arm == "B" and not CURRENT[lifecycle + "_probe"]["host_gcompat_mapped"]:
-                raise Failure("candidate gcompat absent from compiled host mappings after plugin load")
             CURRENT["seconds"][lifecycle + "_bootstrap"] = round(time.monotonic() - start, 3)
-            CURRENT["onnx_elf"] = elf(runtime, inspect, home)
-            if not CURRENT["onnx_elf"]["needed"]:
-                raise Failure("ONNX DT_NEEDED evidence absent")
             if lifecycle == "cold":
                 CURRENT["phase"] = "first real embedding write"
                 first = time.monotonic()
@@ -245,6 +240,14 @@ def arm_test(arm, runtime, inspect):
             CURRENT[lifecycle + "_similarity"] = recall(name, memory_id)
             CURRENT["seconds"][lifecycle + "_recall"] = round(time.monotonic() - first, 3)
             CURRENT["same_memory_id"] = memory_id
+            CURRENT["phase"] = lifecycle + " post-operation inspection"
+            CURRENT[lifecycle + "_post_recall_probe"] = json.loads(
+                run(["exec", name, "node", "/probe/probe.mjs", arm]).stdout)
+            if arm == "B" and not CURRENT[lifecycle + "_post_recall_probe"]["host_gcompat_mapped"]:
+                raise Failure("candidate gcompat absent from compiled host mappings after real embedding recall")
+            CURRENT["onnx_elf"] = elf(runtime, inspect, home)
+            if not CURRENT["onnx_elf"]["needed"]:
+                raise Failure("ONNX DT_NEEDED evidence absent after real embedding recall")
             run(["stop", "--time=20", name], timeout=45)
             run(["rm", name])
             run(["volume", "rm", config])
@@ -270,6 +273,7 @@ def arm_test(arm, runtime, inspect):
 def main():
     global DEADLINE
     try:
+        started = time.monotonic()
         run(["pull", "--platform=linux/amd64", IMAGE], timeout=300)
         identity = run(["image", "inspect", "--format",
                         "{{json .RepoDigests}}|{{.Architecture}}|{{.Os}}|{{json .Config.Entrypoint}}", IMAGE]).stdout.strip().split("|")
@@ -278,6 +282,7 @@ def main():
         if not any(item.endswith("@" + IMAGE.split("@")[1]) for item in json.loads(identity[0])):
             raise Failure("stock image digest mismatch")
         REPORT["image"] = IMAGE
+        REPORT["pull_identity_seconds"] = round(time.monotonic() - started, 3)
         runtime, inspect = volume("runtime"), volume("inspect")
         started = time.monotonic()
         helper(["--network=bridge", "--user=0:0", "--cap-add=CHOWN",

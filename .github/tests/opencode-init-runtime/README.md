@@ -14,6 +14,10 @@ using the stock image's trusted public apk keys and strictly matched Alpine
 dependencies are prepared once. Binutils lives in a separate inspection volume,
 never the application. Applications mount runtime dependencies read-only.
 
+Image pull/identity checks, dependency provisioning, and setup inspection share
+one 10-minute setup budget; provisioning does not receive an additional budget.
+Successful pull/identity and provisioning durations are reported separately.
+
 A uses PATH and LD_LIBRARY_PATH only. B adds
 `LD_PRELOAD=/opt/runtime/lib/libgcompat.so.0`. Both use distinct fresh UUID HOME
 volumes; application paths are identical. Each has its own 15-minute budget and
@@ -41,6 +45,12 @@ localhost API and recall identical id/content with finite similarity >=0.6.
 HTTP 200 with success=false fails. It then stops/removes the application,
 discards config/tmp, seeds a fresh config volume, and starts the same stock image
 with retained HOME/deps and network=none. The same memory must be recalled.
+Security prerequisites remain before each real operation. Mapping is observed
+before the operation, then checked again after successful recall; B cannot pass
+without gcompat mapped in the compiled host. ONNX DT_NEEDED is required only
+after successful write/recall, never as a prerequisite to the first write.
+Failed operations retain their original failure and best-effort ELF inspection
+in cleanup, rather than being preempted by asset timing/layout assumptions.
 No model inference request to an LLM, custom plugin bridge, or remote provider is
 used; the memory path does execute the default local CPU embedding model.
 
@@ -77,5 +87,5 @@ symbol names and bounded sanitized command/HTTP error fields are emitted.
 API/helper provenance: charts PR 113 at a34d8ef1646470c5d24275660c72d314f63b617b;
 images PR 58 at 4aa256927c02577f253b2cbb8a09652c021e99ff. Prior run 36366947984
 failed first write on __vsnprintf_chk; it is not a passing baseline. CI is the
-only validation environment. Parent reviews/opens the PR; no dispatch/rerun,
+only validation environment. No dispatch/rerun,
 merge, publication, chart bump, GitOps rollout or production changes are implied.
