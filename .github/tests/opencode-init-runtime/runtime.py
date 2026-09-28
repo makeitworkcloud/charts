@@ -174,8 +174,21 @@ def ready(name, arm):
     def config_ok(value):
         if not isinstance(value, dict):
             return False
-        specs = [p[0] if isinstance(p, list) and p else p for p in value.get("plugin", [])]
-        return all(p in specs for p in PLUGINS) and value.get("enabled_providers") == [] and not value.get("mcp")
+        plugins = value.get("plugin")
+        if not isinstance(plugins, list):
+            raise Failure("malformed configured plugin list")
+        specs = []
+        for plugin in plugins:
+            if isinstance(plugin, list):
+                if len(plugin) != 2 or not isinstance(plugin[1], dict):
+                    raise Failure("malformed configured plugin tuple")
+                plugin = plugin[0]
+            if not isinstance(plugin, str) or not plugin:
+                raise Failure("malformed configured plugin spec")
+            specs.append(plugin)
+        if sorted(specs) != sorted(PLUGINS):
+            raise Failure("configured plugin specs do not exactly match fixture")
+        return value.get("enabled_providers") == [] and not value.get("mcp")
     wait(name, 4096, "/config", config_ok, window=420)
     ids = wait(name, 4096, "/experimental/tool/ids", lambda v: isinstance(v, list) and TOOLS.issubset(set(v)))
     if any(ids.count(tool) != 1 for tool in TOOLS):
