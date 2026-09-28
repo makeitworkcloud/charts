@@ -70,8 +70,18 @@ def run(args, timeout=60, check=True, cleanup=False, data=None):
     except (subprocess.TimeoutExpired, OSError):
         raise Failure("container command timeout or unavailable") from None
     if check and result.returncode:
+        detail = result.stderr[-8192:]
+        detail = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', detail)
+        detail = re.sub(r'(?i)\b(?:https?|ftp|file)://[^\s<>"\x27]+', '[url]', detail)
+        detail = re.sub(r'(?i)\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+', '[credential]', detail)
+        detail = re.sub(r'(?i)\b(?:password|passwd|token|api[_-]?key|authorization|secret|cookie)["\x27]?\s*[:=]\s*(?:"[^"]*"|\x27[^\x27]*\x27|[^\s,;]+)', '[credential]', detail)
+        detail = re.sub(r'\b(?:sk-|ghp_|github_pat_|hf_)[A-Za-z0-9_-]+', '[credential]', detail)
+        detail = re.sub(r'\b[^\s:@/]+:[^\s@/]+@[^\s/]+', '[credential]', detail)
+        detail = re.sub(r'\?[^\s<>"\x27]+', '[query]', detail)
+        detail = re.sub(r'(?:[A-Za-z]:[\\/]|~/|\.\.?/|/)[^\s<>"\x27()]+', '[path]', detail)
+        detail = re.sub(r'[\x00-\x1f\x7f-\x9f]', ' ', detail)[:768]
         raise Failure("docker " + args[0] + " failed rc=" + str(result.returncode) + " "
-                      + json.dumps(native_evidence(result.stderr + result.stdout)))
+                      + json.dumps({"error": detail, **native_evidence(result.stderr + result.stdout)}))
     return result
 
 
@@ -129,7 +139,7 @@ def elf(runtime, inspect, home=None, cleanup=False):
     else:
         mounts += ["-v", home + ":" + HOME + ":ro"]
         command = ("find " + HOME + "/.cache/opencode/packages/opencode-mem@2.26.0/node_modules "
-                   "-type f \\( -name 'libonnxruntime.so*' -o -name 'onnxruntime_binding.node' \\) "
+                   "-type f -path '*/linux/x64/*' \\( -name 'libonnxruntime.so*' -o -name 'onnxruntime_binding.node' \\) "
                    "-exec /opt/inspect/usr/bin/readelf -d '{}' ';'")
     output = helper(mounts, command, cleanup=cleanup).stdout
     if home is not None:
@@ -150,6 +160,8 @@ def prepare_home(home, config, cold):
     helper(["--network=none", "--user=0:0", "--cap-add=CHOWN", *mounts],
            "chown -R 1000:1000 " + (HOME if cold else CONFIG))
     seed = "mkdir -p " + HOME + "/.cache " + HOME + "/.local/share/context-mode " + HOME + "/.local/state; "
+    if cold:
+        seed += "test ! -e " + HOME + "/.cache/opencode/packages; test ! -e " + HOME + "/.opencode-mem; "
     # stdin contains only synthetic config; no external installer or package scripts.
     seed += "IFS= read -r config; printf '%s\\n' \"$config\" > " + CONFIG + "/opencode.json; "
     seed += "IFS= read -r memory; printf '%s\\n' \"$memory\" > " + CONFIG + "/opencode-mem.jsonc"
@@ -210,6 +222,8 @@ def arm_test(arm, runtime, inspect):
                  "-v", FIXTURES + ":/probe:ro", "-w", HOME,
                  IMAGE, "web", "--hostname", "127.0.0.1", "--port", "4096"])
             CURRENT[lifecycle + "_probe"] = ready(name, arm)
+            if arm == "B" and not CURRENT[lifecycle + "_probe"]["host_gcompat_mapped"]:
+                raise Failure("candidate gcompat absent from compiled host mappings after plugin load")
             CURRENT["seconds"][lifecycle + "_bootstrap"] = round(time.monotonic() - start, 3)
             CURRENT["onnx_elf"] = elf(runtime, inspect, home)
             if not CURRENT["onnx_elf"]["needed"]:
@@ -277,7 +291,7 @@ def main():
             if not packages or any(len(p) != 2 or not all(re.fullmatch(r'[A-Za-z0-9_.+~-]+', s) for s in p) for p in packages):
                 raise Failure("installed package manifest malformed")
             REPORT[label + "_packages"] = packages
-            scripts = helper(["--network=none", "--user=1000:1000", "-v", root + ":/opt/deps:ro"],
+            scripts = helper(["--network=none", "--user=0:0", "-v", root + ":/opt/deps:ro"],
                              "for f in /opt/deps/lib/apk/db/scripts.tar /opt/deps/lib/apk/db/scripts.tar.gz; "
                              "do if test -f \"$f\"; then tar -tf \"$f\"; fi; done").stdout.splitlines()
             if any(not re.fullmatch(r'[A-Za-z0-9_.+~/-]+', item) for item in scripts):
@@ -295,7 +309,7 @@ def main():
         for kind, names in [("container", CONTAINERS), ("volume", VOLUMES)]:
             for name in reversed(names):
                 try:
-                    result = run([kind, "inspect", name], check=False, cleanup=True, timeout=10)
+                    result = run([kind, "inspect", "--format", "{{.Name}}", name], check=False, cleanup=True, timeout=10)
                     if result.returncode:
                         # Distinguish absence from daemon failure without dumping inspect data.
                         missing = "no such" in result.stderr.lower()

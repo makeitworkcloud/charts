@@ -30,7 +30,6 @@ const db = new DatabaseSync(":memory:");
 db.exec("CREATE VIRTUAL TABLE evidence USING fts5(content)");
 db.close();
 const mapped = fs.readFileSync("/proc/1/maps", "utf8").includes("/opt/runtime/lib/libgcompat.so.0");
-if (process.argv[2] === "B") assert(mapped, "candidate gcompat absent from host mappings");
 const packages = {};
 for (const [name, version] of [["context-mode", "1.0.169"], ["opencode-mem", "2.26.0"]]) {
   const manifest = JSON.parse(fs.readFileSync(

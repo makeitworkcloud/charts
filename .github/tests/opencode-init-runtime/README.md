@@ -72,7 +72,7 @@ Cold dependency resolution is not hermetic. Offline replacement tests reuse,
 not cache immutability, Kubernetes storage, ARM64, concurrency, DR, context host
 dispatch, real conversation learning, or production safety. No raw maps, auth
 files, response bodies or log dumps are printed; only fixed diagnostic markers,
-symbol names and bounded sanitized HTTP error fields are emitted.
+symbol names and bounded sanitized command/HTTP error fields are emitted.
 
 API/helper provenance: charts PR 113 at a34d8ef1646470c5d24275660c72d314f63b617b;
 images PR 58 at 4aa256927c02577f253b2cbb8a09652c021e99ff. Prior run 36366947984
