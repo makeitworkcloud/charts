@@ -1,0 +1,22 @@
+name: opencode-init-runtime
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/opencode-init-runtime.yml
+      - .github/tests/opencode-init-runtime/**
+
+permissions:
+  contents: read
+
+jobs:
+  init-runtime-feasibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test control A and required candidate B
+        run: python3 .github/tests/opencode-init-runtime/runtime.py
