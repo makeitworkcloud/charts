@@ -82,16 +82,43 @@ security/post-recall probes retain their original environment. This is measureme
 isolation, not a compatibility fallback: B still requires actual application
 security, mapped gcompat, real embeddings, and offline replacement recall to pass.
 
-After A/B, three observational preload cases use separate fresh HOME/config
-volumes: no configured plugins, context-mode only, and opencode-mem only. Each
-has a 120-second budget including setup, with the last 10 seconds reserved for
-final observations; bounded cleanup is separate. They request /config and keep
-observing process lifetime after readiness to expose background-init failures.
-Up to eight samples approximately 15 seconds apart record safe state, gcompat
-mapping, and available memory/OOM counters. They do not write memories or call
-an LLM. No configured plugins does not disable upstream built-in functionality.
-Diagnostic outcomes never replace the original B cold/write/recall/warm gate.
-The 50-minute job cap remains; A/B retain their original budgets and timeouts.
+After A/B, a fresh memory-only case adds the official `GLIBC_FAKE_DEBUG=1`
+diagnostic setting. It requests /config and samples process state for up to
+120 seconds including setup, reserving ten seconds for final observations.
+The previously tested no-configured-plugin and context-only cases are not
+repeated. At most twenty sanitized gcompat namespace/version lookup messages
+are retained. The setting traces lookups; it is not a compatibility fix.
+
+Four independent Node containers then reuse that diagnostic fixture's public
+package/model cache read-only with network=none and the same prepared runtime,
+UID1000, rootfs hardening, gcompat preload and debug setting. They separately
+exercise libsql file-backed CRUD in fresh /tmp, a one-pixel Sharp PNG only when
+Sharp is an actual Transformers dependency, direct ONNX 1.20.1 import/session
+creation using an existing selected-model artifact if present, and Transformers
+CJS initialization through the plugin's existing ONNX shim followed by local-only
+embedding initialization. No packages/models are installed or downloaded by
+these Node cases, and no model is generated. Missing artifacts are reported,
+not fetched. Session probing accepts only existing nomic model/model_quantized
+ONNX files up to 1 GiB. Each case has 45 seconds; diagnostic work shares a
+six-minute budget, with bounded cleanup separate. The job cap stays 50 minutes.
+
+Synchronous before/after markers, resolved package names/versions/relative
+entrypoints, selected native-library mappings, exit state, and sanitized errors
+identify the failing stage. Node success is NOT compiled-Bun compatibility and
+never substitutes for B's actual write/recall/warm gate. A/B use their original
+separate HOME volumes, configurations, timeouts, and untouched package/model
+caches. Native diagnostic mutations are confined to fresh /tmp, not source HOME.
+
+Source contracts: opencode-mem 2.26.0 `src/services/embedding.ts`,
+`onnxruntime-resolve.ts`, `runtime-require.ts`, and tsconfig map the published
+dist paths and resolve-before-shim CJS ordering. Transformers 4.2.0's published
+manifest declares Sharp and a nested ONNX version; diagnostics record actual
+installed versions and require the plugin's direct ONNX to remain 1.20.1.
+ONNX v1.20.1's `InferenceSession.create/release`, libsql-client v0.17.4's local
+createClient/execute/close, and Sharp's documented create/png/toBuffer APIs are
+used without changing the plugin or native binaries. The existing model remains
+Xenova/nomic-embed-text-v1; native probes disable remote models and use
+local_files_only, so absent cache files are a diagnostic limitation.
 
 Core dumps are disabled. Last-80-line synthetic logs are filtered to relevant
 assertion/panic/crash/illegal-instruction/segmentation/Bun/ONNX/plugin/stack-frame
