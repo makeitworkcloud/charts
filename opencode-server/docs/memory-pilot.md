@@ -144,7 +144,7 @@ appends exactly one. The nine primary files (`career.md`, `default.md`,
 `grillmaster.md`, `homerepair.md`, `homesteader.md`, `lawnmowerman.md`,
 `makeitwork.md`, `teacher.md`, and `xnoto.md`) receive the exact frontmatter
 replacement from `openai/gpt-5.6-terra` plus `variant: default` to
-`openai/gpt-6-astra` with no variant override. The eight named primaries
+`openai/gpt-6.1-sol` with no variant override. The eight named primaries
 (all except `default.md`) receive explicit literal policy paragraphs with
 one asserted early anchor; `default` receives its own explicit read-only
 routing paragraph. The homesteader substitutions are independently asserted

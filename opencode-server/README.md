@@ -21,7 +21,7 @@ A change to any packaged file is chart content and requires a new `Chart.yaml` v
 
 The ten primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`,
 `grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, and `mechanic`)
-select `openai/gpt-6-astra` without a variant override. The six Terra-tier subagents
+select `openai/gpt-6.1-sol` without a variant override. The six Terra-tier subagents
 (`terra`, `adversarial-code-reviewer`, `cloud-architecture-reviewer`,
 `devops-engineer`, `infra-security-reviewer`, and `recruiter-resume-reviewer`)
 select `openai/gpt-6-sol`, and the two Luna-tier subagents (`luna` and
@@ -33,18 +33,15 @@ approved rollout, verify the changed models in a fresh session; existing
 sessions may retain their selected model. Configuration is loaded at server
 startup, not hot-reloaded.
 
-Published standard OpenAI token rates are $10 per 1M input tokens and $50 per
-1M output tokens for `gpt-6-astra`, versus $2 per 1M input and $10 per 1M
-output for the prior `gpt-6-sol`
-([gpt-6-astra](https://developers.openai.com/api/docs/models/gpt-6-astra),
-[gpt-6-sol](https://developers.openai.com/api/docs/models/gpt-6-sol)). The
-owner accepted this fivefold increase per token; it is not a claim about total
-task cost, and no usage budget is implied. Chart CI is static validation and
-proves neither account entitlement nor successful Responses tool calls. Before
-any separately authorized rollout: confirm the deployed OpenCode version's
-model catalog lists each new model, exercise each one with fresh-session tool
-calls, and accept the resulting usage and cost; roll back only through a
-separate GitOps chart pin revision.
+Pricing and account entitlement for `gpt-6.1-sol` have not been verified for
+this change. No token rates, relative savings, or total task-cost claims are
+made, and no usage budget is implied. Chart CI is static validation and proves
+neither model availability, account entitlement, nor successful inference or
+Responses tool calls. Before any separately authorized rollout, confirm that
+the deployed OpenCode version's model catalog lists `openai/gpt-6.1-sol`,
+verify account entitlement and current pricing, and accept the resulting usage
+and cost. Fresh-session inference and tool-call checks remain required after
+rollout; roll back only through a separate GitOps chart pin revision.
 
 ### Kimi provider-id migration
 
@@ -221,7 +218,8 @@ secrets, agents, skills, MCP configuration, or artifact PVC.
 
 The historical 0.4.0 baseline comparison permits the QA reviewer's existing
 end-of-file correction and exactly seventeen approved model-header changes: the
-nine primary agents' exact Terra-to-Astra model change with removal of
+nine primary agents' exact `openai/gpt-5.6-terra` to `openai/gpt-6.1-sol`
+model change with removal of
 `variant: default`, the six Terra-tier subagents' exact Terra-to-Sol model-line
 change with each variant preserved, and the two Luna-tier subagents' exact
 Luna-to-GPT-6 model-line change; it also permits the eight named primary
