@@ -85,7 +85,7 @@ test-opencode-server-agents:
 		grep -Fqx 'model: openai/gpt-6-luna' <<< "$$luna_frontmatter"; \
 		test "$$(grep -Ec '^variant:' <<< "$$luna_frontmatter")" -eq 0; \
 	done; \
-	grep -Fqx 'version: 0.4.7' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.4.8' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
 	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
@@ -145,7 +145,7 @@ test-opencode-server-agents:
 	done; \
 	for agent in $$primary_agents; do \
 		frontmatter="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' "opencode-server/files/agents/$$agent.md")"; \
-		grep -Fqx 'model: openai/gpt-6-astra' <<< "$$frontmatter"; \
+		grep -Fqx 'model: openai/gpt-6.1-sol' <<< "$$frontmatter"; \
 		test "$$(grep -Ec '^variant:' <<< "$$frontmatter")" -eq 0; \
 		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Fqi 'without a custom project name' <<< "$$policy"; \
@@ -220,7 +220,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.7.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.4.8.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \

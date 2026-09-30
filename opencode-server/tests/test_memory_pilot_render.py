@@ -137,7 +137,7 @@ class BaselineParity(unittest.TestCase):
     def _apply_approved_model_changes(self, baseline_chart):
         agents_dir = os.path.join(baseline_chart, "files", "agents")
         primary_old = b"mode: primary\nmodel: openai/gpt-5.6-terra\nvariant: default\n"
-        primary_new = b"mode: primary\nmodel: openai/gpt-6-astra\n"
+        primary_new = b"mode: primary\nmodel: openai/gpt-6.1-sol\n"
         for name in APPROVED_PRIMARY_MODEL_FILES:
             self._replace_frontmatter_line(agents_dir, name, primary_old, primary_new)
         for name in APPROVED_TERRA_MODEL_FILES:
@@ -274,6 +274,30 @@ class BaselineParity(unittest.TestCase):
         self.assertEqual(APPROVED_NEW_AGENT_FILES, ("mechanic.md",))
 
 
+class PrimaryModelContract(unittest.TestCase):
+    def test_exactly_ten_primary_headers_use_gpt_6_1_sol_without_variant(self):
+        expected = {"default.md", "makeitwork.md", "xnoto.md", "career.md", "teacher.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "mechanic.md"}
+        actual = set()
+        for path in sorted(glob.glob(os.path.join(CHART_DIR, "files", "agents", "*.md"))):
+            name = os.path.basename(path)
+            with open(path, "r", encoding="utf-8") as handle:
+                parts = handle.read().split("---\n", 2)
+            self.assertEqual(len(parts), 3, name)
+            self.assertEqual(parts[0], "", name)
+            header = yaml.safe_load(parts[1])
+            self.assertIsInstance(header, dict, name)
+            if header.get("mode") == "primary":
+                actual.add(name)
+            if name in expected or header.get("mode") == "primary":
+                with self.subTest(agent=name):
+                    self.assertEqual(header.get("mode"), "primary")
+                    self.assertEqual(header.get("model"), "openai/gpt-6.1-sol")
+                    self.assertNotIn("variant", header)
+                    keys = [key.value for key, value in yaml.compose(parts[1]).value]
+                    self.assertEqual(len(keys), len(set(keys)), "duplicate frontmatter key")
+        self.assertEqual(actual, expected)
+
+
 class KnowledgeFirstPolicyContract(unittest.TestCase):
     def test_named_primary_agents_have_early_bounded_policy(self):
         agents_dir = os.path.join(CHART_DIR, "files", "agents")
@@ -331,13 +355,13 @@ class MechanicAgentContract(unittest.TestCase):
             cls.content = handle.read()
         cls.policy = " ".join(cls.content.split()).lower()
 
-    def test_frontmatter_is_astra_primary_without_variant(self):
+    def test_frontmatter_is_gpt_6_1_sol_primary_without_variant(self):
         parts = self.content.split("---\n", 2)
         self.assertEqual(len(parts), 3)
         header = parts[1]
         self.assertIn("description: ", header)
         self.assertEqual(header.count("mode: primary\n"), 1)
-        self.assertEqual(header.count("model: openai/gpt-6-astra\n"), 1)
+        self.assertEqual(header.count("model: openai/gpt-6.1-sol\n"), 1)
         self.assertNotIn("variant:", header)
 
     def test_knowledge_home_namespace_and_layout(self):
