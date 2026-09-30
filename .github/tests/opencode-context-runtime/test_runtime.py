@@ -1,6 +1,8 @@
 import contextlib
+import hashlib
 import io
 import json
+import tarfile
 import unittest
 import uuid
 from urllib.request import Request
@@ -99,6 +101,35 @@ class FixtureTests(unittest.TestCase):
             with self.assertRaises(runtime.CiError):
                 runtime.dock(["rm", "-f", "synthetic-container"])
             run.assert_not_called()
+
+    def test_installed_archive_uses_top_level_manifest(self):
+        files = {"context-mode/nested/package.json": b'{"name":"other","version":"0"}'}
+        files.update({"context-mode/" + rel: b"synthetic compiled file" for rel in runtime.SELECTED_MEMBERS})
+        files["context-mode/package.json"] = json.dumps({"name": "context-mode", "version": runtime.PLUGIN_VERSION}).encode()
+        payload = io.BytesIO()
+        with tarfile.open(fileobj=payload, mode="w") as archive:
+            for name, data in files.items():
+                member = tarfile.TarInfo(name)
+                member.size = len(data)
+                archive.addfile(member, io.BytesIO(data))
+        hashes = runtime.installed_package_hashes(payload.getvalue())
+        self.assertEqual(hashes["package.json"], hashlib.sha256(files["context-mode/package.json"]).hexdigest())
+
+    def test_terminal_error_is_not_a_completed_approval_bypass(self):
+        case = uuid.uuid4().hex
+        runtime.register_plan(case, "ctx_index", {"content": "synthetic"})
+        part = {"state": {"status": "error", "input": {"content": "synthetic"}}}
+        self.assertEqual(runtime.approval_outcome(False, part, part, True, False, case),
+                         (False, "terminal_error_without_approval"))
+        part["state"]["status"] = "completed"
+        self.assertEqual(runtime.approval_outcome(False, part, part, True, False, case),
+                         (False, "bypass_completed"))
+
+    def test_unavailable_database_is_not_proof_of_no_side_effect(self):
+        case = uuid.uuid4().hex
+        runtime.register_plan(case, "ctx_index", {"content": "synthetic"})
+        self.assertEqual(runtime.approval_outcome(True, None, None, True, None, case),
+                         (False, "absence_unverified"))
 
 
 if __name__ == "__main__":

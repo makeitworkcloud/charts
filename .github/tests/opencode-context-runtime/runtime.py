@@ -295,6 +295,8 @@ def new_session(app, directory, title):
     status, body = app_http("POST", app + "/session", directory, {"title": title})
     if status != 200 or not isinstance(body, dict) or not body.get("id"):
         raise CiError("HTTP")
+    if body.get("directory") != directory:
+        raise CiError("SESSION_DIRECTORY")
     return body["id"]
 
 def dispatch(app, directory, session_id, case, agent, extra_text=""):
@@ -365,6 +367,17 @@ def await_idle(app, directory, session_id):
 def expected_input(part, case):
     return isinstance(part, dict) and (part.get("state") or {}).get("input") == CASE_INPUTS[case]
 
+def context_db_locations(cid, kind, directory):
+    name = hashlib.sha256(directory.encode()).hexdigest()[:16] + ".db"
+    roots = {"persistent": "/home/opencode/.local/share/context-mode/", "ephemeral": "/home/opencode/.config/opencode/context-mode/"}
+    found = {}
+    for label, root in roots.items():
+        rc = dock_rc(["exec", cid, "/bin/sh", "-c", "test -f " + shq(root + kind + "/" + name)], timeout=10)
+        if rc not in (0, 1):
+            raise CiError("DB_LOCATION")
+        found[label] = rc == 0
+    return found
+
 def inspect_synthetic_db(cid, kind, directory, inspect):
     db_name = hashlib.sha256(directory.encode()).hexdigest()[:16] + ".db"
     root = "/home/opencode/.local/share/context-mode/" + kind
@@ -402,7 +415,15 @@ def indexed_marker_present(cid, marker):
             if any(marker in str(value) for row in rows for value in row if isinstance(value, str)):
                 return True
         return False
-    return inspect_synthetic_db(cid, "content", DIR_A, inspect)
+    try:
+        locations = context_db_locations(cid, "content", DIR_A)
+        OBSERVATIONS["content_db_locations"] = locations
+        if not locations["persistent"]:
+            return None
+        return inspect_synthetic_db(cid, "content", DIR_A, inspect)
+    except (CiError, sqlite3.Error, tarfile.TarError, OSError):
+        OBSERVATIONS["content_db_inspection"] = "unavailable"
+        return None
 
 def recall_hit(part):
     return status_of(part) == "completed" and MARKER in tool_text(part) and "fixture-a" in tool_text(part)
@@ -429,6 +450,11 @@ def resume_case(app, cid):
     if status != 200 or body is not True:
         raise CiError("RESUME_SETUP")
     await_idle(app, DIR_A, session_id)
+    locations = context_db_locations(cid, "sessions", DIR_A)
+    OBSERVATIONS["session_db_locations"] = locations
+    if not locations["persistent"]:
+        finish("resume_isolation_gate", False, "persistent_context_db_unavailable")
+        return
     seeded = inspect_synthetic_db(cid, "sessions", DIR_A,
         lambda db: any(RESUME_MARKER in str(row[0]) for row in db.execute(
             "SELECT snapshot FROM session_resume WHERE session_id=? AND consumed=0", (session_id,))))
@@ -479,26 +505,43 @@ def package_check(home_vol, cid, expected):
     if len(tar_bytes) > 32 * 1024 * 1024:
         raise CiError("ASSERT")
     try:
-        with tarfile.open(fileobj=io.BytesIO(tar_bytes), mode="r:*") as tf:
-            base = None
-            for name in tf.getnames():
-                clean = name[2:] if name.startswith("./") else name
-                if clean.endswith("/package.json"):
-                    base = clean[: -len("package.json")]
-                    break
-            if base is None:
-                raise CiError("ASSERT")
-            manifest = json.load(tf.extractfile(base + "package.json"))
-            if manifest.get("version") != PLUGIN_VERSION:
-                raise CiError("ASSERT")
-            for rel, want in expected.items():
-                got = hashlib.sha256(tf.extractfile(tf.getmember(base + rel)).read()).hexdigest()
-                if got != want:
-                    raise CiError("ASSERT")
+        actual = installed_package_hashes(tar_bytes)
+        for rel, want in expected.items():
+            if actual[rel] != want:
+                OBSERVATIONS["package_mismatch_member"] = rel
+                raise CiError("PACKAGE_HASH_MISMATCH")
     except CiError:
         raise
     except Exception:
         raise CiError("ASSERT")
+
+def installed_package_hashes(payload):
+    with tarfile.open(fileobj=io.BytesIO(payload), mode="r:*") as archive:
+        members = {member.name.removeprefix("./"): member for member in archive.getmembers()}
+        base = "context-mode/"
+        manifest_member = members.get(base + "package.json")
+        if manifest_member is None or not manifest_member.isfile():
+            raise CiError("PACKAGE_MANIFEST_MISSING")
+        manifest = json.load(archive.extractfile(manifest_member))
+        if manifest.get("name") != "context-mode" or manifest.get("version") != PLUGIN_VERSION:
+            raise CiError("PACKAGE_IDENTITY")
+        hashes = {}
+        for rel in SELECTED_MEMBERS:
+            member = members.get(base + rel)
+            if member is None or not member.isfile():
+                raise CiError("PACKAGE_FILE_MISSING")
+            hashes[rel] = hashlib.sha256(archive.extractfile(member).read()).hexdigest()
+        return hashes
+
+def approval_outcome(pending, before, after, offered, indexed, case):
+    for part in (before, after):
+        if status_of(part) == "completed":
+            return False, "bypass_completed" if expected_input(part, case) else "call_input_mismatch"
+    if pending and offered:
+        return (True, "pending_observed_rejected_via_abort") if indexed is False else (False, "absence_unverified")
+    if status_of(before) == "error" or status_of(after) == "error":
+        return False, "terminal_error_without_approval"
+    return False, "no_pending_evidence"
 
 def baseline_probe(net, gateway, port):
     def probe(network, script):
@@ -551,8 +594,9 @@ def run_cold_cases(app, home, cid, expected):
     try:
         package_check(home, cid, expected)
         ok_pkg = True
-    except CiError:
+    except CiError as error:
         ok_pkg = False
+        OBSERVATIONS["package_failure"] = error.scope
     finish("registry_tools_and_package", ok_ids and ok_tools and ok_pkg, "ids=%s schemas=%s package=%s" % (ok_ids, ok_tools, ok_pkg))
     budget()
     CURRENT[0] = "host_ctx_index"
@@ -590,7 +634,9 @@ def run_cold_cases(app, home, cid, expected):
     OBSERVATIONS["restricted_advertised"] = "ctx_index" in case_obs(case5)["offered"]
     if part5 and status_of(part5) == "completed":
         finish("restricted_deny", False, "observed_bypass_completed")
-    elif RESULTS["registry_tools_and_package"]["status"] == "PASS" and RESULTS["host_ctx_index"]["status"] == "PASS" and expected_input(part5, case5) and status_of(part5) == "error" and any(p in tool_text(part5).lower() for p in ("denied", "permission", "not allowed")) and not indexed_marker_present(cid, CASE_INPUTS[case5]["content"]):
+    elif RESULTS["registry_tools_and_package"]["status"] != "PASS":
+        finish("restricted_deny", False, "blocked_by_artifact_check")
+    elif RESULTS["host_ctx_index"]["status"] == "PASS" and expected_input(part5, case5) and status_of(part5) == "error" and any(p in tool_text(part5).lower() for p in ("denied", "permission", "not allowed")) and indexed_marker_present(cid, CASE_INPUTS[case5]["content"]) is False:
         finish("restricted_deny", True, "denied_error_observed")
     else:
         finish("restricted_deny", False, "no_terminal_evidence")
@@ -602,6 +648,7 @@ def run_cold_cases(app, home, cid, expected):
     dispatch(app, DIR_A, session6, case6, "ask")
     pending = False
     bypass = False
+    part6 = None
     deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         budget()
@@ -620,13 +667,13 @@ def run_cold_cases(app, home, cid, expected):
         time.sleep(1)
     abort_session(app, DIR_A, session6)
     after_abort = find_tool_part(fetch_messages(app, DIR_A, session6), "ctx_index", case6)
-    completed_after_abort = status_of(after_abort) == "completed"
-    if pending and "ctx_index" in case_obs(case6)["offered"] and not bypass and not completed_after_abort and not indexed_marker_present(cid, "ask-gate-proof"):
-        finish("ask_permission_gate", True, "pending_observed_rejected_via_abort")
-    elif bypass or completed_after_abort:
-        finish("ask_permission_gate", False, "bypass_completed")
-    else:
-        finish("ask_permission_gate", False, "no_pending_evidence")
+    indexed = indexed_marker_present(cid, "ask-gate-proof")
+    OBSERVATIONS["ask_terminal_before_abort"] = status_of(part6) or None
+    OBSERVATIONS["ask_terminal_after_abort"] = status_of(after_abort) or None
+    OBSERVATIONS["ask_input_matched"] = expected_input(after_abort or part6, case6)
+    OBSERVATIONS["ask_indexed_after_abort"] = indexed
+    ok, detail = approval_outcome(pending, part6, after_abort, "ctx_index" in case_obs(case6)["offered"], indexed, case6)
+    finish("ask_permission_gate", ok, detail)
     budget()
     CURRENT[0] = "plugin_policy_deny_ask"
     control = uuid.uuid4().hex
@@ -652,7 +699,10 @@ def run_cold_cases(app, home, cid, expected):
         finish("project_isolation", not leak, "cross_project_leak" if leak else "no_cross_project_hit")
     else:
         finish("project_isolation", False, status_detail(part8))
-    resume_case(app, cid)
+    try:
+        resume_case(app, cid)
+    except (CiError, sqlite3.Error, tarfile.TarError, OSError) as error:
+        finish("resume_isolation_gate", False, "setup_" + (error.scope if isinstance(error, CiError) else type(error).__name__))
     return session2
 
 def run_warm_cases(app, retained_session):

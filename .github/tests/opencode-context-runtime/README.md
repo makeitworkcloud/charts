@@ -87,6 +87,12 @@ deny-based tool hiding is recorded, not mistaken for a missing installation.
 Approval and plugin-policy cases require offered-tool evidence; a successful
 synthetic shell control precedes the plugin-policy negatives. Fixed diagnostic
 markers distinguish installation and plugin-loading failures where reported.
+Archive inspection selects the top-level package manifest, never a nested
+dependency's manifest. Approval reports distinguish completed calls from terminal
+errors without an approval prompt. An unavailable context database is unknown,
+not proof of absent side effects; persistent/ephemeral location booleans aid
+diagnosis without changing the expected persistence contract. Resume setup
+failure remains red but does not suppress independent replacement/security cases.
 Output is a selected JSON summary of statuses, fixed error categories, timings and
 synthetic observation booleans, not raw logs, configuration, prompts or credentials.
 
