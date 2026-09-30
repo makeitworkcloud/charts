@@ -3,7 +3,8 @@ import io
 import json
 import unittest
 import uuid
-from urllib.request import Request, urlopen
+from urllib.request import Request
+from unittest.mock import patch
 
 import runtime
 
@@ -51,7 +52,7 @@ class FixtureTests(unittest.TestCase):
         try:
             request = Request("http://127.0.0.1:" + str(port) + "/v1/chat/completions",
                               data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
-            with urlopen(request, timeout=5) as response:
+            with runtime.LOCAL_HTTP.open(request, timeout=5) as response:
                 text = response.read().decode()
             self.assertIn("call_" + new, text)
             self.assertNotIn("call_" + old, text)
@@ -69,7 +70,7 @@ class FixtureTests(unittest.TestCase):
         try:
             request = Request("http://127.0.0.1:" + str(port) + "/v1/chat/completions",
                               data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
-            with urlopen(request, timeout=5) as response:
+            with runtime.LOCAL_HTTP.open(request, timeout=5) as response:
                 response.read()
             self.assertIs(runtime.case_obs(case)["marker_first"], False)
         finally:
@@ -86,6 +87,18 @@ class FixtureTests(unittest.TestCase):
                 self.assertEqual(runtime.summarize(), 1)
         finally:
             runtime.RESULTS.update(saved)
+
+    def test_abort_failure_is_not_swallowed(self):
+        with patch.object(runtime, "app_http", return_value=(500, None)), patch.object(runtime, "await_idle") as idle:
+            with self.assertRaises(runtime.CiError):
+                runtime.abort_session("http://127.0.0.1", "/synthetic", "synthetic-session")
+            idle.assert_not_called()
+
+    def test_cleanup_deadline_prevents_later_command(self):
+        with patch.object(runtime, "CLEANING", True), patch.object(runtime, "CLEANUP_DEADLINE", 0), patch.object(runtime.subprocess, "run") as run:
+            with self.assertRaises(runtime.CiError):
+                runtime.dock(["rm", "-f", "synthetic-container"])
+            run.assert_not_called()
 
 
 if __name__ == "__main__":

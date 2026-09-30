@@ -3,6 +3,7 @@ import base64, hashlib, io, json, os, re, signal, sqlite3, subprocess, sys, tarf
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib import request as urlreq
 from urllib.error import HTTPError, URLError
+LOCAL_HTTP = urlreq.build_opener(urlreq.ProxyHandler({}))
 
 IMAGE = "ghcr.io/anomalyco/opencode:1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
 PLATFORM = "linux/amd64"
@@ -25,6 +26,7 @@ OBSERVATIONS = {"restricted_advertised": None, "ask_pending_observed": None, "as
 CREATED = {"containers": [], "volumes": [], "networks": []}
 CURRENT = [None]
 CLEANING = False
+CLEANUP_DEADLINE = None
 CASE_INPUTS = {}
 RESUME_MARKER = "syntheticresume" + RUN_ID
 
@@ -49,7 +51,12 @@ def shq(value):
     return "'" + value.replace("'", "'\\''") + "'"
 
 def dock(args, timeout=240, stdin=None):
-    if not CLEANING:
+    if CLEANING:
+        remaining = CLEANUP_DEADLINE - time.monotonic()
+        if remaining <= 0:
+            raise CiError("CLEANUP_TIMEOUT")
+        timeout = min(timeout, remaining)
+    else:
         budget()
         timeout = min(timeout, max(1, GLOBAL_BUDGET_S - (time.monotonic() - START)))
     try:
@@ -182,7 +189,7 @@ def app_http(method, url, directory, payload=None, timeout=30):
         headers["Content-Type"] = "application/json"
     req = urlreq.Request(url, data=data, headers=headers, method=method)
     try:
-        with urlreq.urlopen(req, timeout=timeout) as resp:
+        with LOCAL_HTTP.open(req, timeout=timeout) as resp:
             body = resp.read()
             return resp.status, (json.loads(body) if body else None)
     except HTTPError as exc:
@@ -192,8 +199,8 @@ def app_http(method, url, directory, payload=None, timeout=30):
 
 def net_create():
     name = "ctxprobe-net-" + RUN_ID
-    dock(["network", "create", "--internal", name], timeout=60)
     CREATED["networks"].append(name)
+    dock(["network", "create", "--internal", name], timeout=60)
     out = dock(["network", "inspect", "--format", "{{range .IPAM.Config}}{{.Gateway}} {{end}}", name]).decode()
     tokens = [t for t in out.split() if t]
     if not tokens:
@@ -221,8 +228,8 @@ def assert_only_net(cid, net):
 
 def vol_create(label):
     name = "ctxprobe-" + label + "-" + RUN_ID
-    dock(["volume", "create", name], timeout=60)
     CREATED["volumes"].append(name)
+    dock(["volume", "create", name], timeout=60)
     return name
 
 SETTINGS_JSON = json.dumps({"permissions": {"deny": ["Bash(touch *deny-sentinel*)"], "ask": ["Bash(touch *ask-sentinel*)"]}})
@@ -341,10 +348,10 @@ def status_detail(part):
     return "tool_" + (status_of(part) or "unknown")
 
 def abort_session(app, directory, session_id):
-    try:
-        app_http("POST", app + "/session/" + session_id + "/abort", directory, {})
-    except CiError:
-        pass
+    status, result = app_http("POST", app + "/session/" + session_id + "/abort", directory, {})
+    if status != 200 or result is not True:
+        raise CiError("ABORT_FAILED")
+    await_idle(app, directory, session_id)
 
 def await_idle(app, directory, session_id):
     for _ in range(60):
@@ -402,10 +409,11 @@ def recall_hit(part):
 
 def failure_markers(cid):
     try:
-        raw = dock(["logs", "--tail=40", cid], timeout=10).decode(errors="replace").lower()
-        known = ("node: not found", "permission denied", "read-only file system", "failed to load plugin", "failed to install plugin", "plugin export is not a function", "invalid config", "no such module: fts5")
+        result = subprocess.run(["docker", "logs", "--tail=40", cid], capture_output=True, timeout=10)
+        raw = (result.stdout + result.stderr).decode(errors="replace").lower()
+        known = ("node: not found", "permission denied", "read-only file system", "failed to load plugin", "failed to install plugin", "npminstallfailederror", "plugin export is not a function", "invalid config", "no such module: fts5")
         return [phrase for phrase in known if phrase in raw]
-    except CiError:
+    except (subprocess.TimeoutExpired, OSError):
         return ["diagnostics_unavailable"]
 
 def resume_case(app, cid):
@@ -503,7 +511,7 @@ def baseline_probe(net, gateway, port):
     if probe("bridge", external) != 0:
         return False, "external_control_failed"
     cmd = "command -v wget >/dev/null; wget -T 3 -q -O /dev/null http://%s:%d/health || exit 3; " % (gateway, port)
-    cmd += "wget -T 5 -q -O /dev/null https://registry.npmjs.org/ && exit 4; exit 0"
+    cmd += "wget -T 5 -q -O /dev/null https://registry.npmjs.org/context-mode/1.0.169 && exit 4; exit 0"
     rc = probe(net, cmd)
     if rc == 0:
         return True, "internal_health_ok_external_blocked"
@@ -525,7 +533,7 @@ def policy_case(app, code, expected_phrase):
     dispatch(app, DIR_A, session_id, case, "probe")
     part = wait_tool(app, DIR_A, session_id, "ctx_execute", case)
     abort_session(app, DIR_A, session_id)
-    if not part or not expected_input(part, case):
+    if not part or not expected_input(part, case) or "ctx_execute" not in case_obs(case)["offered"]:
         return False, "no_tool_result"
     if status_of(part) != "error":
         return False, "unexpected_completed"
@@ -582,7 +590,7 @@ def run_cold_cases(app, home, cid, expected):
     OBSERVATIONS["restricted_advertised"] = "ctx_index" in case_obs(case5)["offered"]
     if part5 and status_of(part5) == "completed":
         finish("restricted_deny", False, "observed_bypass_completed")
-    elif expected_input(part5, case5) and status_of(part5) == "error" and any(p in tool_text(part5).lower() for p in ("denied", "permission", "not allowed")) and not indexed_marker_present(cid, CASE_INPUTS[case5]["content"]):
+    elif RESULTS["registry_tools_and_package"]["status"] == "PASS" and RESULTS["host_ctx_index"]["status"] == "PASS" and expected_input(part5, case5) and status_of(part5) == "error" and any(p in tool_text(part5).lower() for p in ("denied", "permission", "not allowed")) and not indexed_marker_present(cid, CASE_INPUTS[case5]["content"]):
         finish("restricted_deny", True, "denied_error_observed")
     else:
         finish("restricted_deny", False, "no_terminal_evidence")
@@ -611,18 +619,27 @@ def run_cold_cases(app, home, cid, expected):
             break
         time.sleep(1)
     abort_session(app, DIR_A, session6)
-    if pending and not bypass and not indexed_marker_present(cid, "ask-gate-proof"):
+    after_abort = find_tool_part(fetch_messages(app, DIR_A, session6), "ctx_index", case6)
+    completed_after_abort = status_of(after_abort) == "completed"
+    if pending and "ctx_index" in case_obs(case6)["offered"] and not bypass and not completed_after_abort and not indexed_marker_present(cid, "ask-gate-proof"):
         finish("ask_permission_gate", True, "pending_observed_rejected_via_abort")
-    elif bypass:
+    elif bypass or completed_after_abort:
         finish("ask_permission_gate", False, "bypass_completed")
     else:
         finish("ask_permission_gate", False, "no_pending_evidence")
     budget()
     CURRENT[0] = "plugin_policy_deny_ask"
+    control = uuid.uuid4().hex
+    register_plan(control, "ctx_execute", {"language": "shell", "code": "printf 'policy-control-ok'"})
+    control_session = new_session(app, DIR_A, "ci-policy-control")
+    dispatch(app, DIR_A, control_session, control, "probe")
+    control_part = wait_tool(app, DIR_A, control_session, "ctx_execute", control)
+    await_idle(app, DIR_A, control_session)
+    control_ok = expected_input(control_part, control) and status_of(control_part) == "completed" and "policy-control-ok" in tool_text(control_part) and "ctx_execute" in case_obs(control)["offered"]
     ok_deny, detail_deny = policy_case(app, "touch deny-sentinel", "security policy")
     ok_ask, detail_ask = policy_case(app, "touch ask-sentinel", "Blocked by context-mode")
     absent = sentinels_absent(cid)
-    finish("plugin_policy_deny_ask", ok_deny and ok_ask and absent, "deny=%s ask=%s sentinels_absent=%s" % (detail_deny, detail_ask, absent))
+    finish("plugin_policy_deny_ask", control_ok and ok_deny and ok_ask and absent, "control=%s deny=%s ask=%s sentinels_absent=%s" % (control_ok, detail_deny, detail_ask, absent))
     budget()
     CURRENT[0] = "project_isolation"
     session8 = new_session(app, DIR_B, "ci-case-8")
@@ -670,8 +687,9 @@ def run_broken_case(app):
     finish("broken_security_fail_closed", registry_ok and fail_closed, "registry=%s fail_closed=%s %s" % (registry_ok, fail_closed, status_detail(part10)))
 
 def cleanup():
-    global CLEANING
+    global CLEANING, CLEANUP_DEADLINE
     CLEANING = True
+    CLEANUP_DEADLINE = min(START + GLOBAL_BUDGET_S + 180, time.monotonic() + 180)
     signal.signal(signal.SIGTERM, signal.SIG_IGN)
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     ok = True
@@ -760,6 +778,8 @@ def run():
     except Exception as exc:
         record_error("UNEXPECTED", type(exc).__name__)
     finally:
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         if server is not None:
             try:
                 server.shutdown(); server.server_close()
