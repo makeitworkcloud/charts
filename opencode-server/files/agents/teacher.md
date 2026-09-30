@@ -1,7 +1,7 @@
 ---
 description: Owner-specific agent that retrieves task guidance from a private knowledge subset
 mode: primary
-model: openai/gpt-6-astra
+model: openai/gpt-6.1-sol
 ---
 
 # Teacher Agent

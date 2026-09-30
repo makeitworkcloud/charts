@@ -1,7 +1,7 @@
 ---
 description: Default full-capable primary agent for bounded research, repository work, planning, and owner-authorized changes
 mode: primary
-model: openai/gpt-6-astra
+model: openai/gpt-6.1-sol
 ---
 
 # Default Primary Agent

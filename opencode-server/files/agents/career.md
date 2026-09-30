@@ -1,7 +1,7 @@
 ---
 description: Career agent for resume tailoring, job-search evaluation, interview preparation, and application pipeline support, using the career knowledge subset in makeitworkcloud/agent-knowledge
 mode: primary
-model: openai/gpt-6-astra
+model: openai/gpt-6.1-sol
 ---
 
 # Career Agent
