@@ -269,7 +269,7 @@ def app_create(net, home_vol, cfg_vol, extra_env=None):
             "-v", cfg_vol + ":/home/opencode/.config/opencode", "-v", TESTDIR + ":/probe:ro",
             "-e", "HOME=/home/opencode", "-e", "XDG_CONFIG_HOME=/home/opencode/.config", "-e", "XDG_DATA_HOME=/home/opencode/.local/share",
             "-e", "XDG_STATE_HOME=/home/opencode/.local/state", "-e", "XDG_CACHE_HOME=/home/opencode/.cache", "-e", "XDG_BIN_HOME=/home/opencode/.local/bin",
-            "-e", "CONTEXT_MODE_DIR=/home/opencode/.local/share/context-mode", "-e", "CONTEXT_MODE_REQUIRE_SECURITY=1"]
+            "-e", "CONTEXT_MODE_DIR=/home/opencode/.local/share/context-mode", "-e", "CONTEXT_MODE_DATA_DIR=/home/opencode/.local/share", "-e", "CONTEXT_MODE_REQUIRE_SECURITY=1"]
     for key, value in (extra_env or {}).items():
         args += ["-e", key + "=" + value]
     args += ["-w", DIR_A, IMAGE, "web", "--hostname", "0.0.0.0", "--port", str(APP_PORT)]

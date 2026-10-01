@@ -27,6 +27,10 @@ Python standard-library code on the hosted CI runner orchestrates Docker. Each r
 has disposable HOME and separate configuration-overlay volumes and a UUID-named
 internal Docker network. No production storage or credentials are mounted, and
 the checkout mount contains only this test directory, read-only at `/probe`.
+Both upstream storage overrides are explicit: `CONTEXT_MODE_DIR` selects the
+server content root, while `CONTEXT_MODE_DATA_DIR` selects the adapter's parent
+root. They align content and plugin-owned sessions under the same retained HOME
+without moving OpenCode's separately seeded configuration directory.
 
 The app runs as UID/GID 1000 with read-only root, all capabilities dropped,
 no-new-privileges, disabled core dumps, and a bounded writable `/tmp` tmpfs.

@@ -131,6 +131,18 @@ class FixtureTests(unittest.TestCase):
         self.assertEqual(runtime.approval_outcome(True, None, None, True, None, case),
                          (False, "absence_unverified"))
 
+    def test_both_storage_overrides_align_with_retained_home(self):
+        saved = list(runtime.CREATED["containers"])
+        try:
+            with patch.object(runtime, "dock", return_value=b"synthetic-container") as dock:
+                runtime.app_create("synthetic-network", "synthetic-home", "synthetic-config")
+                args = dock.call_args.args[0]
+            self.assertIn("CONTEXT_MODE_DIR=/home/opencode/.local/share/context-mode", args)
+            self.assertIn("CONTEXT_MODE_DATA_DIR=/home/opencode/.local/share", args)
+            self.assertIn("synthetic-config:/home/opencode/.config/opencode", args)
+        finally:
+            runtime.CREATED["containers"][:] = saved
+
 
 if __name__ == "__main__":
     unittest.main()
