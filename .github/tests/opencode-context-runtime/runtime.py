@@ -13,6 +13,10 @@ TARBALL_URL = "https://registry.npmjs.org/context-mode/-/context-mode-1.0.169.tg
 TARBALL_SHA512_B64 = "94JIaFuLjF9SO2BsGTrbGtyT44K95+9OC8BdbaL/UT76xOkanJLfUR5CzmNw+GELXZQqH4nBrKg9wjBnSFkVnQ=="
 SELECTED_MEMBERS = ["package.json", "build/adapters/opencode/plugin.js", "build/db-base.js", "build/server.js", "hooks/security.bundle.mjs"]
 MARKER = "quartzanchor9f31"
+INDEX_SOURCE = "fixture-a"
+DENY_SOURCE = "fixture-native-deny"
+ASK_SOURCE = "fixture-native-ask"
+BROKEN_SOURCE = "fixture-broken-security"
 DIR_A = "/home/opencode/projects/a"
 DIR_B = "/home/opencode/projects/b"
 CACHE_ROOT = "/home/opencode/.cache/opencode"
@@ -80,15 +84,15 @@ SIM_AUX = [0]
 def register_plan(case, tool, args):
     with SIM_LOCK:
         SIM_PLANS[case] = {"tool": tool, "args": args, "stage": 0}
-        SIM_CASE_OBS[case] = {"offered": set(), "marker_first": None}
+        SIM_CASE_OBS[case] = {"offered": set(), "marker_first": None, "emitted": None}
         CASE_INPUTS[case] = args
 
 def case_obs(case):
     with SIM_LOCK:
         obs = SIM_CASE_OBS.get(case)
         if obs is None:
-            return {"offered": set(), "marker_first": None}
-        return {"offered": set(obs["offered"]), "marker_first": obs["marker_first"]}
+            return {"offered": set(), "marker_first": None, "emitted": None}
+        return {"offered": set(obs["offered"]), "marker_first": obs["marker_first"], "emitted": obs["emitted"]}
 
 def chunk(delta, finish_reason=None):
     return {"id": "chatcmpl-ci", "object": "chat.completion.chunk", "created": 0, "model": "probe", "choices": [{"index": 0, "delta": delta, "finish_reason": finish_reason}]}
@@ -168,6 +172,7 @@ class SimHandler(BaseHTTPRequestHandler):
                     if plan["tool"] is None:
                         events = [chunk({"role": "assistant", "content": "DONE"}), chunk({}, "stop")]
                     else:
+                        obs["emitted"] = plan["tool"]
                         call = {"index": 0, "id": "call_" + case, "type": "function", "function": {"name": plan["tool"], "arguments": json.dumps(plan["args"])}}
                         events = [chunk({"role": "assistant", "tool_calls": [call]}), chunk({}, "tool_calls")]
                 else:
@@ -313,7 +318,7 @@ def fetch_messages(app, directory, session_id):
         body = body.get("messages") or ([body] if body.get("parts") else [])
     return body if isinstance(body, list) else []
 
-def find_tool_part(messages_list, name, case):
+def find_tool_part(messages_list, name, case, allow_invalid=False):
     for message in messages_list:
         if not isinstance(message, dict):
             continue
@@ -321,17 +326,17 @@ def find_tool_part(messages_list, name, case):
             if not isinstance(part, dict) or part.get("type") != "tool":
                 continue
             tool_id = str(part.get("tool") or "")
-            if part.get("callID") == "call_" + case and tool_id == name:
+            if part.get("callID") == "call_" + case and (tool_id == name or (allow_invalid and tool_id == "invalid")):
                 state = part.get("state") or {}
                 if state.get("status") in ("completed", "error"):
                     return part
     return None
 
-def wait_tool(app, directory, session_id, name, case, timeout_s=90):
+def wait_tool(app, directory, session_id, name, case, timeout_s=90, allow_invalid=False):
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         budget()
-        part = find_tool_part(fetch_messages(app, directory, session_id), name, case)
+        part = find_tool_part(fetch_messages(app, directory, session_id), name, case, allow_invalid)
         if part:
             return part
         time.sleep(1)
@@ -366,6 +371,16 @@ def await_idle(app, directory, session_id):
 
 def expected_input(part, case):
     return isinstance(part, dict) and (part.get("state") or {}).get("input") == CASE_INPUTS[case]
+
+def hidden_tool_rejected(part, case, name, observed):
+    if not isinstance(part, dict) or part.get("callID") != "call_" + case or part.get("tool") != "invalid":
+        return False
+    if observed["emitted"] != name or name in observed["offered"] or status_of(part) not in ("completed", "error"):
+        return False
+    args = (part.get("state") or {}).get("input")
+    if not isinstance(args, dict) or args.get("tool") != name or not isinstance(args.get("error"), str):
+        return False
+    return any(phrase in args["error"].lower() for phrase in ("unavailable tool", "unknown tool", "no such tool", "not available", "not found", "not allowed"))
 
 def context_db_locations(cid, kind, directory):
     name = hashlib.sha256(directory.encode()).hexdigest()[:16] + ".db"
@@ -426,7 +441,23 @@ def indexed_marker_present(cid, marker):
         return None
 
 def recall_hit(part):
-    return status_of(part) == "completed" and MARKER in tool_text(part) and "fixture-a" in tool_text(part)
+    return status_of(part) == "completed" and MARKER in tool_text(part) and INDEX_SOURCE in tool_text(part)
+
+def read_content_presence(db, label, marker):
+    row = db.execute("""SELECT
+        EXISTS(SELECT 1 FROM sources WHERE label = :label),
+        EXISTS(SELECT 1 FROM chunks c JOIN sources s ON s.id = c.source_id
+               WHERE s.label = :label AND instr(c.content, :marker) > 0),
+        EXISTS(SELECT 1 FROM chunks_trigram c JOIN sources s ON s.id = c.source_id
+               WHERE s.label = :label AND instr(c.content, :marker) > 0)
+        """, {"label": label, "marker": marker}).fetchone()
+    return dict(zip(("source_present", "porter_marker", "trigram_marker"), map(bool, row)))
+
+def observe_content_presence(cid):
+    try:
+        return inspect_synthetic_db(cid, "content", DIR_A, lambda db: read_content_presence(db, INDEX_SOURCE, MARKER))
+    except (CiError, sqlite3.Error, tarfile.TarError, OSError):
+        return None
 
 def failure_markers(cid):
     try:
@@ -602,7 +633,7 @@ def run_cold_cases(app, home, cid, expected):
     CURRENT[0] = "host_ctx_index"
     session2 = new_session(app, DIR_A, "ci-case-2")
     case2 = uuid.uuid4().hex
-    register_plan(case2, "ctx_index", {"content": "# Synthetic\n" + MARKER + " retained proof", "source": "fixture-a"})
+    register_plan(case2, "ctx_index", {"content": "# Synthetic\n" + MARKER + " retained proof", "source": INDEX_SOURCE})
     dispatch(app, DIR_A, session2, case2, "probe")
     part2 = wait_tool(app, DIR_A, session2, "ctx_index", case2)
     await_idle(app, DIR_A, session2)
@@ -628,23 +659,29 @@ def run_cold_cases(app, home, cid, expected):
     CURRENT[0] = "restricted_deny"
     session5 = new_session(app, DIR_A, "ci-case-5")
     case5 = uuid.uuid4().hex
-    register_plan(case5, "ctx_index", {"content": "forbidden-marker-5-" + case5[:8], "source": "fixture-a"})
+    register_plan(case5, "ctx_index", {"content": "forbidden-marker-5-" + case5[:8], "source": DENY_SOURCE})
     dispatch(app, DIR_A, session5, case5, "restricted")
-    part5 = wait_tool(app, DIR_A, session5, "ctx_index", case5, 60)
+    part5 = wait_tool(app, DIR_A, session5, "ctx_index", case5, 60, allow_invalid=True)
+    abort_session(app, DIR_A, session5)
+    observed5 = case_obs(case5)
     OBSERVATIONS["restricted_advertised"] = "ctx_index" in case_obs(case5)["offered"]
-    if part5 and status_of(part5) == "completed":
+    OBSERVATIONS["restricted_route"] = "invalid_repair" if part5 and part5.get("tool") == "invalid" else "target" if part5 else "none"
+    OBSERVATIONS["restricted_terminal"] = status_of(part5) or None
+    if part5 and part5.get("tool") == "ctx_index" and status_of(part5) == "completed":
         finish("restricted_deny", False, "observed_bypass_completed")
     elif RESULTS["registry_tools_and_package"]["status"] != "PASS":
         finish("restricted_deny", False, "blocked_by_artifact_check")
     elif RESULTS["host_ctx_index"]["status"] == "PASS" and expected_input(part5, case5) and status_of(part5) == "error" and any(p in tool_text(part5).lower() for p in ("denied", "permission", "not allowed")) and indexed_marker_present(cid, CASE_INPUTS[case5]["content"]) is False:
         finish("restricted_deny", True, "denied_error_observed")
+    elif RESULTS["host_ctx_index"]["status"] == "PASS" and hidden_tool_rejected(part5, case5, "ctx_index", observed5) and indexed_marker_present(cid, CASE_INPUTS[case5]["content"]) is False:
+        finish("restricted_deny", True, "hidden_tool_rejected_without_side_effect")
     else:
         finish("restricted_deny", False, "no_terminal_evidence")
     budget()
     CURRENT[0] = "ask_permission_gate"
     session6 = new_session(app, DIR_A, "ci-case-6")
     case6 = uuid.uuid4().hex
-    register_plan(case6, "ctx_index", {"content": "ask-gate-proof", "source": "fixture-a"})
+    register_plan(case6, "ctx_index", {"content": "ask-gate-proof", "source": ASK_SOURCE})
     dispatch(app, DIR_A, session6, case6, "ask")
     pending = False
     bypass = False
@@ -695,7 +732,7 @@ def run_cold_cases(app, home, cid, expected):
     dispatch(app, DIR_B, session8, case8, "probe")
     part8 = wait_tool(app, DIR_B, session8, "ctx_search", case8)
     if expected_input(part8, case8) and status_of(part8) == "completed":
-        leak = "fixture-a" in tool_text(part8)
+        leak = INDEX_SOURCE in tool_text(part8)
         finish("project_isolation", not leak, "cross_project_leak" if leak else "no_cross_project_hit")
     else:
         finish("project_isolation", False, status_detail(part8))
@@ -703,9 +740,11 @@ def run_cold_cases(app, home, cid, expected):
         resume_case(app, cid)
     except (CiError, sqlite3.Error, tarfile.TarError, OSError) as error:
         finish("resume_isolation_gate", False, "setup_" + (error.scope if isinstance(error, CiError) else type(error).__name__))
+    OBSERVATIONS["cold_positive_content"] = observe_content_presence(cid)
     return session2
 
-def run_warm_cases(app, retained_session):
+def run_warm_cases(app, retained_session, cid):
+    OBSERVATIONS["warm_positive_content_before_search"] = observe_content_presence(cid)
     case_a = uuid.uuid4().hex
     session_a = retained_session
     register_plan(case_a, "ctx_search", {"queries": [MARKER], "limit": 3})
@@ -720,7 +759,7 @@ def run_warm_cases(app, retained_session):
     part_b = wait_tool(app, DIR_A, session_b, "ctx_search", case_b)
     await_idle(app, DIR_A, session_b)
     ok_other = expected_input(part_b, case_b) and status_of(part_b) == "completed"
-    shared = bool(part_b) and "fixture-a" in tool_text(part_b) and MARKER in tool_text(part_b)
+    shared = bool(part_b) and INDEX_SOURCE in tool_text(part_b) and MARKER in tool_text(part_b)
     OBSERVATIONS["content_store_shared_observed"] = shared
     injected = bool(case_obs(case_b)["marker_first"])
     finish("warm_persistence_and_sharing", ok_retained and ok_other and not injected, "retained=%s other_completed=%s shared=%s injected=%s" % (ok_retained, ok_other, shared, injected))
@@ -730,7 +769,7 @@ def run_broken_case(app):
     registry_ok = status == 200 and isinstance(ids, list) and "ctx_index" in ids
     session10 = new_session(app, DIR_A, "ci-case-10")
     case10 = uuid.uuid4().hex
-    register_plan(case10, "ctx_index", {"content": "broken-bundle-proof", "source": "fixture-a"})
+    register_plan(case10, "ctx_index", {"content": "broken-bundle-proof", "source": BROKEN_SOURCE})
     dispatch(app, DIR_A, session10, case10, "probe")
     part10 = wait_tool(app, DIR_A, session10, "ctx_index", case10)
     fail_closed = expected_input(part10, case10) and status_of(part10) == "error" and "fail-closed engaged" in tool_text(part10)
@@ -808,7 +847,7 @@ def run():
         app_warm = "http://" + assert_only_net(cid_warm, net) + ":" + str(APP_PORT)
         if not wait_ready(app_warm, 180):
             raise CiError("HTTP")
-        run_warm_cases(app_warm, retained_session)
+        run_warm_cases(app_warm, retained_session, cid_warm)
         dock(["rm", "-f", cid_warm], timeout=120)
         CREATED["containers"].remove(cid_warm)
         budget()

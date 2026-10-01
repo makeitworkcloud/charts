@@ -97,6 +97,17 @@ errors without an approval prompt. An unavailable context database is unknown,
 not proof of absent side effects; persistent/ephemeral location booleans aid
 diagnosis without changing the expected persistence contract. Resume setup
 failure remains red but does not suppress independent replacement/security cases.
+Native denial also recognizes the supported `invalid` repair route: the original
+call ID and target must match, the responder must have emitted that target, the
+target must be unadvertised, and the recorded error must indicate unavailable-tool
+rejection. A generic repair, wrong call or schema error cannot pass this gate;
+positive and approval cases never accept an `invalid` result as tool execution.
+Positive indexing and each safety-negative index call have distinct source labels.
+Context-mode replaces a source when its label is reused; an unexpected safety-test
+write must not overwrite the positive content needed by the replacement probe.
+Read-only synthetic SQLite observations before stop and before warm search report
+source and marker presence in both content tables as booleans. They characterize
+storage separately; they do not replace the required default host-search result.
 Output is a selected JSON summary of statuses, fixed error categories, timings and
 synthetic observation booleans, not raw logs, configuration, prompts or credentials.
 

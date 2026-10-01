@@ -2,6 +2,7 @@ import contextlib
 import hashlib
 import io
 import json
+import sqlite3
 import tarfile
 import unittest
 import uuid
@@ -142,6 +143,40 @@ class FixtureTests(unittest.TestCase):
             self.assertIn("synthetic-config:/home/opencode/.config/opencode", args)
         finally:
             runtime.CREATED["containers"][:] = saved
+
+    def test_hidden_invalid_repair_is_correlated_only_for_denial(self):
+        case = uuid.uuid4().hex
+        part = {"type": "tool", "tool": "invalid", "callID": "call_" + case,
+                "state": {"status": "completed", "input": {"tool": "ctx_index", "error": "Model tried to call unavailable tool ctx_index"}}}
+        messages = [{"parts": [part]}]
+        observed = {"emitted": "ctx_index", "offered": set()}
+        self.assertIsNone(runtime.find_tool_part(messages, "ctx_index", case))
+        self.assertEqual(runtime.find_tool_part(messages, "ctx_index", case, allow_invalid=True), part)
+        self.assertTrue(runtime.hidden_tool_rejected(part, case, "ctx_index", observed))
+
+    def test_invalid_repair_cannot_mask_wrong_or_available_tool(self):
+        case = uuid.uuid4().hex
+        part = {"type": "tool", "tool": "invalid", "callID": "call_" + case,
+                "state": {"status": "error", "input": {"tool": "ctx_index", "error": "unknown tool"}}}
+        self.assertFalse(runtime.hidden_tool_rejected(part, uuid.uuid4().hex, "ctx_index", {"emitted": "ctx_index", "offered": set()}))
+        self.assertFalse(runtime.hidden_tool_rejected(part, case, "ctx_index", {"emitted": "ctx_index", "offered": {"ctx_index"}}))
+        part["state"]["input"]["error"] = "invalid schema content"
+        self.assertFalse(runtime.hidden_tool_rejected(part, case, "ctx_index", {"emitted": "ctx_index", "offered": set()}))
+        part["state"]["input"] = {"tool": "other", "error": "unknown tool"}
+        self.assertFalse(runtime.hidden_tool_rejected(part, case, "ctx_index", {"emitted": "ctx_index", "offered": set()}))
+
+    def test_source_labels_and_presence_observations(self):
+        labels = (runtime.INDEX_SOURCE, runtime.DENY_SOURCE, runtime.ASK_SOURCE, runtime.BROKEN_SOURCE)
+        self.assertEqual(len(set(labels)), len(labels))
+        with sqlite3.connect(":memory:") as db:
+            db.executescript("CREATE TABLE sources(id INTEGER, label TEXT); CREATE TABLE chunks(source_id INTEGER, content TEXT); CREATE TABLE chunks_trigram(source_id INTEGER, content TEXT);")
+            db.execute("INSERT INTO sources VALUES(1, ?)", (runtime.INDEX_SOURCE,))
+            db.execute("INSERT INTO chunks VALUES(1, ?)", (runtime.MARKER,))
+            db.execute("INSERT INTO chunks_trigram VALUES(1, ?)", (runtime.MARKER,))
+            self.assertEqual(runtime.read_content_presence(db, runtime.INDEX_SOURCE, runtime.MARKER),
+                             {"source_present": True, "porter_marker": True, "trigram_marker": True})
+            self.assertEqual(runtime.read_content_presence(db, runtime.ASK_SOURCE, runtime.MARKER),
+                             {"source_present": False, "porter_marker": False, "trigram_marker": False})
 
 
 if __name__ == "__main__":
