@@ -667,6 +667,9 @@ def run_cold_cases(app, home, cid, expected):
     OBSERVATIONS["restricted_advertised"] = "ctx_index" in case_obs(case5)["offered"]
     OBSERVATIONS["restricted_route"] = "invalid_repair" if part5 and part5.get("tool") == "invalid" else "target" if part5 else "none"
     OBSERVATIONS["restricted_terminal"] = status_of(part5) or None
+    error5 = ((part5 or {}).get("state") or {}).get("error", "")
+    OBSERVATIONS["restricted_input_matched"] = expected_input(part5, case5)
+    OBSERVATIONS["restricted_error_markers"] = [word for word in ("permission", "denied", "unavailable", "unknown tool", "not found", "invalid") if word in str(error5).lower()]
     if part5 and part5.get("tool") == "ctx_index" and status_of(part5) == "completed":
         finish("restricted_deny", False, "observed_bypass_completed")
     elif RESULTS["registry_tools_and_package"]["status"] != "PASS":
@@ -733,6 +736,8 @@ def run_cold_cases(app, home, cid, expected):
     part8 = wait_tool(app, DIR_B, session8, "ctx_search", case8)
     if expected_input(part8, case8) and status_of(part8) == "completed":
         leak = INDEX_SOURCE in tool_text(part8)
+        OBSERVATIONS["project_positive_source_seen"] = leak
+        OBSERVATIONS["project_positive_content_seen"] = leak and "retained proof" in tool_text(part8)
         finish("project_isolation", not leak, "cross_project_leak" if leak else "no_cross_project_hit")
     else:
         finish("project_isolation", False, status_detail(part8))
