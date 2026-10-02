@@ -2,7 +2,7 @@ fullnameOverride: opencode
 
 image:
   repository: ghcr.io/anomalyco/opencode
-  tag: "1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
+  tag: "2.0.22@sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19"
 
 persistence:
   existingClaim: opencode-home
@@ -21,3 +21,6 @@ memoryPilot:
   enabled: false
   providerSecretName: opencode-memory-pilot-provider
   serverSecretName: opencode-memory-pilot-server-auth
+  image:
+    repository: ghcr.io/anomalyco/opencode
+    tag: "1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"

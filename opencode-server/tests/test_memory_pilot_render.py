@@ -15,7 +15,15 @@ CHART = "opencode-server"
 CHART_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 REPO_ROOT = os.path.abspath(os.path.join(CHART_DIR, ".."))
 BASELINE_SHA = "32a6b91cc3a881b861bdac087655c3935bb15454"
-PROD_IMAGE = "ghcr.io/anomalyco/opencode:1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
+PROD_IMAGE = "ghcr.io/anomalyco/opencode:2.0.22@sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19"
+# The opt-in memory pilot stays on the historical v1 image independently of
+# the production pin.
+PILOT_IMAGE = "ghcr.io/anomalyco/opencode:1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
+# Approved production runtime changes applied to the extracted historical
+# baseline before parity rendering. Each transform asserts the exact old bytes
+# occur exactly once and replaces only those bytes.
+BASELINE_IMAGE_TAG = "1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
+CURRENT_IMAGE_TAG = "2.0.22@sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19"
 EMBEDDING_MODEL = "Xenova/nomic-embed-text-v1"
 PILOT_FULLNAME = "opencode-memory-pilot"
 PILOT_CLAIM = "opencode-memory-pilot-home"
@@ -190,6 +198,29 @@ class BaselineParity(unittest.TestCase):
             with open(baseline_path, "wb") as handle:
                 handle.write(content)
 
+    def _apply_approved_production_runtime_changes(self, baseline_chart):
+        values_path = os.path.join(baseline_chart, "values.yaml")
+        with open(values_path, "rb") as handle:
+            content = handle.read()
+        old_tag = BASELINE_IMAGE_TAG.encode("utf-8")
+        new_tag = CURRENT_IMAGE_TAG.encode("utf-8")
+        self.assertEqual(content.count(old_tag), 1)
+        content = content.replace(old_tag, new_tag)
+        with open(values_path, "wb") as handle:
+            handle.write(content)
+        deployment_path = os.path.join(baseline_chart, "templates", "deployment.yaml")
+        with open(deployment_path, "rb") as handle:
+            content = handle.read()
+        for old, new in (
+            (b"args: [web, --hostname, 0.0.0.0, --port, \"4096\"]", b"args: [serve, --hostname, 0.0.0.0, --port, \"4096\"]"),
+            (b"spec:\n  replicas: 1\n  selector:\n", b"spec:\n  replicas: 1\n  strategy:\n    type: Recreate\n  selector:\n"),
+            (b"            - name: MINIMAX_API_KEY\n              valueFrom:\n                secretKeyRef: {name: {{ .Values.secrets.minimax }}, key: MINIMAX_API_KEY}\n            - name: OPENCODE_SERVER_PASSWORD\n", b"            - name: MINIMAX_API_KEY\n              valueFrom:\n                secretKeyRef: {name: {{ .Values.secrets.minimax }}, key: MINIMAX_API_KEY}\n            - name: OPENCODE_DB\n              value: opencode.db\n            - name: OPENCODE_SERVER_PASSWORD\n"),
+        ):
+            self.assertEqual(content.count(old), 1)
+            content = content.replace(old, new)
+        with open(deployment_path, "wb") as handle:
+            handle.write(content)
+
     def _extract_baseline(self, tmp):
         archive = subprocess.run(["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"], capture_output=True, cwd=REPO_ROOT)
         self.assertEqual(archive.returncode, 0, archive.stderr.decode("utf-8", "replace"))
@@ -200,6 +231,7 @@ class BaselineParity(unittest.TestCase):
         self._apply_approved_knowledge_policy(baseline_chart)
         self._apply_approved_provider_migration(baseline_chart)
         self._apply_approved_new_agent_files(baseline_chart)
+        self._apply_approved_production_runtime_changes(baseline_chart)
         return baseline_chart
 
     def _render_chart(self, chart_path):
@@ -413,6 +445,40 @@ class MechanicAgentContract(unittest.TestCase):
         )
 
 
+class ImageContract(unittest.TestCase):
+    def test_chart_metadata_matches_production_image_tag(self):
+        with open(os.path.join(CHART_DIR, "Chart.yaml"), "r", encoding="utf-8") as handle:
+            meta = yaml.safe_load(handle)
+        with open(os.path.join(CHART_DIR, "values.yaml"), "r", encoding="utf-8") as handle:
+            values = yaml.safe_load(handle)
+        prod_tag = values["image"]["tag"]
+        pilot_tag = values["memoryPilot"]["image"]["tag"]
+        self.assertEqual(meta["appVersion"], prod_tag.split("@")[0])
+        self.assertEqual(PROD_IMAGE, "%s:%s" % (values["image"]["repository"], prod_tag))
+        self.assertEqual(PILOT_IMAGE, "%s:%s" % (values["memoryPilot"]["image"]["repository"], pilot_tag))
+        self.assertNotEqual(prod_tag, pilot_tag)
+
+    def test_pilot_template_uses_only_pilot_image_values(self):
+        with open(os.path.join(CHART_DIR, "templates", "pilot-deployment.yaml"), "r", encoding="utf-8") as handle:
+            pilot_template = handle.read()
+        self.assertIn("{{ .Values.memoryPilot.image.repository }}:{{ .Values.memoryPilot.image.tag }}", pilot_template)
+        self.assertNotIn("{{ .Values.image.repository }}", pilot_template)
+
+    def test_production_render_uses_v2_image_args_strategy_and_db_env(self):
+        deployment = by_kind(render_docs([]), "Deployment")
+        self.assertEqual(deployment["spec"]["strategy"], {"type": "Recreate"})
+        item = container(deployment["spec"]["template"]["spec"], "opencode")
+        self.assertEqual(item["image"], PROD_IMAGE)
+        self.assertEqual(item["args"], ["serve", "--hostname", "0.0.0.0", "--port", "4096"])
+        self.assertEqual(env_entry(item, "OPENCODE_DB")["value"], "opencode.db")
+
+    def test_pilot_render_stays_on_v1_image_and_web_args(self):
+        docs = render_docs(PILOT_ARGS)
+        item = container(by_kind(docs, "Deployment")["spec"]["template"]["spec"], "opencode")
+        self.assertEqual(item["image"], PILOT_IMAGE)
+        self.assertEqual(item["args"], ["web", "--hostname", "0.0.0.0", "--port", "4096"])
+
+
 class DefaultRendering(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -446,12 +512,13 @@ class DefaultRendering(unittest.TestCase):
         self.assertEqual(set(data), expected_keys)
 
     def test_deployment_keeps_production_behavior(self):
-        self.assertNotIn("strategy", self.deployment["spec"])
+        self.assertEqual(self.deployment["spec"]["strategy"], {"type": "Recreate"})
         self.assertEqual(self.deployment["spec"]["replicas"], 1)
         self.assertEqual([item["name"] for item in self.spec["containers"]], ["opencode"])
         opencode = container(self.spec, "opencode")
         self.assertEqual(opencode["image"], PROD_IMAGE)
-        self.assertEqual(opencode["args"], ["web", "--hostname", "0.0.0.0", "--port", "4096"])
+        self.assertEqual(opencode["args"], ["serve", "--hostname", "0.0.0.0", "--port", "4096"])
+        self.assertEqual(env_entry(opencode, "OPENCODE_DB")["value"], "opencode.db")
         zai = env_entry(opencode, "ZHIPU_API_KEY")["valueFrom"]["secretKeyRef"]
         self.assertEqual(zai, {"name": "opencode-zai", "key": "ZHIPU_API_KEY"})
         mounts = {entry["name"]: entry["mountPath"] for entry in opencode["volumeMounts"]}
@@ -573,7 +640,7 @@ class PilotRendering(unittest.TestCase):
 
     def test_opencode_container(self):
         item = container(self.spec, "opencode")
-        self.assertEqual(item["image"], PROD_IMAGE)
+        self.assertEqual(item["image"], PILOT_IMAGE)
         self.assertNotIn("command", item)
         self.assertEqual(item["args"], ["web", "--hostname", "0.0.0.0", "--port", "4096"])
         self.assertEqual(item["startupProbe"], {"tcpSocket": {"port": "http"}, "periodSeconds": 10, "failureThreshold": 120})

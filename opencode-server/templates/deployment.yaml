@@ -10,6 +10,8 @@ metadata:
     secret.reloader.stakater.com/reload: {{ .Values.secrets.openaiAuth | quote }}
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: {{ include "opencode-server.fullname" . }}
@@ -96,7 +98,7 @@ spec:
       containers:
         - name: opencode
           image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
-          args: [web, --hostname, 0.0.0.0, --port, "4096"]
+          args: [serve, --hostname, 0.0.0.0, --port, "4096"]
           env:
             - name: HOME
               value: /home/opencode
@@ -106,6 +108,8 @@ spec:
             - name: MINIMAX_API_KEY
               valueFrom:
                 secretKeyRef: {name: {{ .Values.secrets.minimax }}, key: MINIMAX_API_KEY}
+            - name: OPENCODE_DB
+              value: opencode.db
             - name: OPENCODE_SERVER_PASSWORD
               valueFrom:
                 secretKeyRef: {name: {{ .Values.secrets.serverAuth }}, key: password}

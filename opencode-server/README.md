@@ -200,6 +200,83 @@ The chart mounts the cluster-owned artifact PVC only into the OpenCode container
 
 Configuration is loaded when OpenCode starts. A reconciled chart update replaces the pod through the ConfigMap checksum annotation; it is not hot-reloaded into an existing process.
 
+## OpenCode v2 migration
+
+Chart 0.5.0 moves production from OpenCode `1.18.29` to `2.0.22`. This is a
+major upstream upgrade with deliberate production downtime: the Deployment
+becomes single-replica `Recreate`, so the cutover is a full stop, and
+owner-approved session preservation and outage acceptance are prerequisites.
+Production serves with `opencode serve --hostname 0.0.0.0 --port 4096` (the
+upstream v2 replacement for `web`), sets `OPENCODE_DB=opencode.db` explicitly
+matching the existing home-relative database path, and relies on upstream
+`OPENCODE_PASSWORD` falling back to the existing `OPENCODE_SERVER_PASSWORD`
+environment variable ([`env.ts`](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/cli/src/env.ts));
+the server process suppresses its generated-password print when the variable
+is set ([`server-process.ts`](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/cli/src/server-process.ts)).
+The v1-to-v2 storage migration is upstream's
+[`v1-migration.bun.ts`](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/core/src/database/v1-migration.bun.ts).
+No runtime or image is introduced beyond the stock upstream image. The v1
+configuration format remains supported by v2 and is kept as-is; native v2
+configuration conversion is optional and deferred to a separate change.
+
+### Owner decision for this cutover (2026-10-02)
+
+For this 0.5.0 cutover the owner explicitly approved the rollout and waived
+the pre-merge database backup and isolated restore verification gates ("No
+backup necessary; go forth", confirmed "understood and waived"). There is no
+verified recovery guarantee for this release: the v1-to-v2 session migration
+may fail irreversibly, and an image downgrade against a v2-mutated database
+is not a rollback. The owner authorized the maintenance-window `Recreate`
+cutover and rollout under the current Application's automated sync —
+serialized by the single-replica `Recreate` strategy, with no manual Argo CD
+sync pause or drain step — and accepts the disclosed unknown OAuth
+seed-rotation behavior under v2 (the v2 credentials import may be one-time,
+so seed-revision replacement of `auth.json` after the v2 migration is
+unverified and is not a gate for this owner-approved release).
+
+### Publication coordination
+
+- Merging to `main` publishes the immutable OCI chart. The pre-existing draft
+  `kustomize-cluster` pull request on branch
+  `automation/opencode-server-0.5.0` must contain both the chart pin and the
+  protocol 2 (`OPENCODE_API_VERSION=2`) exporter change before this chart
+  merges, so the pin and the exporter change land together.
+- The update automation is unchanged: it finds the existing branch and its
+  draft pull request. The draft state prevents auto-merge until the published
+  artifact exists and CI is green; requesting auto-merge for a draft may fail
+  the post-publication updater job, and that does not invalidate an already
+  published chart.
+- This chart change performs no live operation; rollout sequencing is the
+  GitOps pin merge described in the delivery lifecycle.
+
+### Backup and restore recommendations
+
+The following remain recommended practice for OpenCode upgrades generally.
+For this owner-approved 0.5.0 release they are waived per the owner decision
+above and are not merge gates:
+
+- Stop the v1 writer through a separately authorized operation before any
+  backup; quiescing sessions alone does not make a live database copy
+  consistent.
+- With the writer stopped, take a consistent offline SQLite backup or a
+  storage snapshot of the OpenCode database. Copying a live `opencode.db`
+  (including its `-wal`/`-shm` companions) while a writer may still be
+  running is not a consistent backup. Exclude `auth.json` and every other
+  credential in the home directory; any backup location must be an approved
+  sensitive-data recovery location, never the artifacts PVC or the S3 user
+  file-delivery path.
+- Verify an isolated restore, the v2 migration status, and representative
+  preserved sessions. A healthy TCP probe is not migration success.
+- Never downgrade the image against a database already mutated by v2.
+  Sessions created by v2 after cutover require a separate recovery decision
+  if rollback is needed.
+
+### Post-rollout verification
+
+After a separately authorized rollout, verify provider authentication and
+inference, permission rules, and MCP connectivity in a fresh session. Static
+chart CI proves none of these.
+
 ## Memory pilot (opt-in)
 
 `memoryPilot.enabled=true` switches a release from the production rendering to
@@ -211,10 +288,18 @@ must be exactly `opencode-memory-pilot`, `persistence.existingClaim` exactly
 names exactly the pilot defaults; any other value, including the production
 names, fails rendering. The pilot runs OpenCode with only the pinned
 `opencode-mem` plugin and its local ONNX embeddings — no sidecar, no remote
-embedding endpoint, and no new images — while OpenCode serves port 4096 behind
+embedding endpoint, and no new images beyond the historical v1 image pinned
+separately through `memoryPilot.image` — while OpenCode serves port 4096 behind
 the cluster-owned Service. Local embedding runtime compatibility on the stock
 image is an unverified activation gate. The pilot mounts no production
 secrets, agents, skills, MCP configuration, or artifact PVC.
+
+Version split: the production Deployment runs the pinned OpenCode v2 image
+from `image`, while the pilot remains on the historical v1 image
+`1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8`
+pinned independently through `memoryPilot.image` and keeps its v1 `web` args.
+The production v2 pin does not alter the pilot render, and this split does
+not activate, migrate, or repair the disabled pilot experiment.
 
 The historical 0.4.0 baseline comparison permits the QA reviewer's existing
 end-of-file correction and exactly seventeen approved model-header changes: the
@@ -232,8 +317,17 @@ exactly one approved new agent file, `files/agents/mechanic.md`, absent from
 the historical baseline: the test asserts its absence in the extracted
 baseline and copies the current chart source in after the historical
 transforms. The historical counts above are unchanged; the mechanic agent did
-not exist in the historical baseline. All other agent bytes and
-production render comparisons remain enforced. These changes affect the
+not exist in the historical baseline. In addition, the comparison permits
+exactly four approved production runtime changes applied to the extracted
+baseline before rendering: the production `values.yaml` image tag asserted
+exactly once and replaced from
+`1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8`
+to `2.0.22@sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19`,
+the production Deployment container args change from `web` to `serve`, the
+added single-replica `Recreate` strategy, and the explicit
+`OPENCODE_DB=opencode.db` environment entry; the pilot image is pinned
+separately and is not part of the production baseline render. All other agent
+bytes and production render comparisons remain enforced. These changes affect the
 production ConfigMap checksum, so a normal production pod rollout on the
 chart version pin can occur even when the pilot is disabled. See
 [Memory pilot](docs/memory-pilot.md) for the baseline comparison contract.
