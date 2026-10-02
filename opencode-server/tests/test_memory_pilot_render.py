@@ -630,7 +630,7 @@ class PilotRendering(unittest.TestCase):
         self.assertEqual(security["runAsUser"], 1000)
         self.assertEqual(security["runAsGroup"], 1000)
         self.assertEqual(security["fsGroup"], 1000)
-        self.assertTrue(security["runAsNonNull"]) if False else self.assertTrue(security["runAsNonRoot"])
+        self.assertTrue(security["runAsNonRoot"])
         self.assertEqual(security["seccompProfile"], {"type": "RuntimeDefault"})
 
     def test_only_config_seeding_init_container(self):
