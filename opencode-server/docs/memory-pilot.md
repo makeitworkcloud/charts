@@ -48,7 +48,8 @@ deliberate full stop, so rotate while no synthetic run is in flight.
 
 ## Runtime shape
 
-- OpenCode `1.18.29` (digest-pinned) starts directly with
+- OpenCode `1.18.29` (digest-pinned through `memoryPilot.image`, independent
+  of the production v2 pin in `image`) starts directly with
   `opencode web --hostname 0.0.0.0 --port 4096`. A Kubernetes `startupProbe`
   on port 4096 (period 10 seconds, failure threshold 120) gives slow first
   boots a twenty-minute budget before readiness and liveness probing begin.
@@ -134,11 +135,21 @@ three exact `files/opencode.json` config-line substitutions. In addition, the
 comparison permits exactly one approved new agent file,
 `files/agents/mechanic.md`, which does not exist in the historical 0.4.0
 baseline: the test asserts its absence in the extracted baseline and copies
-the current chart source in after the historical transforms. The historical
-constants — the seventeen approved model-header changes, the eight
-knowledge-first sections, the `default` owner-context section, the
-homesteader substitutions, and the Kimi migration — are unchanged. The
-baseline
+the current chart source in after the historical transforms. The comparison
+also permits exactly four approved production runtime changes applied to the
+extracted baseline before rendering: the production `values.yaml` image tag
+asserted exactly once and replaced from
+`1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8`
+to `2.0.22@sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19`,
+the production Deployment container args change from `web` to `serve`, the
+added single-replica `Recreate` strategy, and the explicit
+`OPENCODE_DB=opencode.db` environment entry. The pilot remains on the
+historical v1 image through the separate `memoryPilot.image` values and keeps
+its v1 `web` args; the production v2 runtime changes do not alter the pilot
+render. The historical constants — the seventeen approved model-header
+changes, the eight knowledge-first sections, the `default` owner-context
+section, the homesteader substitutions, and the Kimi migration — are
+unchanged. The baseline
 `files/agents/qa-engineer.md` lacks a final newline; the render comparison
 appends exactly one. The nine primary files (`career.md`, `default.md`,
 `grillmaster.md`, `homerepair.md`, `homesteader.md`, `lawnmowerman.md`,
