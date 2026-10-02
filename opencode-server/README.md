@@ -210,40 +210,57 @@ Production serves with `opencode serve --hostname 0.0.0.0 --port 4096` (the
 upstream v2 replacement for `web`), sets `OPENCODE_DB=opencode.db` explicitly
 matching the existing home-relative database path, and relies on upstream
 `OPENCODE_PASSWORD` falling back to the existing `OPENCODE_SERVER_PASSWORD`
-environment variable; the server process suppresses its generated-password
-print when the variable is set. No runtime or image is introduced beyond the
-stock upstream image. The v1 configuration format remains supported by v2
-and is kept as-is; native v2 configuration conversion is optional and
-deferred to a separate change.
+environment variable ([`env.ts`](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/cli/src/env.ts));
+the server process suppresses its generated-password print when the variable
+is set ([`server-process.ts`](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/cli/src/server-process.ts)).
+The v1-to-v2 storage migration is upstream's
+[`v1-migration.bun.ts`](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/core/src/database/v1-migration.bun.ts).
+No runtime or image is introduced beyond the stock upstream image. The v1
+configuration format remains supported by v2 and is kept as-is; native v2
+configuration conversion is optional and deferred to a separate change.
 
 ### Hold gates before merge
 
 - A human HOLD gate applies before this chart merges: merging to `main`
-  publishes the immutable OCI chart and automation then opens an
-  auto-merging `kustomize-cluster` pin pull request, so merge timing is the
-  deployment decision.
+  publishes the immutable OCI chart and automation then opens a
+  `kustomize-cluster` pin pull request. That automation is unchanged, but
+  its downstream auto-merge must be explicitly held until the coordinated
+  exporter `OPENCODE_API_VERSION2` selector is ready, and the exporter
+  change must land together with the pin.
+- The database backup and isolated restore verification below are required
+  before this chart merges, not after.
 - Coordinate the cutover with the separately owned metrics API migration so
   the two changes do not land unsequenced.
-- Quiesce the v1 server (no active sessions or in-flight work) before the
-  pin merge.
 - A separately authorized reconciler hold (Argo CD sync pause) gates the
   actual rollout; this chart change performs no live operation.
 
 ### Backup and restore discipline
 
-- Take a consistent backup of the OpenCode database before cutover,
-  including the WAL state needed for consistency (`opencode.db` plus its
-  `-wal`/`-shm` companions when present), and exclude `auth.json` and every
-  other credential in the home directory.
-- Store the backup only in the approved sensitive-data location — never on
-  the artifacts PVC or through the S3 user file-delivery path.
+- Stop the v1 writer through a separately authorized operation before any
+  backup; quiescing sessions alone does not make a live database copy
+  consistent.
+- With the writer stopped, take a consistent offline SQLite backup or a
+  storage snapshot of the OpenCode database. Copying a live `opencode.db`
+  (including its `-wal`/`-shm` companions) while a writer may still be
+  running is not a consistent backup. Exclude `auth.json` and every other
+  credential in the home directory.
+- No backup location is approved yet: the owner must select the
+  sensitive-data recovery location. It is never the artifacts PVC or the S3
+  user file-delivery path.
 - Verify an isolated restore, the v2 migration status, and representative
-  preserved sessions before approving rollout. A healthy TCP probe is not
+  preserved sessions before merge approval. A healthy TCP probe is not
   migration success.
 - Never downgrade the image against a database already mutated by v2.
   Sessions created by v2 after cutover require a separate recovery decision
   if rollback is needed; the pre-cutover backup covers only pre-cutover
   state.
+
+### Credential compatibility gate
+
+- OAuth seed-rotation compatibility is a gate before rollout: the v2
+  credentials import may be one-time, so do not assume that replacing
+  `auth.json` through the seed-revision flow works after the v2 migration.
+  Verify the behavior before the separately authorized rollout.
 
 ### Post-rollout verification
 

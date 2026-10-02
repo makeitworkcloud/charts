@@ -21,8 +21,6 @@ memoryPilot:
   enabled: false
   providerSecretName: opencode-memory-pilot-provider
   serverSecretName: opencode-memory-pilot-server-auth
-  # The pilot stays on the historical OpenCode v1 image independently of the
-  # production v2 pin. See docs/memory-pilot.md.
   image:
     repository: ghcr.io/anomalyco/opencode
     tag: "1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8"
