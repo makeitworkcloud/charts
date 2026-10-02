@@ -225,7 +225,7 @@ configuration conversion is optional and deferred to a separate change.
   publishes the immutable OCI chart and automation then opens a
   `kustomize-cluster` pin pull request. That automation is unchanged, but
   its downstream auto-merge must be explicitly held until the coordinated
-  exporter `OPENCODE_API_VERSION2` selector is ready, and the exporter
+  exporter `OPENCODE_API_VERSION=2` selector is ready, and the exporter
   change must land together with the pin.
 - The database backup and isolated restore verification below are required
   before this chart merges, not after.
