@@ -219,22 +219,40 @@ No runtime or image is introduced beyond the stock upstream image. The v1
 configuration format remains supported by v2 and is kept as-is; native v2
 configuration conversion is optional and deferred to a separate change.
 
-### Hold gates before merge
+### Owner decision for this cutover (2026-10-02)
 
-- A human HOLD gate applies before this chart merges: merging to `main`
-  publishes the immutable OCI chart and automation then opens a
-  `kustomize-cluster` pin pull request. That automation is unchanged, but
-  its downstream auto-merge must be explicitly held until the coordinated
-  exporter `OPENCODE_API_VERSION=2` selector is ready, and the exporter
-  change must land together with the pin.
-- The database backup and isolated restore verification below are required
-  before this chart merges, not after.
-- Coordinate the cutover with the separately owned metrics API migration so
-  the two changes do not land unsequenced.
-- A separately authorized reconciler hold (Argo CD sync pause) gates the
-  actual rollout; this chart change performs no live operation.
+For this 0.5.0 cutover the owner explicitly approved the rollout and waived
+the pre-merge database backup and isolated restore verification gates ("No
+backup necessary; go forth", confirmed "understood and waived"). There is no
+verified recovery guarantee for this release: the v1-to-v2 session migration
+may fail irreversibly, and an image downgrade against a v2-mutated database
+is not a rollback. The owner authorized the maintenance-window `Recreate`
+cutover and rollout under the current Application's automated sync —
+serialized by the single-replica `Recreate` strategy, with no manual Argo CD
+sync pause or drain step — and accepts the disclosed unknown OAuth
+seed-rotation behavior under v2 (the v2 credentials import may be one-time,
+so seed-revision replacement of `auth.json` after the v2 migration is
+unverified and is not a gate for this owner-approved release).
 
-### Backup and restore discipline
+### Publication coordination
+
+- Merging to `main` publishes the immutable OCI chart. The pre-existing draft
+  `kustomize-cluster` pull request on branch
+  `automation/opencode-server-0.5.0` must contain both the chart pin and the
+  protocol 2 (`OPENCODE_API_VERSION=2`) exporter change before this chart
+  merges, so the pin and the exporter change land together.
+- The update automation is unchanged: it finds the existing branch and its
+  draft pull request. The draft state prevents auto-merge until the published
+  artifact exists and CI is green; enabling auto-merge against the draft
+  fails package publish verification until then.
+- This chart change performs no live operation; rollout sequencing is the
+  GitOps pin merge described in the delivery lifecycle.
+
+### Backup and restore recommendations
+
+The following remain recommended practice for OpenCode upgrades generally.
+For this owner-approved 0.5.0 release they are waived per the owner decision
+above and are not merge gates:
 
 - Stop the v1 writer through a separately authorized operation before any
   backup; quiescing sessions alone does not make a live database copy
@@ -243,24 +261,14 @@ configuration conversion is optional and deferred to a separate change.
   storage snapshot of the OpenCode database. Copying a live `opencode.db`
   (including its `-wal`/`-shm` companions) while a writer may still be
   running is not a consistent backup. Exclude `auth.json` and every other
-  credential in the home directory.
-- No backup location is approved yet: the owner must select the
-  sensitive-data recovery location. It is never the artifacts PVC or the S3
-  user file-delivery path.
+  credential in the home directory; any backup location must be an approved
+  sensitive-data recovery location, never the artifacts PVC or the S3 user
+  file-delivery path.
 - Verify an isolated restore, the v2 migration status, and representative
-  preserved sessions before merge approval. A healthy TCP probe is not
-  migration success.
+  preserved sessions. A healthy TCP probe is not migration success.
 - Never downgrade the image against a database already mutated by v2.
   Sessions created by v2 after cutover require a separate recovery decision
-  if rollback is needed; the pre-cutover backup covers only pre-cutover
-  state.
-
-### Credential compatibility gate
-
-- OAuth seed-rotation compatibility is a gate before rollout: the v2
-  credentials import may be one-time, so do not assume that replacing
-  `auth.json` through the seed-revision flow works after the v2 migration.
-  Verify the behavior before the separately authorized rollout.
+  if rollback is needed.
 
 ### Post-rollout verification
 
