@@ -243,8 +243,9 @@ unverified and is not a gate for this owner-approved release).
   merges, so the pin and the exporter change land together.
 - The update automation is unchanged: it finds the existing branch and its
   draft pull request. The draft state prevents auto-merge until the published
-  artifact exists and CI is green; enabling auto-merge against the draft
-  fails package publish verification until then.
+  artifact exists and CI is green; requesting auto-merge for a draft may fail
+  the post-publication updater job, and that does not invalidate an already
+  published chart.
 - This chart change performs no live operation; rollout sequencing is the
   GitOps pin merge described in the delivery lifecycle.
 
