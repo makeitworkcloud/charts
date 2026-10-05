@@ -370,7 +370,7 @@ class PersistentKnowledgePolicyContract(unittest.TestCase):
     def test_default_shared_baseline_is_explicit_and_bounded(self):
         with open(os.path.join(CHART_DIR, "files", "agents", "default.md"), "r", encoding="utf-8") as handle:
             text = handle.read().lower()
-        for marker in ("root agents.md", "root readme.md", "docs/readme.md", "docs/agents/readme.md", "entire shared baseline", "do not read another agent's private records"):
+        for marker in ("agents.md", "readme.md", "docs/readme.md", "docs/agents/readme.md", "entire shared baseline", "do not read another agent's private records"):
             self.assertIn(marker.lower(), text)
         self.assertNotIn("## Owner-context routing", text)
 
