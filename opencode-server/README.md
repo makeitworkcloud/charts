@@ -17,7 +17,7 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 - `files/agents/*.md` — owner-specific primary agents, the generic `terra` execution subagent, model-backed subagents for delegated passes, and specialized read-only SDLC subagents (adversarial code review, cloud architecture design review, DevOps integration and delivery review, QA coverage and documentation adequacy, release readiness, infrastructure security, documentation drafting)
 - `files/skills/*/SKILL.md` — specialized operational workflows
 
-A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design.
+A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design. Chart 0.5.3 standardizes the full cache-read procedure across all ten primaries, adds active writer-mapping bootstrap, and keeps the shared routing floor compact for subagents. Image/appVersion 2.0.22 and API version 2 remain unchanged; the consuming GitOps pin and its exact chart/API assertion must be updated separately after publication.
 
 The ten primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`,
 `grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, and `mechanic`)

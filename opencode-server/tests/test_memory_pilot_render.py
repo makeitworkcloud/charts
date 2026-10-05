@@ -3,6 +3,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import tarfile
@@ -156,6 +157,19 @@ class BaselineParity(unittest.TestCase):
                 content = handle.read()
             with open(target, "wb") as handle:
                 handle.write(content)
+
+        floor_path = os.path.join(baseline_chart, "files", "AGENTS.md")
+        with open(floor_path, "rb") as handle:
+            old_floor = handle.read()
+        with open(os.path.join(CHART_DIR, "files", "AGENTS.md"), "rb") as handle:
+            new_floor = handle.read()
+        old_marker = b"## Common repository routing\n"
+        new_marker = b"## Subagent repository routing\n"
+        self.assertEqual(old_floor.count(old_marker), 1)
+        self.assertEqual(new_floor.count(new_marker), 1)
+        self.assertEqual(old_floor.split(old_marker, 1)[0], new_floor.split(new_marker, 1)[0])
+        with open(floor_path, "wb") as handle:
+            handle.write(new_floor)
 
     def _apply_approved_provider_migration(self, baseline_chart):
         agents_dir = os.path.join(baseline_chart, "files", "agents")
@@ -349,7 +363,7 @@ class PersistentKnowledgePolicyContract(unittest.TestCase):
             protocols.append(block)
             for marker in ("unconditional part of every session", "Before the first substantive task in a new session", "Before planning, external research, advice, diagnosis or edits for each new substantive task or subject", "all five curation gates", "Do not create one document or dated entry per task", "Read permission does not confer write authority", "Never retrieve or store secrets"):
                 self.assertIn(marker.lower(), block.lower(), (name, marker))
-            scope = text.split("## Knowledge scope\n", 1)[1].split("\n\n## Primary operating rules", 1)[0]
+            scope = text.split("## Knowledge scope\n", 1)[1].split("\n\n## Repository source retrieval", 1)[0].split("\n\n## Cache root aliases", 1)[0]
             if name == "default.md":
                 for marker in ("AGENTS.md", "README.md", "docs/README.md", "docs/agents/README.md", "no autonomous write scope", "no other agent's private records"):
                     self.assertIn(marker.lower(), scope.lower(), (name, marker))
@@ -358,6 +372,26 @@ class PersistentKnowledgePolicyContract(unittest.TestCase):
                     self.assertIn(marker.lower(), scope.lower(), (name, marker))
         self.assertEqual(len(protocols), 10)
         self.assertEqual(len(set(protocols)), 1, "common runtime protocol must be byte-identical")
+
+    def test_primary_retrieval_is_identical_and_bootstrap_is_not_worker_duty(self):
+        blocks = []
+        for name in sorted(PRIMARY_RUNTIME_POLICY_FILES):
+            with open(os.path.join(CHART_DIR, "files", "agents", name), "r", encoding="utf-8") as handle:
+                text = handle.read()
+            marker = "## Repository source retrieval\n\n"
+            self.assertEqual(text.count(marker), 1, name)
+            block = text.split(marker, 1)[1].split("\n\n## Primary operating rules", 1)[0]
+            blocks.append(block)
+            for phrase in ("actively bootstrap", "reader manifest", "shared PVC", "not a standing reason", "resume codebase-memory", "Reuse unchanged mapping", "source_clipped", "verified snapshot"):
+                self.assertIn(phrase, block, (name, phrase))
+        self.assertEqual(len(set(blocks)), 1)
+        with open(os.path.join(CHART_DIR, "files", "AGENTS.md"), "r", encoding="utf-8") as handle:
+            floor = handle.read()
+        self.assertIn("## Subagent repository routing", floor)
+        self.assertIn("report it to the parent", floor)
+        self.assertIn("or bootstrap writer mappings", floor)
+        self.assertNotIn("actively bootstrap", floor)
+        self.assertLess(len(floor.split("## Subagent repository routing", 1)[1].split()), 400)
 
     def test_primary_operating_rules_and_role_contracts_match_pinned_base(self):
         marker = b"## Primary operating rules\n"
@@ -370,7 +404,20 @@ class PersistentKnowledgePolicyContract(unittest.TestCase):
             baseline = result.stdout
             self.assertEqual(current.count(marker), 1, name)
             self.assertEqual(baseline.count(marker), 1, name)
-            self.assertEqual(current[current.index(marker):], baseline[baseline.index(marker):], name)
+            expected = baseline[baseline.index(marker):]
+            prefixes = (
+                b"- Before the first GitHub search or write",
+                b"- For repository discovery and content exploration",
+                b"- Documentation sources and knowledge bases require",
+                b"- Trust cache provenance only through the verified writer mapping",
+                b"- For cached source reads",
+                b"- On fallback, log the specific failed check",
+            )
+            for prefix in prefixes:
+                pattern = rb"(?m)^" + re.escape(prefix) + rb"[^\n]*(?:\n  [^\n]*)*\n?"
+                expected, count = re.subn(pattern, b"", expected)
+                self.assertEqual(count, 1, (name, prefix))
+            self.assertEqual(current[current.index(marker):], expected, name)
 
     def test_role_specific_prerequisites_are_preserved(self):
         markers = {

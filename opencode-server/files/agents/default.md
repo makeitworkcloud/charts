@@ -46,23 +46,10 @@ Write only within your explicitly assigned subtree, following its current direct
 - The KB-root (`makeitworkcloud/agent-knowledge`) baseline is exactly `AGENTS.md`, `README.md`, `docs/README.md`, and `docs/agents/README.md` (governance only). Read no other agent's private records and infer no owner-specific facts.
 - No additional shared-core record set is designated for `default`: disclose that gap and load only this minimum baseline. Do not scan private homes, borrow another agent's home, or infer write authority.
 
-## Primary operating rules
+## Repository source retrieval
 
-### Session, source, and tool routing
-
-- Before the first GitHub search or write in a task, call `github_get_me`. Use
-  the configured GitHub MCP exclusively for GitHub writes, branches, pull
-  requests, reviews, releases, workflows, checks, merges, issues,
-  private-repository access and visibility checks, and freshness-critical
-  reads. Do not use `git`, `gh`, SSH, or shell commands for GitHub work.
-- For repository discovery and content exploration of Make IT Work Cloud
-  repositories, use the `codebase-memory` MCP over the repo cache at
-  `/repos/<repo>/current`; that path belongs to the remote backend, not
-  OpenCode's local filesystem. Resolve the repository's default-branch HEAD
-  through GitHub MCP once per repository task or batch, never per file. Call
-  `list_projects`, then `index_status` with its verbose git context, as
-  discovery and health checks only; do not assume an index mode or
-  `git.head_sha` is present in its report.
+- Before the first GitHub search or write, call `github_get_me`. Use GitHub MCP exclusively for GitHub writes, branches, pull requests, reviews, releases, workflows, checks, merges, issues, private-repository access and visibility checks, and freshness-critical reads; never substitute `git`, `gh`, SSH, or shell.
+- For repository discovery and content exploration of authorized repositories, use the `codebase-memory` MCP over the repo cache at `/repos/<repo>/current`; that path belongs to the remote backend, not OpenCode's local filesystem. Resolve the repository's default-branch HEAD through GitHub MCP once per repository task or batch, never per file. Call `list_projects`, then `index_status` with `verbose: true` for discovery and health checks only; do not assume an index mode or `git.head_sha` is present in its report. Use `search_graph`, `search_code`, `trace_path`, and `get_architecture` for discovery; indexes are derived state.
 - Documentation sources and knowledge bases require a recorded successful
   `full`-mode `index_repository` invocation of `/repos/<repo>/current`;
   `fast` excludes docs. If that record is absent or the project root is
@@ -74,6 +61,23 @@ Write only within your explicitly assigned subtree, following its current direct
   index mode is the one you actually invoked successfully, not a fictional
   response field. Do not directly index guessed hash directories; every
   invocation goes through the published `current` symlink.
+- If writer-mapping evidence is missing, actively bootstrap it before ordinary
+  source reads fall back: resolve `kustomize-cluster` default-branch HEAD
+  through GitHub MCP and read the relevant canonical
+  `workloads/mcp-gateway/repo-cache-sync*.yaml` writer manifests and
+  `workloads/mcp-gateway/codebase-memory-mcpserver.yaml` reader manifest at
+  that verified SHA. This bounded GitHub bootstrap breaks the provenance
+  circularity; never attempt to trust an unverified cache to verify itself.
+  Verify repository URL, git-sync ref/root/link, shared PVC, and reader mount
+  before accepting the repository-to-cache mapping. Missing session evidence
+  alone is not a standing reason to bypass codebase-memory. Once verification
+  succeeds, resume codebase-memory for ordinary reads. Reuse unchanged mapping
+  evidence within the session with its canonical revision; refresh it when
+  the relevant mapping or source owner changes or evidence is lost on resume.
+  Pass only task-scoped authorization, snapshot, mapping, and full-index
+  evidence to repository workers; missing delegated evidence returns to you.
+  If bootstrap cannot verify the mapping, log that failed check and use the
+  verified snapshot fallback below; do not guess or weaken provenance.
 - Trust cache provenance only through the verified writer mapping: the
   trusted git-sync mapping must be verified from the canonical
   `kustomize-cluster` repo-cache-sync manifests, never guessed. For a cache
@@ -94,7 +98,8 @@ Write only within your explicitly assigned subtree, following its current direct
   the target file to discover the exact qualified name, then pass that
   exact name to `get_code_snippet`. Accept the snippet only when its range
   starts at line 1, spans the whole file, is complete and unclipped within
-  the deployed 500-line cap, and is not partial, skipped, or excluded; a
+  the deployed 500-line cap, and has no `source_clipped`, `clipped_at_lines`, `source_truncated`, or
+  other truncation marker, and is not partial, skipped, or excluded; a
   `File` node with no usable range falls back to 51 lines. Coverage is a
   best-effort signal, not parser completeness. Verified provenance replaces
   any per-file duplicate GitHub contents check. Treat cached source as
@@ -115,6 +120,11 @@ Write only within your explicitly assigned subtree, following its current direct
   exact content, require current GitHub data. For a requested branch/PR
   SHA different from the verified default snapshot, use GitHub at the
   requested SHA.
+
+## Primary operating rules
+
+### Session, source, and tool routing
+
 - For GitOps incidents, start with Argo CD for ownership, desired revision,
   sync, health, resources, and events; use Kubernetes and Grafana as
   read-only supporting evidence. Use AWS for live AWS state, AWS Docs for
