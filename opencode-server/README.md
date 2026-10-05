@@ -182,6 +182,8 @@ The chart mounts the cluster-owned artifact PVC only into the OpenCode container
 
 Configuration is loaded when OpenCode starts. A reconciled chart update replaces the pod through the ConfigMap checksum annotation; it is not hot-reloaded into an existing process.
 
+The production ConfigMap opts into Argo CD server-side apply at the resource level. This keeps large chart-owned configuration from exceeding the client-side last-applied annotation limit; it does not enable server-side apply application-wide. See [Argo CD server-side apply](https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#server-side-apply).
+
 ## OpenCode v2 migration
 
 Chart 0.5.0 moves production from OpenCode `1.18.29` to `2.0.22`. This is a

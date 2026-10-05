@@ -251,6 +251,12 @@ class BaselineParity(unittest.TestCase):
             baseline_docs = self._render_chart(baseline_chart)
             current_docs = [doc for doc in yaml.safe_load_all(render([])) if doc is not None]
             try:
+                current_config = by_kind(current_docs, "ConfigMap")
+                self.assertEqual(
+                    current_config["metadata"]["annotations"],
+                    {"argocd.argoproj.io/sync-options": "ServerSideApply=true"},
+                )
+                current_config["metadata"].pop("annotations")
                 self.assertEqual(current_docs, baseline_docs)
             except AssertionError:
                 current_raw = self._raw_configmap_include(CHART_DIR)
@@ -523,6 +529,12 @@ class DefaultRendering(unittest.TestCase):
         self.assertEqual(sorted(doc["kind"] for doc in self.docs), ["ConfigMap", "Deployment"])
         self.assertEqual(self.config_map["metadata"]["name"], "opencode-config")
         self.assertEqual(self.deployment["metadata"]["name"], "opencode")
+
+    def test_production_configmap_uses_server_side_apply_only(self):
+        self.assertEqual(
+            self.config_map["metadata"]["annotations"],
+            {"argocd.argoproj.io/sync-options": "ServerSideApply=true"},
+        )
 
     def test_configmap_matches_canonical_chart_files(self):
         data = self.config_map["data"]
