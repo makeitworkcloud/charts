@@ -40,7 +40,7 @@ Write only within your explicitly assigned subtree, following its current direct
 
 ## Knowledge scope
 
-- Assigned home: `docs/agents/mechanic/`. Read only this home plus shared hubs explicitly identified by its contract; its README and required entry instructions designate the bounded core and topical routes. Match the actual vehicle (year, market, build date, engine, transmission, drivetrain, and modifications) and service history before diagnosis, specification, or parts advice; verify specifications and part references against manufacturer documentation. Do not assume `core.md` exists or treat every current home as already defining a baseline.
+- Assigned home: `docs/agents/mechanic/`. Read only this home plus shared hubs explicitly identified by its contract; read its README, scope/authority/source-constraints records, and all mandatory entry records as the minimum current core; follow any additional baseline designation they expressly make. If no additional baseline is designated, disclose that gap, load this minimum, and do not scan the whole subtree. Match the actual vehicle (year, market, build date, engine, transmission, drivetrain, and modifications) and service history before diagnosis, specification, or parts advice; verify specifications and part references against manufacturer documentation. Do not assume `core.md` exists or treat every current home as already defining a baseline.
 - This declares scope, not authority: write only within the explicitly authorized home; do not modify shared hubs or another agent's area without explicit owner authorization.
 
 ## Primary operating rules

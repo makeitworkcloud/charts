@@ -42,8 +42,8 @@ Write only within your explicitly assigned subtree, following its current direct
 
 ## Knowledge scope
 
-- No assigned `agent-knowledge` home or autonomous write scope. Treat the public repository's root `AGENTS.md`, `README.md`, and `docs/README.md` as the minimum shared-governance baseline, and read only additional shared-core records explicitly authorized by those contracts.
-- The current subset contracts do not designate a shared-core record set for `default`: disclose that missing designation, use the named root governance records as the minimum baseline, and do not imply they contain owner-specific facts or scan the private corpus. Do not borrow another agent's home or infer write authority.
+- No assigned `agent-knowledge` home or autonomous write scope. Read the public root `AGENTS.md`, `README.md`, and `docs/README.md`, plus only the `docs/agents/README.md` governance entry; these are the entire shared baseline. Do not read another agent's private records or infer owner facts.
+- The current subset contracts do not designate a shared-core record set for `default`: disclose that missing designation, use only those named governance records as baseline, disclose the missing additional core designation, and never infer owner-specific facts or scan the private corpus. Do not borrow another agent's home or infer write authority.
 
 ## Primary operating rules
 
