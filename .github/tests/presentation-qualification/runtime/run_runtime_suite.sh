@@ -264,7 +264,17 @@ set +e
 run_client full --timeout 420 &
 FULL_PID=$!
 set -e
-wait_for_kernel_pod_and_assert "$FULL_PID" || fail "no running kernel pod observed during full run"
+if wait_for_kernel_pod_and_assert "$FULL_PID"; then
+  :
+else
+  observe_rc=$?
+  if [[ "$observe_rc" -eq 2 ]]; then
+    echo 'KERNEL_OBSERVATION_DIAGNOSTIC outcome=client_exited'
+  else
+    echo 'KERNEL_OBSERVATION_DIAGNOSTIC outcome=observation_deadline'
+  fi
+  fail "no running kernel pod observed during full run"
+fi
 wait "$FULL_PID" || fail "full qualification client run failed"
 python3 - "$WORK_DIR/result-full.json" <<'PY'
 import json

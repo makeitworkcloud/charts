@@ -86,6 +86,7 @@ def start_body(extra_env):
 
 def start_kernel(extra_env):
     status, model = rest("POST", "/api/kernels", start_body(extra_env))
+    print("KERNEL_START_DIAGNOSTIC http_status=%s" % (status if type(status) is int and 100 <= status <= 599 else "unknown"), flush=True)
     if status != 201:
         raise QualificationError("kernel start rejected with http %d" % status)
     kernel_id = model.get("id") if isinstance(model, dict) else None
