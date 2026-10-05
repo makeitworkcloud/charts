@@ -418,8 +418,7 @@ def app_run_args(name, home_vol, cfg_vol, seed_dir, offline):
             "--user", APP_USER, "--read-only", "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges", "--tmpfs", "/tmp",
             "--workdir", HOME_PATH]
-    if offline:
-        args += ["--network", "none"]
+    args += ["--network", "none" if offline else "bridge"]
     for key, value in APP_ENV:
         args += ["-e", f"{key}={value}"]
     args += ["-v", f"{home_vol}:{HOME_PATH}",
@@ -532,7 +531,7 @@ def main():
         res.track_container(app_names[0])
         docker.run(app_run_args(app_names[0], home_vol, cfg_vols[0], seed_dir, offline=False),
                    stage="startup")
-        verify_security(docker, app_names[0], "default")
+        verify_security(docker, app_names[0], "bridge")
         primary = app_names[0]
         bootstrap(http, primary, deadline)
 

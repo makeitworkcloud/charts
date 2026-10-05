@@ -427,18 +427,18 @@ class CleanupTests(unittest.TestCase):
 class SecurityInspectTests(unittest.TestCase):
     def script(self, cap_add):
         return [(0, "1000:1000\n"), (0, "true\n"), (0, '["ALL"]\n'),
-                (0, '["no-new-privileges"]\n'), (0, "{}\n"), (0, "default\n"),
+                (0, '["no-new-privileges"]\n'), (0, "{}\n"), (0, "bridge\n"),
                 (0, cap_add + "\n"), (0, "1000\n")]
 
     def test_ok_null_and_empty_capadd(self):
         for cap_add in ("null", "[]"):
             fake = FakeDocker(self.script(cap_add))
-            runtime.verify_security(fake.docker(), "app", "default")
+            runtime.verify_security(fake.docker(), "app", "bridge")
 
     def test_granted_capabilities_rejected(self):
         fake = FakeDocker(self.script('["NET_ADMIN"]'))
         with self.assertRaises(runtime.StageError) as ctx:
-            runtime.verify_security(fake.docker(), "app", "default")
+            runtime.verify_security(fake.docker(), "app", "bridge")
         self.assertEqual(ctx.exception.stage, "startup")
 
     def test_user_mismatch_fails_startup(self):
@@ -446,7 +446,7 @@ class SecurityInspectTests(unittest.TestCase):
         script[0] = (0, "0:0\n")
         fake = FakeDocker(script)
         with self.assertRaises(runtime.StageError) as ctx:
-            runtime.verify_security(fake.docker(), "app", "default")
+            runtime.verify_security(fake.docker(), "app", "bridge")
         self.assertEqual(ctx.exception.stage, "startup")
 
 
@@ -526,7 +526,7 @@ class ConfigTests(unittest.TestCase):
         args1 = runtime.app_run_args("app1", "home-vol", "cfg-c1", "/tmp/seed", offline=False)
         args2 = runtime.app_run_args("app2", "home-vol", "cfg-c2", "/tmp/seed", offline=True)
         self.assertEqual(args2[args2.index("--network") + 1], "none")
-        self.assertNotIn("--network", args1)
+        self.assertEqual(args1[args1.index("--network") + 1], "bridge")
         self.assertNotIn("cfg-c1", args2)
         for args in (args1, args2):
             self.assertIn("--platform", args)
