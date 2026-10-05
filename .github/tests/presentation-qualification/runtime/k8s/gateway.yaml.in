@@ -1,0 +1,87 @@
+# Security rationale (source-backed, EG 0344929cbca688440ba1bc8f5faa074fe54bd595):
+# launch_kubernetes.py's extend_pod_env runs after template rendering, overwrites
+# every templated env name found in the gateway process environment, and then
+# appends EVERY remaining gateway env var into the kernel pod. remotemanager.py
+# _launch_kernel deletes only EG_AUTH_TOKEN and KG_AUTH_TOKEN after applying user
+# overrides. The env list below is therefore the kernel-isolation boundary: it
+# must stay minimal and must never gain provider, broker, or MCP credentials.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pptx-qual-gateway
+  namespace: pptx-jobs
+  labels:
+    app: pptx-qual-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pptx-qual-gateway
+  template:
+    metadata:
+      labels:
+        app: pptx-qual-gateway
+    spec:
+      serviceAccountName: pptx-gateway
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway
+          image: __GATEWAY_IMAGE__
+          imagePullPolicy: IfNotPresent
+          command: ["/opt/venv/bin/jupyter"]
+          args:
+            - enterprisegateway
+            - --ip=0.0.0.0
+            - --port=8888
+            - --log-level=WARNING
+            - --KernelSpecManager.allowed_kernelspecs=presentation
+          env:
+            - name: EG_AUTH_TOKEN
+              value: __PQ_TOKEN__
+            - name: EG_NAMESPACE
+              value: pptx-jobs
+            - name: EG_DEFAULT_KERNEL_SERVICE_ACCOUNT_NAME
+              value: pptx-worker
+            - name: HOME
+              value: /tmp
+            - name: JUPYTER_RUNTIME_DIR
+              value: /tmp
+          ports:
+            - containerPort: 8888
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pptx-qual-gateway
+  namespace: pptx-jobs
+spec:
+  selector:
+    app: pptx-qual-gateway
+  ports:
+    - port: 8888
+      targetPort: 8888

@@ -1,0 +1,42 @@
+# Static, UNQUALIFIED example — retained for reference shape only.
+# This FIRST fixture always runs kind's default kindnet CNI, which does NOT
+# enforce NetworkPolicy. This manifest is never applied by the runtime suite
+# and no isolation is claimed from its text. A future fixture revision may pin
+# a verified CNI and promote this to an enforced, negatively probed policy;
+# until then network isolation is reported INCOMPLETE.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pptx-qual-default-deny
+  namespace: pptx-jobs
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pptx-qual-allow-within-namespace-and-dns
+  namespace: pptx-jobs
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - podSelector: {}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

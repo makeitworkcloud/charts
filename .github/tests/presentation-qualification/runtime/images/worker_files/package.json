@@ -1,0 +1,10 @@
+{
+  "name": "pptx-qualification-worker",
+  "private": true,
+  "version": "0.0.0",
+  "description": "CI-only qualification fixture; authors the proof deck inside the locked-down kernel pod",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "pptxgenjs": "4.0.1"
+  }
+}
