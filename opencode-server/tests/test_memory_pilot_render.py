@@ -15,6 +15,7 @@ CHART = "opencode-server"
 CHART_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 REPO_ROOT = os.path.abspath(os.path.join(CHART_DIR, ".."))
 BASELINE_SHA = "32a6b91cc3a881b861bdac087655c3935bb15454"
+PRIMARY_POLICY_BASELINE_SHA = "2f5d497c72763d38fe9e7cfdabab1eabec6264a9"
 PROD_IMAGE = "ghcr.io/anomalyco/opencode:2.0.22@sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19"
 # The opt-in memory pilot stays on the historical v1 image independently of
 # the production pin.
@@ -348,6 +349,19 @@ class PersistentKnowledgePolicyContract(unittest.TestCase):
                     self.assertIn(marker.lower(), scope.lower(), (name, marker))
         self.assertEqual(len(protocols), 10)
         self.assertEqual(len(set(protocols)), 1, "common runtime protocol must be byte-identical")
+
+    def test_primary_operating_rules_and_role_contracts_match_pinned_base(self):
+        marker = b"## Primary operating rules\n"
+        for name in sorted(PRIMARY_RUNTIME_POLICY_FILES):
+            relative = os.path.join("opencode-server", "files", "agents", name)
+            result = subprocess.run(["git", "show", "%s:%s" % (PRIMARY_POLICY_BASELINE_SHA, relative)], capture_output=True, cwd=REPO_ROOT)
+            self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", "replace"))
+            with open(os.path.join(CHART_DIR, "files", "agents", name), "rb") as handle:
+                current = handle.read()
+            baseline = result.stdout
+            self.assertEqual(current.count(marker), 1, name)
+            self.assertEqual(baseline.count(marker), 1, name)
+            self.assertEqual(current[current.index(marker):], baseline[baseline.index(marker):], name)
 
     def test_role_specific_prerequisites_are_preserved(self):
         markers = {
