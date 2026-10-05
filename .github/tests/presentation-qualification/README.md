@@ -248,3 +248,7 @@ job runs stdlib-only unit tests; the runtime job runs
 inconsistent pin combination, or unresolved dependency. Nothing is executed
 against any live cluster, and no local execution is claimed — CI is the only
 validation environment.
+
+## Gateway startup exception diagnostics
+
+The disposable gateway runs its installed vendor entry point through a capture wrapper. On startup failure it writes a bounded JSON report to `/dev/termination-log` with `terminationMessagePolicy: File` (never log fallback). The readiness failure path validates that report before printing fixed-allowlist exception classes, public module roots, source basenames and line numbers. Unknown identifiers are replaced; exception messages, locals, environments, raw logs and absolute paths are never included. Successful exits are unchanged; capture is diagnostic, not qualification proof.

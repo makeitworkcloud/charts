@@ -32,4 +32,5 @@ RUN /opt/venv/bin/python /tmp/render_check.py \
       --worker-image "${WORKER_IMAGE}"
 COPY .github/tests/presentation-qualification/runtime/client /opt/qual/client
 COPY .github/tests/presentation-qualification/lib /opt/qual/lib
+COPY .github/tests/presentation-qualification/runtime/images/gateway_files/startup_capture.py /opt/qual/startup_capture.py
 ENV PATH=/opt/venv/bin:${PATH}

@@ -33,13 +33,14 @@ spec:
         - name: gateway
           image: __GATEWAY_IMAGE__
           imagePullPolicy: IfNotPresent
-          command: ["/opt/venv/bin/jupyter"]
+          command: ["/opt/venv/bin/python", "/opt/qual/startup_capture.py"]
           args:
-            - enterprisegateway
             - --ip=0.0.0.0
             - --port=8888
             - --log-level=WARNING
             - --KernelSpecManager.allowed_kernelspecs=presentation
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
           env:
             - name: EG_AUTH_TOKEN
               value: __PQ_TOKEN__

@@ -189,6 +189,11 @@ for row in sys.argv[3].splitlines():
         exit_code = exit_code if exit_code.isdigit() else "none"
         print("READINESS_DIAGNOSTIC restart_count=%s waiting_reason=%s terminated_reason=%s terminated_exit_code=%s" % (restart, waiting, terminated, exit_code))
 PY
+  "$KUBECTL_BIN" --context "$KIND_CONTEXT" -n "$NAMESPACE" \
+    get pods -l app=pptx-qual-gateway \
+    -o 'jsonpath={.items[0].status.containerStatuses[0].lastState.terminated.message}' \
+    2>/dev/null | python3 "$FIXTURE_DIR/runtime/client/parse_startup_capture.py" \
+    || echo 'GATEWAY_STARTUP_EXCEPTION CAPTURE_UNAVAILABLE'
   fail "gateway API never became ready (diagnostic only; no readiness cause inferred)"
 fi
 
