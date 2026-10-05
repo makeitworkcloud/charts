@@ -70,6 +70,8 @@ APP_ENV = [
     ("XDG_DATA_HOME", HOME_PATH + "/.local/share"),
     ("OPENCODE_DB", "opencode.db"),  # bare filename; resolved inside XDG data dir (canonical)
     ("OPENCODE_PASSWORD", BASIC_PASSWORD),
+    ("OPENCODE_PRINT_LOGS", "1"),
+    ("OPENCODE_LOG_LEVEL", "WARN"),
 ]
 
 OPENCODE_CONFIG = {

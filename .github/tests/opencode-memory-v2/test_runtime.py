@@ -546,6 +546,8 @@ class ConfigTests(unittest.TestCase):
                  if k.endswith(("PASSWORD", "TOKEN", "KEY", "SECRET"))}
         self.assertEqual(creds, {"OPENCODE_PASSWORD": runtime.BASIC_PASSWORD})
         self.assertIn(("OPENCODE_DB", "opencode.db"), runtime.APP_ENV)
+        self.assertIn(("OPENCODE_PRINT_LOGS", "1"), runtime.APP_ENV)
+        self.assertIn(("OPENCODE_LOG_LEVEL", "WARN"), runtime.APP_ENV)
 
     def test_containers_share_workdir_and_env(self):
         args1 = runtime.app_run_args("app1", "home-vol", "cfg-c1", "/tmp/seed", offline=False)

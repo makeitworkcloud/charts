@@ -119,9 +119,12 @@ offline path.
    (`http.posts == 1`).
 9. Scoped cleanup always runs — even after global-deadline exhaustion — on its
    own budget; cleanup failures fail the gate (no false PASS). Failure
-   diagnostics merge stdout+stderr from `docker logs`, keep only
-   allow-listed failure-signal lines, sanitize credential-like content, and
-   clip to a bounded tail; no raw logs, nothing uploaded, no caches/artifacts.
+    diagnostics merge stdout+stderr from `docker logs`, keep only
+    allow-listed failure-signal lines, sanitize credential-like content, and
+    clip to a bounded tail; no raw logs, nothing uploaded, no caches/artifacts.
+    The synthetic server enables the vendor's `OPENCODE_PRINT_LOGS=1` at WARN
+    level so its otherwise file-only plugin-load cause reaches this existing
+    bounded failure capture. Production logging is not changed.
 
 Fixture credentials are public synthetic values; no production auth material
 is used or mirrored.
@@ -162,5 +165,6 @@ commit `3d3c42e5aac5ba805825da76410c181273ba90b1`.
 - [OpenCode Basic authentication](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/server/src/middleware/authorization.ts)
 - [OpenCode legacy provider normalization](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/core/src/config/normalize.ts)
 - [OpenCode database path resolution](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/core/src/database/database.ts)
+- [OpenCode stderr logging option](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/util/src/observability/logging.ts)
 - [Plugin memory API handlers](https://github.com/tickernelz/opencode-mem/blob/a24d79e34857aed9c5e708f5325714e6948bbfa7/src/services/api-handlers.ts)
 - [Plugin scope-tag parser](https://github.com/tickernelz/opencode-mem/blob/a24d79e34857aed9c5e708f5325714e6948bbfa7/src/services/memory-scope.ts)
