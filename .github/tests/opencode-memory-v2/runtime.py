@@ -24,7 +24,7 @@ from pathlib import Path
 from urllib.parse import quote_plus
 
 IMAGE = ("ghcr.io/anomalyco/opencode:2.0.22@"
-          "sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19")
+         "sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19")
 PLATFORM = "linux/amd64"
 OPENCODE_VERSION = "2.0.22"
 PLUGIN_SPEC = "opencode-mem@2.28.3"
