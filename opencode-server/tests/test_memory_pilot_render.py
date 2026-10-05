@@ -342,7 +342,7 @@ class PersistentKnowledgePolicyContract(unittest.TestCase):
                 self.assertIn(marker.lower(), block.lower(), (name, marker))
             scope = text.split("## Knowledge scope\n", 1)[1].split("\n\n## Primary operating rules", 1)[0]
             if name == "default.md":
-                for marker in ("AGENTS.md", "README.md", "docs/README.md", "docs/agents/README.md", "no autonomous write scope", "another agent's private records"):
+                for marker in ("AGENTS.md", "README.md", "docs/README.md", "docs/agents/README.md", "no autonomous write scope", "no other agent's private records"):
                     self.assertIn(marker.lower(), scope.lower(), (name, marker))
             else:
                 for marker in ("scope/authority/source-constraints records", "all mandatory entry records", "minimum current core", "disclose that gap", "do not scan the whole subtree"):
