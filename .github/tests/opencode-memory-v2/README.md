@@ -104,8 +104,12 @@ offline path.
    no-new-privileges, empty port bindings, network mode) plus an in-container
    `id -u` == 1000.
 7. Readiness (`/api/info`), registration (`/api/plugin`), and plugin web
-   health (`/api/health`, `success === true` strictly) are distinct bounded
-   stages; retry loops issue read-only GETs only — the POST is never replayed.
+    health (`/api/health`, `success === true` strictly) are distinct bounded
+    stages; retry loops issue read-only GETs only — the POST is never replayed.
+    A source-matched `failed` plugin state is terminal even if loading failed
+    before its ID became available. Missing entries report only bounded
+    identity/source/status fields; deadline errors retain the last sanitized
+    failure. An active entry without the exact ID still cannot pass.
    All in-container HTTP uses stock `wget` via `docker exec` (10 s for GETs,
    ≤600 s for the single POST, exec timeout = wget budget + margin) with the
    Bearer fixture token for the plugin web API.

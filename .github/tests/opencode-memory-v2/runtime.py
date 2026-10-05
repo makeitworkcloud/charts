@@ -137,6 +137,9 @@ class StageError(Exception):
 _now = time.monotonic
 _sleep = time.sleep
 
+class PluginFailedError(StageError):
+    pass
+
 def _subprocess_execute(args, timeout):
     try:
         proc = subprocess.run(["docker"] + list(args), capture_output=True,
@@ -247,25 +250,40 @@ def check_plugin_payload(obj):
     if not isinstance(entries, list):
         raise StageError("registration", "plugin payload malformed (wrapped or missing 'data' list)")
     for entry in entries:
-        if not isinstance(entry, dict) or entry.get("id") != PLUGIN_ID:
+        if not isinstance(entry, dict):
             continue
         source = entry.get("source")
         source = source if isinstance(source, dict) else {}
         target, version = source.get("target"), source.get("version")
+        state = entry.get("state")
+        source_matches = source.get("type") == "package" and target in (PLUGIN_ID, PLUGIN_SPEC)
+        if source_matches and isinstance(state, dict) and state.get("status") == "failed":
+            raise PluginFailedError("registration", f"plugin {target!r} failed: {state.get('error')!s}")
+        if entry.get("id") != PLUGIN_ID:
+            continue
         if version is not None and version != PLUGIN_VERSION:
             raise StageError("registration", f"plugin resolved version mismatch: {version!r}")
         if source.get("type") != "package":
             raise StageError("registration", f"unexpected plugin source type {source.get('type')!r}")
         if target != PLUGIN_SPEC and not (target == PLUGIN_ID and version == PLUGIN_VERSION):
             raise StageError("registration", f"plugin target/version mismatch: {target!r}@{version!r}")
-        state = entry.get("state")
         if not isinstance(state, dict) or "status" not in state:
             raise StageError("registration", "plugin entry missing state.status")
         if state.get("status") != "active":
             detail = state.get("error") or state.get("status")
             raise StageError("registration", f"plugin state {state.get('status')!r}: {clip(sanitize(str(detail)))}")
         return entry
-    raise StageError("registration", f"{PLUGIN_ID} not present in plugin list ({len(entries)} entries)")
+    inventory = []
+    for entry in entries[:8]:
+        if isinstance(entry, dict):
+            source = entry.get("source")
+            source = source if isinstance(source, dict) else {}
+            state = entry.get("state")
+            state = state if isinstance(state, dict) else {}
+            inventory.append({"id": entry.get("id"), "type": source.get("type"),
+                              "target": source.get("target"), "version": source.get("version"),
+                              "status": state.get("status")})
+    raise StageError("registration", f"{PLUGIN_ID} not present in plugin inventory: {inventory!r}")
 
 def check_add_response(obj):
     _require_dict(obj, "storage", "POST /api/memories")
@@ -464,12 +482,17 @@ def search_verify(http, cname, memory_id):
     return check_search_response(http.mem_get(cname, path), memory_id, MEMORY_CONTENT)
 
 def wait_until(label, fn, deadline, interval=POLL_INTERVAL_S):
+    last = None
     while True:
         if _now() >= deadline:
-            raise StageError("startup", f"{label}: deadline exhausted before check")
+            stage = last.stage if last is not None else "startup"
+            raise StageError(stage, f"{label}: deadline exhausted before check; last error: {last}")
         try:
             result = fn()
         except StageError as exc:
+            last = exc
+            if isinstance(exc, PluginFailedError):
+                raise
             if _now() >= deadline:
                 raise StageError(exc.stage, f"{label}: deadline exhausted; last error: {exc}")
             _sleep(min(interval, max(0, deadline - _now())))

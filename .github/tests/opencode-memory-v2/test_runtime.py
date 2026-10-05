@@ -131,6 +131,18 @@ class InfoPayloadTests(unittest.TestCase):
 
 
 class PluginPayloadTests(unittest.TestCase):
+    def test_failed_package_without_id_reports_sanitized_cause(self):
+        payload = make_plugin_payload([make_plugin_entry(identifier=None, status="failed",
+                                                       error="native load failed token=raw-secret")])
+        with self.assertRaises(runtime.StageError) as ctx:
+            runtime.check_plugin_payload(payload)
+        self.assertIn("native load failed", str(ctx.exception))
+        self.assertNotIn("raw-secret", str(ctx.exception))
+
+    def test_active_package_without_id_cannot_pass(self):
+        with self.assertRaises(runtime.StageError):
+            runtime.check_plugin_payload(make_plugin_payload([make_plugin_entry(identifier=None)]))
+
     def test_ok_pinned_spec(self):
         entry = runtime.check_plugin_payload(make_plugin_payload([make_plugin_entry()]))
         self.assertEqual(entry["id"], runtime.PLUGIN_ID)
@@ -297,6 +309,31 @@ class HealthPayloadTests(unittest.TestCase):
 
 
 class DeadlineTests(unittest.TestCase):
+    def test_deadline_preserves_last_registration_error(self):
+        clock = {"now": 0.0}
+        def fail():
+            raise runtime.StageError("registration", "plugin inventory is empty")
+        def sleep(seconds):
+            clock["now"] += seconds
+        with mock.patch.object(runtime, "_now", lambda: clock["now"]), \
+                mock.patch.object(runtime, "_sleep", sleep):
+            with self.assertRaises(runtime.StageError) as ctx:
+                runtime.wait_until("registration", fail, deadline=2.0, interval=3.0)
+        self.assertEqual(ctx.exception.stage, "registration")
+        self.assertIn("inventory is empty", str(ctx.exception))
+
+    def test_known_failed_registration_does_not_retry(self):
+        calls = []
+        def fail():
+            calls.append(1)
+            raise runtime.PluginFailedError("registration", "plugin failed: missing native library")
+        with mock.patch.object(runtime, "_now", lambda: 0.0), \
+                mock.patch.object(runtime, "_sleep") as sleep:
+            with self.assertRaises(runtime.StageError):
+                runtime.wait_until("registration", fail, deadline=100.0)
+        self.assertEqual(len(calls), 1)
+        sleep.assert_not_called()
+
     def test_wait_until_times_out_without_sleeping(self):
         clock = {"now": 0.0}
         sleeps = []
