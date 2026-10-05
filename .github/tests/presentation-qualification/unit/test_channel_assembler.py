@@ -58,6 +58,7 @@ class WrongParentFiltering(unittest.TestCase):
         payload = b"PK\x03\x04data"
         asm = framing.Assembler(PARENT)
         asm.feed(OTHER, framing.encode_build_status(0) + "\n")
+        feed_lines(asm, [framing.encode_build_status(0)])
         feed_lines(asm, framing.encode_file("deckpptx", payload))
         asm.feed(OTHER, "PQB1|evil|1|4|" + "0" * 64 + "|0|AAAA\n")
         feed_lines(asm, [framing.encode_done("deckpptx")])

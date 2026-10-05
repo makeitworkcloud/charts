@@ -102,8 +102,9 @@ class RbacManifest(unittest.TestCase):
         self.text = read(FIXTURE_ROOT, "runtime", "k8s", "rbac.yaml")
 
     def test_single_namespace_role_only(self):
-        top_level_kinds = re.findall(r"^kind: (\S+)$", self.text, re.M)
-        self.assertEqual(top_level_kinds.count("Role"), 1)
+        self.assertIn("apiVersion: v1\nkind: List\nitems:\n", self.text)
+        item_kinds = re.findall(r"^    kind: (\S+)$", self.text, re.M)
+        self.assertEqual(item_kinds, ["ServiceAccount", "ServiceAccount", "Role", "RoleBinding"])
         self.assertNotIn("ClusterRole", self.text)
 
     def test_verbs_exactly_pods_crud_watch(self):

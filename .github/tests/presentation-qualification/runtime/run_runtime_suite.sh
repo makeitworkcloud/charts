@@ -135,6 +135,8 @@ docker build --build-arg BASE_IMAGE="$NODE_BASE_IMAGE" --build-arg WORKER_IMAGE=
   -f "$FIXTURE_DIR/runtime/k8s/namespace.yaml" \
   -f "$FIXTURE_DIR/runtime/k8s/rbac.yaml"
 PQ_TOKEN="$(openssl rand -hex 32)"
+PQ_WRONG_TOKEN="$(openssl rand -hex 32)"
+[[ "$PQ_WRONG_TOKEN" != "$PQ_TOKEN" ]] || fail "generated auth-negative token unexpectedly matched"
 export PQ_TOKEN
 sed -e "s|__PQ_TOKEN__|$PQ_TOKEN|" -e "s|__GATEWAY_IMAGE__|$GATEWAY_TAG|" \
   "$FIXTURE_DIR/runtime/k8s/gateway.yaml.in" > "$WORK_DIR/gateway.yaml"
@@ -155,11 +157,11 @@ done
 
 pods_snapshot "$WORK_DIR/pods-auth-before.json"
 unauth=$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/api/kernelspecs" || true)
-badtok=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: token definitely-not-the-token" "$BASE_URL/api/kernelspecs" || true)
+badtok=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: token $PQ_WRONG_TOKEN" "$BASE_URL/api/kernelspecs" || true)
 unauth_post=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
   --data '{"name":"presentation","env":{}}' "$BASE_URL/api/kernels" || true)
 badtok_post=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
-  -H "Authorization: token definitely-not-the-token" \
+  -H "Authorization: token $PQ_WRONG_TOKEN" \
   --data '{"name":"presentation","env":{}}' "$BASE_URL/api/kernels" || true)
 [[ "$unauth" =~ ^(401|403)$ ]] || fail "unauthenticated GET accepted (http $unauth)"
 [[ "$badtok" =~ ^(401|403)$ ]] || fail "wrong token GET accepted (http $badtok)"
