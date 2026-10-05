@@ -39,13 +39,9 @@ verified-snapshot fallback.
 
 ### Primary agents
 
-[`files/agents/default.md`](../files/agents/default.md) is a full-capability,
-generic primary-agent definition and the example for new primary agents. It
-contains the complete primary operating policy directly in its own prompt.
+[`files/agents/default.md`](../files/agents/default.md) is the maintainer's generic starting point, not an inheritance or authority path. Every primary contains its own complete runtime protocol. Before a new primary is released or selected, it must receive a separately seeded, owner-governed knowledge home; it cannot borrow an existing agent's home.
 
-Every role-specific primary agent carries an early knowledge-first section,
-followed by an explicit `## Primary operating rules` section and its remaining
-role-specific instructions. The operating section is self-contained and covers
+Every role-specific primary agent carries the identical, complete `## Persistent knowledge protocol` and a role-specific `## Knowledge scope` section before its explicit `## Primary operating rules` section and remaining role-specific instructions. The shared protocol is copied verbatim into every primary runtime prompt; it is not inherited from `default.md` or generated at build time. The operating section is self-contained and covers
 GitHub identity and routing, Make IT Work Cloud
 repository discovery through the `codebase-memory` graph index for public
 repositories and
@@ -88,53 +84,17 @@ selects `default` for unqualified sessions. Changing `default_agent` is a
 separate user-facing routing decision, not an incidental result of this
 instruction refactor.
 
-### Knowledge-first advice and owner-context routing
+### Persistent knowledge startup and scope
 
-The nine named primary agents (`makeitwork`, `xnoto`, `career`, `teacher`,
-`grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, and `mechanic`)
-each carry an
-early, self-contained `## Knowledge-first advice` section before operating
-rules. Before substantive owner-specific advice, each presumes its authorized
-knowledge home relevant, verifies private access, reads its own subset README
-and entry instructions through validated cache or verified-SHA fallback, then
-follows nested indexes to only the canonical facts, constraints, prior decisions
-and corrections needed for that task. If the index does not resolve the topic,
-the agent searches topically, not across the whole corpus. Retrieval must
-precede a personalized recommendation or external research that needs owner
-facts. Applying recorded constraints matters more than citing an index. The
-agent distinguishes confirmed facts, dated observations, estimates, and
-superseded guidance; decision-changing conflicts require current evidence or
-the smallest owner question, not an invented reconciliation. Imminent safety
-guidance does not wait for a knowledge read.
+Every new primary session unconditionally loads its authorized baseline before any substantive task, regardless of apparent relevance, and separately performs bounded topical discovery before planning, research, advice, diagnosis, or edits for each new substantive task or subject. The identical runtime protocol in all ten primary files defines private-access checks, validated source reads, scoped search, reuse and refresh, conflict handling, the five strict curation gates, and authorized sparse maintenance. Immediate safety guidance still takes precedence. This is a runtime instruction contract, not proof that retrieval behavior has been tested.
 
-For unchanged followups, verified context may be reused. New subjects, task or
-agent changes require relevant records to be refreshed; missing evidence after
-compaction or resume must be reestablished. Existing read routing rechecks
-access and provenance when context, task, or freshness changes, not every turn.
-When private knowledge is unavailable, dependent owner-specific conclusions
-are withheld and any general information is explicitly labeled. Concise
-privacy-safe source paths and revisions explain how constraints affected an
-answer without dumping private content or sending it to unrelated services.
-These read requirements do not change the separate write scope or mutation
-gates. In particular, the homesteader must explicitly read remote
-`workspace/AGENTS.md` and `workspace/property.md` as a baseline, then relevant
-site, climate, water, and project records before planting or land-use advice;
-feasibility precedes a tailored procedure. The owner's pertinent private
-context may be summarized minimally in the authorized conversation, not copied
-into public chart content. The mechanic matches the actual vehicle record and
-its service history before diagnosis, specification, or parts advice, and
-verifies specifications and part references against manufacturer
-documentation.
+Each role-specific primary reads its own subset README and required entry instructions; that subset contract designates the baseline core. Homes and explicitly shared hubs define read scope, while write authority comes only from current owner-authorized contracts and cannot be self-granted. Do not invent a `core.md` or claim that current homes already designate one. A new primary is separately onboarded: its knowledge home must be independently seeded by the knowledge repository, with scope, authority, data policy, canonical owners, bounded core and topical index, and verified through an authorized GitHub route before that new primary is released or selected. New primaries cannot borrow another agent's home. No new primary is introduced by this chart change, and it does not seed or attest current homes.
 
-The generic `default` agent has `## Owner-context routing` instead of a
-knowledge home: for owner-specific domain advice it identifies a specialist,
-retrieves only within verified read authority or suggests switching when that
-scope is unavailable, without claiming a handoff occurred or silently using
-generic advice. It has no autonomous knowledge subtree or write authority.
-This is a policy-directed attempt, not a guaranteed automatic enforcement
-mechanism. Static CI can prove wording, source parity, and packaging; actual
-retrieval and application require fresh-session functional testing. Multiuser
-knowledge isolation and backup/restore automation remain deferred.
+The generic `default` agent has no assigned knowledge home or autonomous write scope. Its minimum shared-governance baseline is the public repository's root `AGENTS.md`, `README.md`, and `docs/README.md`; current subset contracts do not designate an additional shared-core record set for it. The agent must disclose that designation gap, use those named governance records as its minimum baseline, and must not imply they contain owner-specific facts or scan the private corpus. It may read only further shared records explicitly authorized by applicable contracts.
+
+Role prerequisites remain local to each scope: grillmaster reads equipment/preferences, sources/research, and applicable technique-default records before proposing a cook while retaining their source hierarchy and technique rules; homerepair identifies the actual asset and relevant prior job record before diagnosis; homesteader reads remote workspace `AGENTS.md` and `workspace/property.md` before land-use feasibility and then relevant site, climate, water, and project records; lawnmowerman matches the actual machine, engine, and service history and checks manufacturer specifications; mechanic matches the actual vehicle configuration and service history and verifies specifications against manufacturer documentation. Career and teacher retain application/background and teaching-context constraints in their scope blocks.
+
+The knowledge repository owns and seeds private records; this public chart owns runtime instructions only. Do not copy private corpus content into public chart files or CI. Public static CI cannot verify private seed facts; the owner or primary verifies new-seed existence and provenance using an authorized GitHub route before a future new-primary merge. Root `AGENTS.md` remains the universal safety and repository-routing floor, not the home for KB-specific lifecycle rules.
 
 ### Manual fresh-session acceptance
 
@@ -329,9 +289,7 @@ maintenance burden for:
 
 ## Maintenance rules
 
-- Treat `default.md` as the maintainer reference when creating or materially
-  changing a primary agent. Copy the applicable primary rules into that agent
-  definition; do not replace them with a reference to `default.md`.
+- Treat `default.md` as a maintainer starting point, never as runtime inheritance. Every new primary must be separately onboarded with a seeded home before release or selection; copy the exact common protocol into its runtime file and define its own scope and authority.
 - When changing a shared primary rule, review every primary agent's
   primary-policy section in the same pull request. Preserve stricter
   role-specific rules.
