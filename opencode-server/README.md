@@ -139,28 +139,10 @@ Updating `agent-knowledge` is a separate documentation change and does not requi
 
 The private repository is a discovery aid, not a secret store or canonical desired state. Access depends on the runtime GitHub identity. Primary agents do not package mutable repository topology; if private knowledge is unavailable or conflicts with current source, agents use direct GitHub discovery, report the limitation, and never guess.
 
-The nine named primary agents (`makeitwork`, `xnoto`, `career`, `teacher`,
-`grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, and `mechanic`)
-now put
-knowledge-first advice before their operating rules: for substantive
-owner-specific questions they presume their authorized subset is relevant,
-read its README and entry instructions, follow nested indexes to scoped
-canonical facts and prior decisions, and use bounded topical search if needed.
-They retrieve before recommendations or owner-dependent external research,
-apply constraints, distinguish confirmed from dated or superseded claims, and
-ask only decision-changing questions after retrieval. Unchanged followups can
-reuse verified context; task shifts and compaction require newly relevant or
-missing evidence. Private access and cache provenance remain governed by the
-validated read route, not checked on every turn. If knowledge is unavailable,
-owner-dependent conclusions are withheld, general information is labeled, and
-imminent safety guidance is not delayed. `default` has separate owner-context
-routing: it may retrieve within verified read scope or suggest switching to an
-authorized specialist; it has no autonomous knowledge subtree or write scope.
-Read guidance never expands any subset's write authority. This is a
-policy-directed attempt, not a guaranteed automatic enforcement mechanism;
-CI checks wording and render parity, while actual retrieval and application
-require fresh-session functional evidence. Multiuser knowledge isolation and
-backup/restore automation remain deferred.
+All ten primary agents carry an identical, complete persistent-knowledge protocol before primary operating rules. Every new session loads its authorized baseline regardless of apparent task relevance, and each new substantive task or subject receives bounded topical discovery. Role-specific scopes identify each assigned home and minimum core; when no additional core designation exists, the agent discloses the gap and loads only the minimum records without scanning its subtree. The generic default has no home or autonomous write scope: its KB-root baseline is exactly AGENTS.md, README.md, docs/README.md, and docs/agents/README.md governance only, with no other agent-private facts.
+
+The private knowledge repository owns separately seeded homes; this public chart owns runtime instructions only. A new primary must receive its own owner-governed seed and have seed existence/provenance verified through an authorized GitHub route before release or selection. No new primary is introduced by this chart change, which does not attest existing seed content. Public static CI cannot validate private facts.
+
 
 ## Prerequisites
 
@@ -307,10 +289,10 @@ nine primary agents' exact `openai/gpt-5.6-terra` to `openai/gpt-6.1-sol`
 model change with removal of
 `variant: default`, the six Terra-tier subagents' exact Terra-to-Sol model-line
 change with each variant preserved, and the two Luna-tier subagents' exact
-Luna-to-GPT-6 model-line change; it also permits the eight named primary
-agents' explicit knowledge-first sections before their operating rules, the
-`default` owner-context section, and the homesteader confidentiality/workflow
-substitutions, plus the four Kimi subagents' exact model-prefix line updates
+Luna-to-GPT-6 model-line change; it also permits the ten-primary runtime protocol and scope migration; the
+historical render fixture adopts those explicitly enumerated prompts, while a
+pinned-base regression check preserves every post-operating-rules byte, and
+the homesteader confidentiality/workflow substitutions, plus the four Kimi subagents' exact model-prefix line updates
 from `kimi-for-coding` to `kimi-code-plan-cn` and the three exact
 `opencode.json` config-line substitutions. In addition, the comparison permits
 exactly one approved new agent file, `files/agents/mechanic.md`, absent from
@@ -326,8 +308,7 @@ to `2.0.22@sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad
 the production Deployment container args change from `web` to `serve`, the
 added single-replica `Recreate` strategy, and the explicit
 `OPENCODE_DB=opencode.db` environment entry; the pilot image is pinned
-separately and is not part of the production baseline render. All other agent
-bytes and production render comparisons remain enforced. These changes affect the
+separately and is not part of the production baseline render. Non-primary agent bytes remain identical to the historical fixture; primary source-to-ConfigMap byte parity and chart-archive parity remain exact, while a pinned-base check protects every primary operating-rules tail. These changes affect the
 production ConfigMap checksum, so a normal production pod rollout on the
 chart version pin can occur even when the pilot is disabled. See
 [Memory pilot](docs/memory-pilot.md) for the baseline comparison contract.
@@ -350,3 +331,13 @@ is deferred.
 Version 0.1.75 paired with the former `kustomize-cluster` gateway-member rename and is retained only as historical rollout context. The current direct-proxy design supersedes that aggregate route: OpenCode must use the direct client URLs in `files/opencode.json`, and `vmcp-gateway` must remain external-only.
 
 See the repository guides in `docs/adding-a-chart.md` and `docs/gitops-update-automation.md`, plus the `kustomize-cluster` adding-workload and rollout guides.
+
+## Primary persistent knowledge contract
+
+All ten primary runtime files contain the same complete protocol and scoped home contract directly; this is intentional prompt duplication, not build-time inheritance. The default is the maintainer's starting point, not an inheritance path.
+
+For named homes, the subset README, scope/authority/source-constraints records, and mandatory entry records form the minimum current core. Follow any additional baseline they expressly designate; otherwise disclose the designation gap, load that minimum, and do not scan the subtree. Default has no own home: the KB-root shared baseline is exactly AGENTS.md, README.md, docs/README.md, and docs/agents/README.md governance only. It does not authorize access to another agent's private records.
+
+The knowledge repository owns seeds; this chart owns runtime instructions. New primaries require separate verified owner-governed seeds before release or selection and cannot borrow another agent's home. Private corpus content is never copied into this public chart or CI; public static CI cannot verify private seed facts. No new primary or seed is introduced by this change. Root AGENTS.md remains universal safety and repository routing, not KB lifecycle policy.
+
+Static CI checks protocol/scope wording, render parity, and archive packaging; it does not establish runtime behavior. The existing fresh-session matrix remains future validation work. Delivery remains staged: chart change, published OCI artifact, automatic GitOps pin PR, separate root/child reconciliation and health, then functional verification.

@@ -15,6 +15,7 @@ CHART = "opencode-server"
 CHART_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 REPO_ROOT = os.path.abspath(os.path.join(CHART_DIR, ".."))
 BASELINE_SHA = "32a6b91cc3a881b861bdac087655c3935bb15454"
+PRIMARY_POLICY_BASELINE_SHA = "2f5d497c72763d38fe9e7cfdabab1eabec6264a9"
 PROD_IMAGE = "ghcr.io/anomalyco/opencode:2.0.22@sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19"
 # The opt-in memory pilot stays on the historical v1 image independently of
 # the production pin.
@@ -32,33 +33,13 @@ BASELINE_QA_ENGINEER = os.path.join("opencode-server", "files", "agents", "qa-en
 APPROVED_PRIMARY_MODEL_FILES = ("career.md", "default.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "makeitwork.md", "teacher.md", "xnoto.md")
 APPROVED_TERRA_MODEL_FILES = ("adversarial-code-reviewer.md", "cloud-architecture-reviewer.md", "devops-engineer.md", "infra-security-reviewer.md", "recruiter-resume-reviewer.md", "terra.md")
 APPROVED_LUNA_MODEL_FILES = ("luna.md", "qa-engineer.md")
-APPROVED_KNOWLEDGE_FILES = ("career.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "makeitwork.md", "teacher.md", "xnoto.md")
 # New agent files that did not exist in the historical 0.4.0 baseline. Each
 # entry is asserted absent in the extracted baseline and then copied from the
 # current chart source into the extracted baseline after the historical
 # migration transforms, so render and byte comparisons stay enforced for all
 # historical files while the new file is compared against itself.
 APPROVED_NEW_AGENT_FILES = ("mechanic.md",)
-KNOWLEDGE_POLICY_CONTRACT_FILES = APPROVED_KNOWLEDGE_FILES + APPROVED_NEW_AGENT_FILES
-# Literal policy additions, not snippets derived from the current prompts.
-KNOWLEDGE_FIRST_PARAGRAPHS = {
-    "career.md": "Before substantive owner-specific fit, resume, or interview advice, presume your authorized `docs/agents/career/` knowledge home is relevant. Verify private access and read its subset README and entry instructions through the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter. Follow nested indexes to confirmed background, goals, constraints, prior decisions and corrections for the active role or application; do not invent qualifications. If the index does not resolve the topic, use bounded topical search, never bulk-read journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on career facts; apply the constraints, not just a README citation.",
-    "teacher.md": "Before substantive owner-specific teaching advice, presume your authorized `docs/agents/teacher/` knowledge home is relevant. Verify private access and read its subset README and entry instructions through the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter. Follow nested indexes to select the correct teaching context and recorded audience, objectives, source restrictions, delivery needs, prior decisions, and corrections. If the index does not resolve the topic, use bounded topical search, never bulk-read journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on teaching context; apply constraints, not just a README citation.",
-    "grillmaster.md": "Before substantive owner-specific cooking advice, presume your authorized `docs/agents/grillmaster/` knowledge home is relevant. Verify private access and read its subset README and entry instructions through the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter; follow nested indexes to task-relevant canonical facts, constraints, prior decisions, and corrections. Read the equipment and preferences, sources and research, and applicable technique-default records before proposing a cook; retain their existing source hierarchy and technique rules. If an index does not resolve the topic, make a bounded topical search, not a bulk read of journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on owner facts; apply the constraints, not just a README citation.",
-    "homerepair.md": "Before substantive owner-specific repair advice, presume your authorized `docs/agents/homerepair/` knowledge home is relevant. Verify private access and read its subset README and entry instructions through the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter. Follow nested indexes to match the actual asset in `assets.md` and the prior job in `jobs/README.md` and its relevant record before diagnosis or asking about prior repairs; apply trade guidance, canonical constraints, decisions, and corrections. If the index does not resolve the topic, use bounded topical search, never bulk-read journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on household facts; apply constraints, not just a README citation.",
-    "homesteader.md": "Before substantive owner-specific homestead advice, presume your authorized `docs/agents/homesteader/` knowledge home is relevant. Verify private access and read its subset README and entry instructions through the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter. Explicitly read `workspace/AGENTS.md` and `workspace/property.md` as remote documents; they are not automatically loaded. For planting or land use, follow nested indexes to relevant canonical site, climate, water, and project records, including prior decisions and corrections. Establish feasibility and prerequisites before instructions; never substitute a generic region for verified property context. If the index does not resolve the topic, search topically within a bounded scope, never bulk-read journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on property facts; apply constraints, not just a README citation.",
-    "lawnmowerman.md": "Before substantive owner-specific diagnosis or parts advice, presume your authorized `docs/agents/lawnmowerman/` knowledge home is relevant. Verify private access and read its subset README and entry instructions via the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter. Follow nested indexes to the actual machine and engine records, service history, canonical constraints, decisions, and corrections; match the machine and engine before diagnosis or parts selection, and verify specifications and part references with the manufacturer. If the index does not resolve the topic, search topically within a bounded scope, never bulk-read journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on owner facts; apply the constraints, not just a README citation.",
-    "makeitwork.md": "Before substantive owner-specific repository or advisory planning, presume your authorized `docs/agents/makeitwork/` knowledge home is relevant. Verify private access and read its subset README and entry instructions through the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter. Follow nested indexes to relevant recorded decisions, exceptions, ownership, canonical constraints, and prior corrections; verify actual implementation against the canonical repository, since knowledge is not desired state. If the index does not resolve the topic, use bounded topical search, never bulk-read journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on owner facts; apply constraints, not just a README citation.",
-    "xnoto.md": "Before substantive owner-specific repository or advisory planning, presume your authorized `docs/agents/xnoto/` knowledge home is relevant. Verify private access and read its subset README and entry instructions through the validated default-branch cache route (or verified-SHA GitHub fallback) before deciding which details matter. Follow nested indexes to relevant recorded decisions, exceptions, ownership, canonical constraints, and prior corrections; verify actual implementation against the canonical repository, since knowledge is not desired state. If the index does not resolve the topic, use bounded topical search, never bulk-read journals or the whole corpus. Retrieve before personalized recommendations or external research whose applicability depends on owner facts; apply constraints, not just a README citation.",
-}
-COMMON_KNOWLEDGE_FOLLOWUP = "Distinguish owner-confirmed facts from dated observations, research estimates, and superseded guidance. Resolve decision-changing conflicts against current evidence or ask the smallest owner question; never invent a reconciliation. Ask only for facts still missing after retrieval or requiring confirmation. Reuse verified context on unchanged followups; refresh newly relevant records on task, subject, or agent change and reestablish missing evidence after compaction or resume. Recheck access and provenance on context, task, or freshness changes per existing validated cache routing, not every turn. If knowledge is unavailable, disclose it and withhold owner-specific conclusions dependent on it; label general information explicitly and never bypass private access. Give imminent safety advice without waiting for retrieval. Cite concise privacy-safe source path and revision and explain how constraints shaped the answer, without verbatim private records or unrelated external inputs. This read policy grants no additional write or mutation authority."
-KNOWLEDGE_FOLLOWUPS = {
-    "grillmaster.md": "Distinguish owner-confirmed facts from dated observations, research estimates, and superseded guidance. Resolve decision-changing conflicts against current evidence or ask the smallest owner question; never invent a reconciliation. Ask only for facts still missing after retrieval or requiring confirmation. Reuse verified context on unchanged followups, but refresh newly relevant records on a task, subject, or agent change; after compaction or resume reestablish missing evidence. Recheck access and provenance on context, task, or freshness changes per the existing validated cache routing, not every turn. If the knowledge home is unavailable, disclose that and withhold owner-specific conclusions dependent on it; label any general information explicitly and never bypass private access. Give imminent safety advice without waiting for retrieval. Cite a concise privacy-safe source path and revision and explain how constraints shaped the answer, without verbatim private content or unrelated external inputs. This read policy grants no additional write or mutation authority.",
-    "homesteader.md": "Distinguish owner-confirmed facts from dated observations, research estimates, and superseded guidance. Resolve decision-changing conflicts against current evidence or ask the smallest owner question; never invent a reconciliation. Ask only for facts still missing after retrieval or requiring confirmation. Reuse verified context on unchanged followups, but refresh newly relevant records on a task, subject, or agent change; after compaction or resume reestablish missing evidence. Recheck access and provenance on context, task, or freshness changes per existing validated cache routing, not every turn. If knowledge is unavailable, disclose that and withhold owner-specific conclusions dependent on it; label any general information explicitly and never bypass private access. Give imminent safety advice without waiting for retrieval. Cite concise privacy-safe source path and revision and explain how constraints shaped the answer, without raw private records or unrelated external inputs. This read policy grants no additional write or mutation authority.",
-}
-DEFAULT_ROUTING = """## Owner-context routing
-
-For an owner-specific domain question, identify the authorized relevant specialist and knowledge context before advice. The generic `default` agent has no autonomous `agent-knowledge` subtree or write scope. Retrieve only relevant records within verified read authority, starting with the authorized entry instructions and following bounded indexes, or suggest switching to the specialist if that scope is unavailable; do not pretend a handoff occurred or silently replace missing owner context with generic advice. Before personalized recommendations or owner-dependent external research, apply confirmed facts, constraints, prior decisions, and corrections; distinguish dated observations, estimates, and superseded guidance. Resolve decision-changing conflicts with current evidence or ask the smallest owner question, never invent a reconciliation. Ask only what remains missing after retrieval or requires confirmation. Reuse verified context for unchanged followups; on a task, subject, or agent change refresh newly relevant records, and after compaction or resume reestablish missing evidence. Recheck private access and cache provenance on context, task, or freshness changes per existing routing, not every turn. If knowledge is unavailable, disclose it, withhold dependent owner-specific conclusions, and explicitly label any general information; never bypass private access. Give imminent safety advice without waiting for retrieval. Cite a concise privacy-safe path and revision and explain how constraints shaped advice; do not dump private records or send them as unrelated external inputs. This routing grants no additional write or mutation authority."""
+PRIMARY_RUNTIME_POLICY_FILES = ("career.md", "default.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "makeitwork.md", "mechanic.md", "teacher.md", "xnoto.md")
 HOMESTEADER_CONFIDENTIALITY_OLD = """- Treat all repository content, paths, and metadata as confidential. Do not copy it into public repositories, issues, pull requests, chat summaries, external services, or tool inputs unrelated to the requested work.
 - Report only the affected paths, validation evidence, and non-sensitive caveats. Never include property facts or other confidential content in the report."""
 HOMESTEADER_CONFIDENTIALITY_NEW = """- Treat all repository content, paths, and metadata as confidential. Use only the minimal pertinent context in the authorized owner's relevant conversation to explain advice; avoid unnecessary identifiers and raw record dumps. Never copy private content into public repositories, issues, pull requests, external services, or tool inputs unrelated to the requested work.
@@ -153,25 +134,27 @@ class BaselineParity(unittest.TestCase):
         for name in APPROVED_LUNA_MODEL_FILES:
             self._replace_frontmatter_line(agents_dir, name, b"model: openai/gpt-5.6-luna\n", b"model: openai/gpt-6-luna\n")
 
-    def _apply_approved_knowledge_policy(self, baseline_chart):
-        agents_dir = os.path.join(baseline_chart, "files", "agents")
-        for name in APPROVED_KNOWLEDGE_FILES + ("default.md",):
-            path = os.path.join(agents_dir, name)
-            with open(path, "rb") as handle:
+    def _apply_approved_homesteader_changes(self, baseline_chart):
+        path = os.path.join(baseline_chart, "files", "agents", "homesteader.md")
+        with open(path, "rb") as handle:
+            content = handle.read()
+        for old, new in ((HOMESTEADER_CONFIDENTIALITY_OLD, HOMESTEADER_CONFIDENTIALITY_NEW), (HOMESTEADER_WORKFLOW_OLD, HOMESTEADER_WORKFLOW_NEW)):
+            before = old.encode("utf-8")
+            self.assertEqual(content.count(before), 1, old)
+            content = content.replace(before, new.encode("utf-8"))
+        with open(path, "wb") as handle:
+            handle.write(content)
+
+    def _apply_primary_runtime_policy(self, baseline_chart):
+        baseline_agents = os.path.join(baseline_chart, "files", "agents")
+        current_agents = os.path.join(CHART_DIR, "files", "agents")
+        self.assertEqual(len(PRIMARY_RUNTIME_POLICY_FILES), 10)
+        for name in PRIMARY_RUNTIME_POLICY_FILES:
+            target = os.path.join(baseline_agents, name)
+            self.assertTrue(os.path.isfile(target), name)
+            with open(os.path.join(current_agents, name), "rb") as handle:
                 content = handle.read()
-            anchor = b"\n\n## Primary operating rules\n"
-            self.assertEqual(content.count(anchor), 1, name)
-            if name == "default.md":
-                addition = DEFAULT_ROUTING
-            else:
-                addition = ("## Knowledge-first advice\n\n" + KNOWLEDGE_FIRST_PARAGRAPHS[name] + "\n\n" + KNOWLEDGE_FOLLOWUPS.get(name, COMMON_KNOWLEDGE_FOLLOWUP))
-            content = content.replace(anchor, b"\n\n" + addition.encode("utf-8") + anchor)
-            if name == "homesteader.md":
-                for old, new in ((HOMESTEADER_CONFIDENTIALITY_OLD, HOMESTEADER_CONFIDENTIALITY_NEW), (HOMESTEADER_WORKFLOW_OLD, HOMESTEADER_WORKFLOW_NEW)):
-                    before = old.encode("utf-8")
-                    self.assertEqual(content.count(before), 1, old)
-                    content = content.replace(before, new.encode("utf-8"))
-            with open(path, "wb") as handle:
+            with open(target, "wb") as handle:
                 handle.write(content)
 
     def _apply_approved_provider_migration(self, baseline_chart):
@@ -228,9 +211,10 @@ class BaselineParity(unittest.TestCase):
             tar.extractall(tmp, filter="data")
         baseline_chart = os.path.join(tmp, "opencode-server")
         self._apply_approved_model_changes(baseline_chart)
-        self._apply_approved_knowledge_policy(baseline_chart)
+        self._apply_approved_homesteader_changes(baseline_chart)
         self._apply_approved_provider_migration(baseline_chart)
         self._apply_approved_new_agent_files(baseline_chart)
+        self._apply_primary_runtime_policy(baseline_chart)
         self._apply_approved_production_runtime_changes(baseline_chart)
         return baseline_chart
 
@@ -286,17 +270,22 @@ class BaselineParity(unittest.TestCase):
             current_config = by_kind(render_docs([]), "ConfigMap")
             self.assertEqual(current_config["data"], baseline_config["data"])
 
-    def test_approved_agent_model_changes_are_only_expected_source_changes(self):
+    def test_approved_agent_runtime_changes_are_exact_and_rendered(self):
         with tempfile.TemporaryDirectory(prefix="opencode-server-baseline-") as tmp:
             baseline_chart = self._extract_baseline(tmp)
             baseline_agents = os.path.join(baseline_chart, "files", "agents")
             current_agents = os.path.join(CHART_DIR, "files", "agents")
             self.assertEqual(sorted(os.listdir(current_agents)), sorted(os.listdir(baseline_agents)))
-            for name in sorted(os.listdir(baseline_agents)):
+            self.assertEqual(len(PRIMARY_RUNTIME_POLICY_FILES), 10)
+            expected = {"career.md", "default.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "makeitwork.md", "mechanic.md", "teacher.md", "xnoto.md"}
+            self.assertEqual(set(PRIMARY_RUNTIME_POLICY_FILES), expected)
+            for name in sorted(os.listdir(current_agents)):
                 with open(os.path.join(baseline_agents, name), "rb") as handle:
                     baseline_bytes = handle.read()
                 with open(os.path.join(current_agents, name), "rb") as handle:
                     current_bytes = handle.read()
+                if name in PRIMARY_RUNTIME_POLICY_FILES:
+                    continue
                 if name == "qa-engineer.md":
                     self.assertEqual(current_bytes, baseline_bytes + b"\n")
                 else:
@@ -330,55 +319,97 @@ class PrimaryModelContract(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-class KnowledgeFirstPolicyContract(unittest.TestCase):
-    def test_named_primary_agents_have_early_bounded_policy(self):
+class PersistentKnowledgePolicyContract(unittest.TestCase):
+    def test_all_primary_agents_have_early_identical_runtime_protocol_and_scope(self):
         agents_dir = os.path.join(CHART_DIR, "files", "agents")
+        protocols = []
+        primary_names = set(PRIMARY_RUNTIME_POLICY_FILES)
+        self.assertEqual(len(primary_names), 10)
         for name in sorted(os.listdir(agents_dir)):
             with open(os.path.join(agents_dir, name), "r", encoding="utf-8") as handle:
                 text = handle.read()
-            expected = 1 if name in KNOWLEDGE_POLICY_CONTRACT_FILES else 0
-            self.assertEqual(text.count("## Knowledge-first advice"), expected, name)
-            self.assertNotIn("On the first substantive task in a fresh session", text, name)
-            if not expected:
+            if name not in primary_names:
+                self.assertNotIn("## Persistent knowledge protocol", text, name)
+                self.assertNotIn("## Knowledge scope", text, name)
                 continue
-            section = text.split("## Knowledge-first advice\n", 1)[1].split("\n## Primary operating rules\n", 1)[0]
-            self.assertLess(text.index("## Knowledge-first advice"), text.index("## Primary operating rules"), name)
-            for marker in ("presume your authorized", "subset README", "entry instructions", "nested indexes", "bounded", "Retrieve before personalized", "apply", "owner-confirmed facts", "dated observations", "superseded guidance", "decision-changing conflicts", "after retrieval", "unchanged followups", "agent change", "compaction or resume", "Recheck access and provenance", "not every turn", "unavailable", "withhold owner-specific conclusions", "general information explicitly", "imminent safety advice", "privacy-safe source path and revision", "no additional write or mutation authority"):
-                self.assertIn(marker.lower(), section.lower(), (name, marker))
+            self.assertEqual(text.count("## Persistent knowledge protocol"), 1, name)
+            self.assertEqual(text.count("## Knowledge scope"), 1, name)
+            self.assertLess(text.index("## Persistent knowledge protocol"), text.index("## Knowledge scope"), name)
+            self.assertLess(text.index("## Knowledge scope"), text.index("## Primary operating rules"), name)
+            block = text.split("## Persistent knowledge protocol\n\n", 1)[1].split("\n\n## Knowledge scope", 1)[0]
+            protocols.append(block)
+            for marker in ("unconditional part of every session", "Before the first substantive task in a new session", "Before planning, external research, advice, diagnosis or edits for each new substantive task or subject", "all five curation gates", "Do not create one document or dated entry per task", "Read permission does not confer write authority", "Never retrieve or store secrets"):
+                self.assertIn(marker.lower(), block.lower(), (name, marker))
+            scope = text.split("## Knowledge scope\n", 1)[1].split("\n\n## Primary operating rules", 1)[0]
+            if name == "default.md":
+                for marker in ("AGENTS.md", "README.md", "docs/README.md", "docs/agents/README.md", "no autonomous write scope", "no other agent's private records"):
+                    self.assertIn(marker.lower(), scope.lower(), (name, marker))
+            else:
+                for marker in ("scope/authority/source-constraints records", "all mandatory entry records", "minimum current core", "disclose that gap", "do not scan the whole subtree"):
+                    self.assertIn(marker.lower(), scope.lower(), (name, marker))
+        self.assertEqual(len(protocols), 10)
+        self.assertEqual(len(set(protocols)), 1, "common runtime protocol must be byte-identical")
 
-    def test_role_specific_prerequisites_and_default_routing(self):
+    def test_primary_operating_rules_and_role_contracts_match_pinned_base(self):
+        marker = b"## Primary operating rules\n"
+        for name in sorted(PRIMARY_RUNTIME_POLICY_FILES):
+            relative = os.path.join("opencode-server", "files", "agents", name)
+            result = subprocess.run(["git", "show", "%s:%s" % (PRIMARY_POLICY_BASELINE_SHA, relative)], capture_output=True, cwd=REPO_ROOT)
+            self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", "replace"))
+            with open(os.path.join(CHART_DIR, "files", "agents", name), "rb") as handle:
+                current = handle.read()
+            baseline = result.stdout
+            self.assertEqual(current.count(marker), 1, name)
+            self.assertEqual(baseline.count(marker), 1, name)
+            self.assertEqual(current[current.index(marker):], baseline[baseline.index(marker):], name)
+
+    def test_role_specific_prerequisites_are_preserved(self):
         markers = {
-            "career.md": ("confirmed background, goals, constraints", "fit, resume, or interview"),
-            "teacher.md": ("correct teaching context", "audience, objectives, source restrictions, delivery needs"),
-            "grillmaster.md": ("equipment and preferences", "sources and research", "technique-default"),
+            "career.md": ("confirmed background, goals, constraints", "never invent qualifications"),
+            "teacher.md": ("audience, objectives, source restrictions, delivery needs",),
+            "grillmaster.md": ("equipment and preferences", "sources and research", "technique-default records", "source hierarchy"),
             "homerepair.md": ("assets.md", "jobs/README.md", "before diagnosis"),
-            "homesteader.md": ("workspace/AGENTS.md", "workspace/property.md", "not automatically loaded", "site, climate, water", "feasibility and prerequisites", "minimal pertinent context", "advice alone is not authorization"),
+            "homesteader.md": ("workspace/AGENTS.md", "workspace/property.md", "site, climate, water", "feasibility and prerequisites"),
             "lawnmowerman.md": ("actual machine and engine", "service history", "manufacturer"),
-            "mechanic.md": ("actual vehicle record", "service history", "manufacturer documentation"),
+            "mechanic.md": ("actual vehicle (year, market, build date", "service history", "manufacturer documentation"),
             "makeitwork.md": ("advisory planning", "decisions, exceptions, ownership", "canonical repository"),
             "xnoto.md": ("advisory planning", "decisions, exceptions, ownership", "canonical repository"),
-            "default.md": ("## Owner-context routing", "no autonomous `agent-knowledge` subtree or write scope", "suggest switching to the specialist", "do not pretend a handoff occurred", "imminent safety advice"),
         }
         for name, phrases in markers.items():
             with open(os.path.join(CHART_DIR, "files", "agents", name), "r", encoding="utf-8") as handle:
                 text = handle.read().lower()
             for phrase in phrases:
                 self.assertIn(phrase.lower(), text, (name, phrase))
-        with open(os.path.join(CHART_DIR, "files", "agents", "default.md"), "r", encoding="utf-8") as handle:
-            text = handle.read()
-        self.assertEqual(text.count("## Owner-context routing"), 1)
-        self.assertLess(text.index("## Owner-context routing"), text.index("## Primary operating rules"))
 
-    def test_docs_describe_policy_not_enforcement(self):
+    def test_default_shared_baseline_is_explicit_and_bounded(self):
+        with open(os.path.join(CHART_DIR, "files", "agents", "default.md"), "r", encoding="utf-8") as handle:
+            text = handle.read().lower()
+        self.assertNotIn("## owner-context routing", text)
+        self.assertIn("## knowledge scope\n", text)
+        self.assertIn("## primary operating rules\n", text)
+        scope = text.split("## knowledge scope\n", 1)[1].split("\n\n## primary operating rules", 1)[0]
+        baseline = "the kb-root (`makeitworkcloud/agent-knowledge`) baseline is exactly `agents.md`, `readme.md`, `docs/readme.md`, and `docs/agents/readme.md` (governance only)."
+        self.assertIn(baseline, scope)
+        for marker in ("no assigned", "no autonomous write scope", "disclose that gap", "load only this minimum baseline", "read no other agent's private records", "do not scan private homes"):
+            self.assertIn(marker, scope)
+
+        decoy = "unrelated prompt text\n" + baseline + "\n\n## knowledge scope\n- no designation\n\n## primary operating rules\n"
+        decoy_scope = decoy.split("## knowledge scope\n", 1)[1].split("\n\n## primary operating rules", 1)[0]
+        self.assertIn(baseline, decoy)
+        self.assertNotIn(baseline, decoy_scope)
+
+    def test_docs_describe_runtime_contract_and_new_primary_onboarding(self):
+        texts = []
         for relative in (os.path.join("docs", "agent-instruction-architecture.md"), "README.md"):
             with open(os.path.join(CHART_DIR, relative), "r", encoding="utf-8") as handle:
-                text = " ".join(handle.read().split())
-            self.assertIn("policy-directed attempt", text, relative)
-            self.assertIn("not a guaranteed automatic enforcement mechanism", text, relative)
-            self.assertIn("knowledge isolation and backup/restore automation remain deferred", text, relative)
-            self.assertIn("actual retrieval and application", text, relative)
-
-
+                text = " ".join(handle.read().split()).lower()
+            texts.append(text)
+            self.assertIn("new primary", text, relative)
+            self.assertIn("separately seeded", text, relative)
+        combined = " ".join(texts)
+        self.assertIn("unconditionally loads", combined)
+        self.assertIn("public static ci cannot verify private seed facts", combined)
+        self.assertIn("not proof that retrieval behavior has been tested", combined)
 class MechanicAgentContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

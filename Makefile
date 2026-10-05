@@ -85,7 +85,7 @@ test-opencode-server-agents:
 		grep -Fqx 'model: openai/gpt-6-luna' <<< "$$luna_frontmatter"; \
 		test "$$(grep -Ec '^variant:' <<< "$$luna_frontmatter")" -eq 0; \
 	done; \
-	grep -Fqx 'version: 0.5.0' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.5.1' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
 	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
@@ -107,6 +107,23 @@ test-opencode-server-agents:
 	grep -Fqx '  AGENTS.md: |-' <<< "$$rendered"; \
 	grep -Fqx '              - key: AGENTS.md' <<< "$$rendered"; \
 	grep -Fqx '                path: AGENTS.md' <<< "$$rendered"; \
+	for agent in $$primary_agents; do \
+		source="opencode-server/files/agents/$$agent.md"; \
+		grep -Fqx '## Persistent knowledge protocol' "$$source"; \
+		grep -Fqx '## Knowledge scope' "$$source"; \
+		grep -Fqi 'unconditional part of every session' "$$source"; \
+		grep -Fqi 'Before the first substantive task in a new session' "$$source"; \
+		grep -Fqi 'Before planning, external research, advice, diagnosis or edits for each new substantive task or subject' "$$source"; \
+		grep -Fqi 'all five curation gates' "$$source"; \
+		grep -Fqi 'Do not create one document or dated entry per task' "$$source"; \
+	done; \
+	protocol_hash=; \
+	for agent in $$primary_agents; do \
+		source="opencode-server/files/agents/$$agent.md"; \
+		block="$$(sed -n '/^## Persistent knowledge protocol$$/,/^## Knowledge scope$$/{ /^## Knowledge scope$$/d; p; }' "$$source")"; \
+		hash="$$(printf '%s\n' "$$block" | sha256sum | cut -d' ' -f1)"; \
+		if test -z "$$protocol_hash"; then protocol_hash="$$hash"; else test "$$hash" = "$$protocol_hash"; fi; \
+	done; \
 	for agent in $$primary_agents $$repository_workers; do \
 		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Eiq 'index_repository.{0,160}full|full.{0,160}index_repository' <<< "$$policy"; \
@@ -144,6 +161,13 @@ test-opencode-server-agents:
 		! grep -Fqi 'instead of attempting a fallback' <<< "$$policy"; \
 	done; \
 	for agent in $$primary_agents; do \
+		grep -Fqx '## Knowledge scope' "opencode-server/files/agents/$$agent.md"; \
+		case " $$agent " in ' default ') grep -Fqi 'KB-root (`makeitworkcloud/agent-knowledge`) baseline is exactly `AGENTS.md`, `README.md`, `docs/README.md`, and `docs/agents/README.md`' "opencode-server/files/agents/$$agent.md" ;; *) grep -Fqi "docs/agents/$$agent/" "opencode-server/files/agents/$$agent.md" ;; esac; \
+	done; \
+	grep -Fqi 'equipment and preferences, sources and research, and applicable technique-default records' opencode-server/files/agents/grillmaster.md; \
+	grep -Fqi 'workspace/property.md' opencode-server/files/agents/homesteader.md; \
+	grep -Fqi 'actual vehicle (year, market, build date, engine, transmission, drivetrain, and modifications)' opencode-server/files/agents/mechanic.md; \
+	for agent in $$primary_agents; do \
 		frontmatter="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' "opencode-server/files/agents/$$agent.md")"; \
 		grep -Fqx 'model: openai/gpt-6.1-sol' <<< "$$frontmatter"; \
 		test "$$(grep -Ec '^variant:' <<< "$$frontmatter")" -eq 0; \
@@ -151,10 +175,6 @@ test-opencode-server-agents:
 		grep -Fqi 'without a custom project name' <<< "$$policy"; \
 		grep -Fqi 'retry once' <<< "$$policy"; \
 		grep -Fqi 'published `current` symlink' <<< "$$policy"; \
-	done; \
-	for agent in $$primary_agents; do \
-		case " $$agent " in ' default ') continue ;; esac; \
-		grep -Fqi 'validated default-branch cache route' "opencode-server/files/agents/$$agent.md"; \
 	done; \
 	for agent in $$repository_workers; do \
 		grep -Eqi 'do not run .{0,3}index_repository' <<< "$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
@@ -220,7 +240,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.5.0.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.5.1.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \
