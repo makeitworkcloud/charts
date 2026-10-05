@@ -148,12 +148,49 @@ sed -e "s|__PQ_TOKEN__|$PQ_TOKEN|" -e "s|__GATEWAY_IMAGE__|$GATEWAY_TAG|" \
 echo $! > "$WORK_DIR/portforward.pid"
 
 ready=""
+last_ready_code=""
 for _ in $(seq 1 60); do
-  code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: token $PQ_TOKEN" "$BASE_URL/api/kernelspecs" || true)
+  code=$(curl -s --connect-timeout 3 --max-time 5 -o /dev/null -w '%{http_code}' \
+    -H "Authorization: token $PQ_TOKEN" "$BASE_URL/api/kernelspecs" || true)
+  if [[ "$code" =~ ^[0-9]{3}$ ]]; then last_ready_code=$code; else last_ready_code=none; fi
   if [[ "$code" == "200" ]]; then ready=1; break; fi
   sleep 5
 done
-[[ -n "$ready" ]] || fail "gateway API never became ready"
+if [[ -z "$ready" ]]; then
+  pf_alive=false
+  if [[ -f "$WORK_DIR/portforward.pid" ]] && kill -0 "$(cat "$WORK_DIR/portforward.pid")" 2>/dev/null; then
+    pf_alive=true
+  fi
+  # Deliberately project status fields only; never collect pod specs, messages,
+  # environment, logs, or raw port-forward/curl output for readiness diagnosis.
+  gateway_status=$("$KUBECTL_BIN" --context "$KIND_CONTEXT" -n "$NAMESPACE" \
+    get pods -l app=pptx-qual-gateway \
+    -o 'jsonpath={range .items[*]}{.status.phase}{"|"}{range .status.containerStatuses[*]}{.restartCount}{":"}{.state.waiting.reason}{":"}{.lastState.terminated.reason}{":"}{.lastState.terminated.exitCode}{","}{end}{"\n"}{end}' \
+    2>/dev/null || true)
+  python3 - "$last_ready_code" "$pf_alive" "$gateway_status" <<'PY'
+import re
+import sys
+
+http_code = sys.argv[1] if re.fullmatch(r"[0-9]{3}", sys.argv[1]) else "none"
+print("READINESS_DIAGNOSTIC http_status=%s portforward_alive=%s" % (http_code, sys.argv[2]))
+for row in sys.argv[3].splitlines():
+    fields = row.split("|", 1)
+    phase = re.sub(r"[^A-Za-z0-9]", "", fields[0]) or "unknown"
+    print("READINESS_DIAGNOSTIC pod_phase=%s" % phase)
+    if len(fields) == 1:
+        continue
+    for status in fields[1].split(","):
+        if not status:
+            continue
+        restart, waiting, terminated, exit_code = (status.split(":") + [""] * 4)[:4]
+        restart = restart if restart.isdigit() else "unknown"
+        waiting = re.sub(r"[^A-Za-z0-9]", "", waiting) or "none"
+        terminated = re.sub(r"[^A-Za-z0-9]", "", terminated) or "none"
+        exit_code = exit_code if exit_code.isdigit() else "none"
+        print("READINESS_DIAGNOSTIC restart_count=%s waiting_reason=%s terminated_reason=%s terminated_exit_code=%s" % (restart, waiting, terminated, exit_code))
+PY
+  fail "gateway API never became ready (diagnostic only; no readiness cause inferred)"
+fi
 
 pods_snapshot "$WORK_DIR/pods-auth-before.json"
 unauth=$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/api/kernelspecs" || true)
