@@ -201,8 +201,9 @@ selected so the distro python3.11 is compatible with the legacy pyzmq pin.
 - npm transitive dependencies of pptxgenjs are not lockfile-pinned; pip
   transitives (jupyter-server 1.x, tornado, etc.) resolve freely within the
   declared constraints.
-- kubectl currently uses `KUBECTL_SOURCE=runner_preinstalled` with a
-  client/node skew gate; switch to `pinned_download` for hermetic runs.
+- kubectl uses `KUBECTL_SOURCE=pinned_download`, version 1.33.4 to match the
+  fixture node, verified against its [official SHA-256 checksum](https://dl.k8s.io/release/v1.33.4/bin/linux/amd64/kubectl.sha256).
+  This avoids runner-image client/server skew; it does not lock apt/npm/pip inputs.
 - Group B pins were chosen for compatibility (parent registry-verified:
   pycryptodomex 3.20.0, kubernetes 31.0.0, pptxgenjs 4.0.1, jinja2 3.1.6);
   the remaining pins must be re-verified on PyPI/npm by the parent
@@ -223,7 +224,8 @@ selected so the distro python3.11 is compatible with the legacy pyzmq pin.
 2. `jupyter enterprisegateway` CLI accepts the flags used
    (`--ip --port --log-level --KernelSpecManager.allowed_kernelspecs`).
 3. pptxgenjs 4.0.1 API surface used in `build_deck.js`.
-4. Optional: pinned kubectl, npm lockfile, apt snapshot lock.
+4. Recheck the kubectl checksum when changing its version; npm and apt locks
+   remain optional follow-up work for this unpublished fixture.
 
 ## Licensing
 
