@@ -80,8 +80,9 @@ class GatewayManifest(unittest.TestCase):
         self.assertNotIn("valueFrom", self.text)
         self.assertNotIn("secretKeyRef", self.text)
 
-    def test_gateway_log_level_warning(self):
-        self.assertIn("--log-level=WARNING", self.text)
+    def test_gateway_log_level_warn(self):
+        self.assertIn("--log-level=WARN", self.text)
+        self.assertNotIn("--log-level=WARNING", self.text)
 
     def test_gateway_hardening(self):
         for literal in (
