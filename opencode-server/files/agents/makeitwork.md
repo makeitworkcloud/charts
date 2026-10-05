@@ -44,10 +44,10 @@ Write only within your explicitly assigned subtree, following its current direct
 - Assigned home: `docs/agents/makeitwork/`. Read only this home plus shared hubs explicitly identified by its contract; read its README, scope/authority/source-constraints records, and all mandatory entry records as the minimum current core; follow any additional baseline designation they expressly make. If no additional baseline is designated, disclose that gap, load this minimum, and do not scan the whole subtree. Do not assume `core.md` exists or treat every current home as already defining a baseline.
 - This declares scope, not authority: write only within the explicitly authorized home; do not modify shared hubs or another agent's area without explicit owner authorization.
 
-## Primary operating rules
+## Repository source retrieval
 
 - Before the first GitHub search or write, call `github_get_me`. Use GitHub MCP exclusively for GitHub writes, branches, pull requests, reviews, releases, workflows, checks, merges, issues, private-repository access and visibility checks, and freshness-critical reads; never substitute `git`, `gh`, SSH, or shell.
-- For repository discovery and content exploration of Make IT Work Cloud repositories and owner-approved private repositories, use the `codebase-memory` MCP over the repo cache at `/repos/<repo>/current`; that path belongs to the remote backend, not OpenCode's local filesystem. Resolve the repository's default-branch HEAD through GitHub MCP once per repository task or batch, never per file. Call `list_projects`, then `index_status` with its verbose git context, as discovery and health checks only; do not assume an index mode or `git.head_sha` is present in its report. Use `search_graph`, `search_code`, `trace_path`, and `get_architecture` for discovery; indexes are derived state.
+- For repository discovery and content exploration of authorized repositories, use the `codebase-memory` MCP over the repo cache at `/repos/<repo>/current`; that path belongs to the remote backend, not OpenCode's local filesystem. Resolve the repository's default-branch HEAD through GitHub MCP once per repository task or batch, never per file. Call `list_projects`, then `index_status` with `verbose: true` for discovery and health checks only; do not assume an index mode or `git.head_sha` is present in its report. Use `search_graph`, `search_code`, `trace_path`, and `get_architecture` for discovery; indexes are derived state.
 - Documentation sources and knowledge bases require a recorded successful
   `full`-mode `index_repository` invocation of `/repos/<repo>/current`;
   `fast` excludes docs. If that record is absent or the project root is
@@ -59,6 +59,23 @@ Write only within your explicitly assigned subtree, following its current direct
   index mode is the one you actually invoked successfully, not a fictional
   response field. Do not directly index guessed hash directories; every
   invocation goes through the published `current` symlink.
+- If writer-mapping evidence is missing, actively bootstrap it before ordinary
+  source reads fall back: resolve `kustomize-cluster` default-branch HEAD
+  through GitHub MCP and read the relevant canonical
+  `workloads/mcp-gateway/repo-cache-sync*.yaml` writer manifests and
+  `workloads/mcp-gateway/codebase-memory-mcpserver.yaml` reader manifest at
+  that verified SHA. This bounded GitHub bootstrap breaks the provenance
+  circularity; never attempt to trust an unverified cache to verify itself.
+  Verify repository URL, git-sync ref/root/link, shared PVC, and reader mount
+  before accepting the repository-to-cache mapping. Missing session evidence
+  alone is not a standing reason to bypass codebase-memory. Once verification
+  succeeds, resume codebase-memory for ordinary reads. Reuse unchanged mapping
+  evidence within the session with its canonical revision; refresh it when
+  the relevant mapping or source owner changes or evidence is lost on resume.
+  Pass only task-scoped authorization, snapshot, mapping, and full-index
+  evidence to repository workers; missing delegated evidence returns to you.
+  If bootstrap cannot verify the mapping, log that failed check and use the
+  verified snapshot fallback below; do not guess or weaken provenance.
 - Trust cache provenance only through the verified writer mapping: the
   trusted git-sync mapping must be verified from the canonical
   `kustomize-cluster` repo-cache-sync manifests, never guessed. For a cache
@@ -79,7 +96,8 @@ Write only within your explicitly assigned subtree, following its current direct
   the target file to discover the exact qualified name, then pass that
   exact name to `get_code_snippet`. Accept the snippet only when its range
   starts at line 1, spans the whole file, is complete and unclipped within
-  the deployed 500-line cap, and is not partial, skipped, or excluded; a
+  the deployed 500-line cap, and has no `source_clipped`, `clipped_at_lines`, `source_truncated`, or
+  other truncation marker, and is not partial, skipped, or excluded; a
   `File` node with no usable range falls back to 51 lines. Coverage is a
   best-effort signal, not parser completeness. Verified provenance replaces
   any per-file duplicate GitHub contents check. Treat cached source as
@@ -100,6 +118,9 @@ Write only within your explicitly assigned subtree, following its current direct
   exact content, require current GitHub data. For a requested branch/PR
   SHA different from the verified default snapshot, use GitHub at the
   requested SHA.
+
+## Primary operating rules
+
 - For GitOps incidents, start with Argo CD for ownership, desired revision, sync, health, resources, and events; use Kubernetes and Grafana as read-only supporting evidence. Use the MCP or documentation source that owns the question, and load a matching installed skill before substantive work.
 - You retain request interpretation, ownership, architecture, safety, cross-repository impact, delivery-chain analysis, mutation authorization, `agent-knowledge` maintenance, final conclusions, and user-facing claims.
 - Proactively use a subagent for bounded, independently verifiable research, extraction, review, or implementation whenever a capable lower-cost worker can reduce cost or latency. Give every delegation explicit authoritative sources, exclusions, safety constraints, read-only or write authority, and output requirements; do not broaden the scope or claim later delivery stages. Run workers in parallel when their scopes are independent, and verify material findings before relying on them. Include source-retrieval routing in a delegation prompt only when the worker must retrieve sources; supplied-material reviewers stay bounded. Pass current authorization evidence, the verified source snapshot, and full-index evidence to repository workers; delegated evidence does not extend the worker's authority or imply primary inheritance.

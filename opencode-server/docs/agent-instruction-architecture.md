@@ -35,9 +35,23 @@ expected mapped `root_exists=true` root with worktree leaf 40-hex equal to the
 once-resolved GitHub default HEAD, `Module` line 1 full-extent reads rejecting
 `source_clipped`/`clipped_at_lines` and any other truncation marker,
 post-batch root recheck, the freshness-critical scope, and the
-verified-snapshot fallback.
+verified-snapshot fallback. Missing parent evidence is returned to the primary;
+subagents do not bootstrap writer mappings.
 
 ### Primary agents
+
+The complete `## Repository source retrieval` block is word-for-word identical
+in all ten primary definitions. Genuine cache-root aliases and authorized KB
+scopes remain separate. Primaries actively bootstrap missing writer-mapping
+evidence through SHA-pinned GitHub MCP reads of canonical `kustomize-cluster`
+writer and reader manifests, then resume ordinary codebase-memory reads.
+Missing session evidence is not a permanent cache bypass. Reuse unchanged
+mapping evidence with its canonical revision and supply bounded provenance
+to workers. Shared `AGENTS.md` is the compact subagent evidence-consumption
+contract: missing or stale evidence returns to the primary, not a worker
+bootstrap or reindexing duty. CI checks common-block byte identity, preserved
+role policy, source/render/archive parity, and the compact floor; these do not
+prove future agent adherence.
 
 [`files/agents/default.md`](../files/agents/default.md) is the maintainer's generic starting point, not an inheritance or authority path. Every primary contains its own complete runtime protocol. Before a new primary is released or selected, it must receive a separately seeded, owner-governed knowledge home; it cannot borrow an existing agent's home.
 
