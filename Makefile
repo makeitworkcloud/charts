@@ -125,17 +125,17 @@ test-opencode-server-agents:
 		if test -z "$$protocol_hash"; then protocol_hash="$$hash"; else test "$$hash" = "$$protocol_hash"; fi; \
 	done; \
 	retrieval_hash=; \
-	for agent in $primary_agents; do \
-		source="opencode-server/files/agents/$agent.md"; \
-		grep -Fqx "## Repository source retrieval" "$source"; \
-		block="$(sed -n '/^## Repository source retrieval$/,/^## Primary operating rules$/{ /^## Primary operating rules$/d; p; }' "$source")"; \
-		hash="$(printf '%s\n' "$block" | sha256sum | cut -d' ' -f1)"; \
-		if test -z "$retrieval_hash"; then retrieval_hash="$hash"; else test "$hash" = "$retrieval_hash"; fi; \
-		grep -Fqi "actively bootstrap it before ordinary" "$source"; \
-		grep -Fqi "alone is not a standing reason to bypass codebase-memory" "$source"; \
-		grep -Fqi "resume codebase-memory for ordinary reads" "$source"; \
+	for agent in $$primary_agents; do \
+		source="opencode-server/files/agents/$$agent.md"; \
+		grep -Fqx "## Repository source retrieval" "$$source"; \
+		block="$$(sed -n '/^## Repository source retrieval$$/,/^## Primary operating rules$$/{ /^## Primary operating rules$$/d; p; }' "$$source")"; \
+		hash="$$(printf '%s\n' "$$block" | sha256sum | cut -d' ' -f1)"; \
+		if test -z "$$retrieval_hash"; then retrieval_hash="$$hash"; else test "$$hash" = "$$retrieval_hash"; fi; \
+		grep -Fqi "actively bootstrap it before ordinary" "$$source"; \
+		grep -Fqi "alone is not a standing reason to bypass codebase-memory" "$$source"; \
+		grep -Fqi "resume codebase-memory for ordinary reads" "$$source"; \
 	done; \
-	for agent in $primary_agents $repository_workers; do \
+	for agent in $$primary_agents $$repository_workers; do \
 		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Eiq 'index_repository.{0,160}full|full.{0,160}index_repository' <<< "$$policy"; \
 		grep -Fqi 'index_status' <<< "$$policy"; \
@@ -196,10 +196,10 @@ test-opencode-server-agents:
 		! grep -Fqi 'index_repository' "opencode-server/files/agents/$$agent.md"; \
 	done; \
 	floor="$$(tr -s '[:space:]' ' ' < opencode-server/files/AGENTS.md)"; \
-	grep -Fqi 'github_get_me' <<< "$floor"; \
-	grep -Fqi 'Subagent repository routing' <<< "$floor"; \
-	grep -Fqi 'report it to the parent' <<< "$floor"; \
-	grep -Fqi 'or bootstrap writer mappings' <<< "$floor"; \
+	grep -Fqi 'github_get_me' <<< "$$floor"; \
+	grep -Fqi 'Subagent repository routing' <<< "$$floor"; \
+	grep -Fqi 'report it to the parent' <<< "$$floor"; \
+	grep -Fqi 'or bootstrap writer mappings' <<< "$$floor"; \
 	grep -Fqi '/repos/<repo>/current' <<< "$$floor"; \
 	grep -Fqi 'xnoto' <<< "$$floor"; \
 	grep -Fqi 'allowlist' <<< "$$floor"; \
