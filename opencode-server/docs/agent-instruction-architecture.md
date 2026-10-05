@@ -358,3 +358,13 @@ primary or repository-capable subagent is introduced, when agent-knowledge
 subtree authority changes, when the canonical git-sync writer mapping for the
 repository cache changes, or when evidence shows that direct primary-agent
 instructions no longer improve instruction adherence.
+
+## Primary persistent knowledge runtime contract
+
+Every primary agent receives the same complete persistent-knowledge protocol in its own runtime file. This word-for-word duplication is intentional: unconditional startup and task-scoped discovery are runtime duties for every new primary, not a build-time documentation inheritance mechanism. The default agent is the maintainer's starting point, not an inheritance or authority path. A new primary must be onboarded with a separately seeded knowledge area before release or selection; it cannot borrow another primary's home.
+
+Each seed is owned by `makeitworkcloud/agent-knowledge` and must establish its README, scope and authority, data policy, canonical source owners, a bounded core designation (which may embed small core facts or reference records), and topical index. Seed only verified reusable facts; never invent owner data. A home declaration defines read scope and write authorization but cannot grant itself authority. The default remains generic, with no own-home auto-write scope unless the owner explicitly assigns one. Changes to owner-scope indexes outside an agent's autonomous subtree require owner onboarding authority.
+
+The knowledge repository owns seeds; this chart owns runtime instructions. Private corpus content is never copied into this public chart or CI. The owner/primary verifies seed existence and provenance through an authorized GitHub route before chart merge; public static CI cannot validate private facts. Runtime startup performs the required baseline-core loading. Core designation is contract-specific: do not invent a `core.md` path or treat all current homes as already declaring one. Root `AGENTS.md` retains universal safety and repository-routing policy, not KB-specific lifecycle rules.
+
+Static checks here validate source parity, rendered configuration and archive packaging only; they do not prove runtime behavior. The fresh-session matrix remains future validation work. Delivery remains staged: chart change, published OCI artifact, automatic GitOps pin PR, separate root/child reconciliation and health, then functional verification.

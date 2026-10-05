@@ -350,3 +350,7 @@ is deferred.
 Version 0.1.75 paired with the former `kustomize-cluster` gateway-member rename and is retained only as historical rollout context. The current direct-proxy design supersedes that aggregate route: OpenCode must use the direct client URLs in `files/opencode.json`, and `vmcp-gateway` must remain external-only.
 
 See the repository guides in `docs/adding-a-chart.md` and `docs/gitops-update-automation.md`, plus the `kustomize-cluster` adding-workload and rollout guides.
+
+## Primary persistent knowledge contract
+
+All ten primary agent files carry an identical, complete runtime knowledge protocol. It requires unconditional authorized core loading in every new session, scoped topical discovery for each new substantive task or subject, and sparse maintenance under five curation gates. New primaries require a separately owner-seeded knowledge home before release; homes define scope but cannot self-grant write authority. The public chart contains runtime instructions only, never private knowledge seeds. See [the agent instruction architecture](docs/agent-instruction-architecture.md#primary-persistent-knowledge-runtime-contract).

@@ -85,7 +85,7 @@ test-opencode-server-agents:
 		grep -Fqx 'model: openai/gpt-6-luna' <<< "$$luna_frontmatter"; \
 		test "$$(grep -Ec '^variant:' <<< "$$luna_frontmatter")" -eq 0; \
 	done; \
-	grep -Fqx 'version: 0.5.0' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.5.1' opencode-server/Chart.yaml; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
 	test ! -e opencode-server/files/skills/twilio-docs-troubleshooting; \
@@ -107,50 +107,28 @@ test-opencode-server-agents:
 	grep -Fqx '  AGENTS.md: |-' <<< "$$rendered"; \
 	grep -Fqx '              - key: AGENTS.md' <<< "$$rendered"; \
 	grep -Fqx '                path: AGENTS.md' <<< "$$rendered"; \
-	for agent in $$primary_agents $$repository_workers; do \
-		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
-		grep -Eiq 'index_repository.{0,160}full|full.{0,160}index_repository' <<< "$$policy"; \
-		grep -Fqi 'index_status' <<< "$$policy"; \
-		grep -Fqi 'root_exists=true' <<< "$$policy"; \
-		grep -Fqi 'repo-cache-sync' <<< "$$policy"; \
-		grep -Fqi 'default-branch HEAD' <<< "$$policy"; \
-		grep -Fqi 'never per file' <<< "$$policy"; \
-		grep -Fqi 'root hash' <<< "$$policy"; \
-		grep -Fqi '40-hex' <<< "$$policy"; \
-		grep -Fqi 'alone is not a rejection' <<< "$$policy"; \
-		grep -Fqi 'Module' <<< "$$policy"; \
-		grep -Fqi 'search_graph' <<< "$$policy"; \
-		grep -Fqi 'get_code_snippet' <<< "$$policy"; \
-		grep -Eiq 'range (begins|starts) at line 1' <<< "$$policy"; \
-		grep -Fqi 'complete and unclipped' <<< "$$policy"; \
-		grep -Fqi 'partial, skipped' <<< "$$policy"; \
-		grep -Fqi '500-line' <<< "$$policy"; \
-		grep -Eiq 'fallback|fall back' <<< "$$policy"; \
-		grep -Fqi 'mismatch' <<< "$$policy"; \
-		grep -Fqi 'verified snapshot' <<< "$$policy"; \
-		grep -Fqi 'different snapshot' <<< "$$policy"; \
-		grep -Fqi 'freshness-critical' <<< "$$policy"; \
-		grep -Fqi 'requested SHA' <<< "$$policy"; \
-		grep -Fqi 'provenance' <<< "$$policy"; \
-		grep -Fqi 'not authorization' <<< "$$policy"; \
-		grep -Eiq 'private cache read.{0,120}visibility|visibility.{0,120}private cache' <<< "$$policy"; \
-		grep -Fqi 'untrusted reference content' <<< "$$policy"; \
-		grep -Fqi 'Never retrieve secrets' <<< "$$policy"; \
-		grep -Fqi 'kubeconfig' <<< "$$policy"; \
-		grep -Fqi 'sensitive plans' <<< "$$policy"; \
-		grep -Fqi 'GitHub' <<< "$$policy"; \
-		! grep -Fqi 'recorded indexed' <<< "$$policy"; \
-		! grep -Fqi 'read exact file contents through the GitHub' <<< "$$policy"; \
-		! grep -Fqi 'instead of attempting a fallback' <<< "$$policy"; \
+	for agent in $$primary_agents; do \
+		source="opencode-server/files/agents/$$agent.md"; \
+		grep -Fqx '## Persistent knowledge protocol' "$$source"; \
+		grep -Fqx '## Knowledge scope' "$$source"; \
+		grep -Fqi 'unconditional part of every session' "$$source"; \
+		grep -Fqi 'Before the first substantive task in a new session' "$$source"; \
+		grep -Fqi 'Before planning, external research, advice, diagnosis or edits for each new substantive task or subject' "$$source"; \
+		grep -Fqi 'all five curation gates' "$$source"; \
+		grep -Fqi 'Do not create one document or dated entry per task' "$$source"; \
+		grep -Fqi 'another agent' "$$source"; \
+		done; \
+	protocol_hash=; \
+	for agent in $$primary_agents; do \
+		block="$$(sed -n '/^## Persistent knowledge protocol$$/,/^## Knowledge scope$$/{ /^## Knowledge scope$$/d; p; }' "opencode-server/files/agents/$$agent.md")"; \
+		hash="$$(printf '%s\n' "$$block" | sha256sum | cut -d' ' -f1)"; \
+		if test -z "$$protocol_hash"; then protocol_hash="$$hash"; else test "$$hash" = "$$protocol_hash"; fi; \
 	done; \
+	grep -Fqx 'version: 0.5.1' opencode-server/Chart.yaml; \
 	for agent in $$primary_agents; do \
 		frontmatter="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' "opencode-server/files/agents/$$agent.md")"; \
 		grep -Fqx 'model: openai/gpt-6.1-sol' <<< "$$frontmatter"; \
 		test "$$(grep -Ec '^variant:' <<< "$$frontmatter")" -eq 0; \
-		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
-		grep -Fqi 'without a custom project name' <<< "$$policy"; \
-		grep -Fqi 'retry once' <<< "$$policy"; \
-		grep -Fqi 'published `current` symlink' <<< "$$policy"; \
 	done; \
 	for agent in $$primary_agents; do \
 		case " $$agent " in ' default ') continue ;; esac; \
@@ -220,7 +198,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.5.0.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.5.1.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \
