@@ -167,6 +167,15 @@ test-opencode-server-agents:
 	grep -Fqi 'equipment and preferences, sources and research, and applicable technique-default records' opencode-server/files/agents/grillmaster.md; \
 	grep -Fqi 'workspace/property.md' opencode-server/files/agents/homesteader.md; \
 	grep -Fqi 'actual vehicle (year, market, build date, engine, transmission, drivetrain, and modifications)' opencode-server/files/agents/mechanic.md; \
+	for agent in $$primary_agents; do \
+		frontmatter="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' "opencode-server/files/agents/$$agent.md")"; \
+		grep -Fqx 'model: openai/gpt-6.1-sol' <<< "$$frontmatter"; \
+		test "$$(grep -Ec '^variant:' <<< "$$frontmatter")" -eq 0; \
+		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
+		grep -Fqi 'without a custom project name' <<< "$$policy"; \
+		grep -Fqi 'retry once' <<< "$$policy"; \
+		grep -Fqi 'published `current` symlink' <<< "$$policy"; \
+	done; \
 	for agent in $$repository_workers; do \
 		grep -Eqi 'do not run .{0,3}index_repository' <<< "$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 	done; \
