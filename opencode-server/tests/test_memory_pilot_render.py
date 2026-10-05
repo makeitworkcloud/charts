@@ -370,9 +370,20 @@ class PersistentKnowledgePolicyContract(unittest.TestCase):
     def test_default_shared_baseline_is_explicit_and_bounded(self):
         with open(os.path.join(CHART_DIR, "files", "agents", "default.md"), "r", encoding="utf-8") as handle:
             text = handle.read().lower()
-        for marker in ("agents.md", "readme.md", "docs/readme.md", "docs/agents/readme.md", "entire shared baseline", "do not read another agent's private records"):
-            self.assertIn(marker.lower(), text)
-        self.assertNotIn("## Owner-context routing", text)
+        self.assertNotIn("## owner-context routing", text)
+        self.assertIn("## knowledge scope\n", text)
+        self.assertIn("## primary operating rules\n", text)
+        scope = text.split("## knowledge scope\n", 1)[1].split("\n\n## primary operating rules", 1)[0]
+        baseline = "the kb-root (`makeitworkcloud/agent-knowledge`) baseline is exactly `agents.md`, `readme.md`, `docs/readme.md`, and `docs/agents/readme.md` (governance only)."
+        self.assertIn(baseline, scope)
+        for marker in ("no assigned", "no autonomous write scope", "disclose that gap", "load only this minimum baseline", "read no other agent's private records", "do not scan private homes"):
+            self.assertIn(marker, scope)
+
+        # Decoy control: the exact paths elsewhere in a prompt are not evidence of a scoped baseline.
+        decoy = "unrelated prompt text\n" + baseline + "\n\n## knowledge scope\n- no designation\n\n## primary operating rules\n"
+        decoy_scope = decoy.split("## knowledge scope\n", 1)[1].split("\n\n## primary operating rules", 1)[0]
+        self.assertIn(baseline, decoy)
+        self.assertNotIn(baseline, decoy_scope)
 
     def test_docs_describe_runtime_contract_and_new_primary_onboarding(self):
         texts = []
