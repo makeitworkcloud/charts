@@ -203,6 +203,15 @@ class BaselineParity(unittest.TestCase):
             content = content.replace(old, new)
         with open(deployment_path, "wb") as handle:
             handle.write(content)
+        configmap_path = os.path.join(baseline_chart, "templates", "configmap.yaml")
+        with open(configmap_path, "rb") as handle:
+            content = handle.read()
+        old = b'  name: {{ include "opencode-server.fullname" . }}-config\ndata:\n'
+        new = b'  name: {{ include "opencode-server.fullname" . }}-config\n  annotations:\n    argocd.argoproj.io/sync-options: ServerSideApply=true\ndata:\n'
+        self.assertEqual(content.count(old), 1)
+        content = content.replace(old, new)
+        with open(configmap_path, "wb") as handle:
+            handle.write(content)
 
     def _extract_baseline(self, tmp):
         archive = subprocess.run(["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"], capture_output=True, cwd=REPO_ROOT)
@@ -251,12 +260,6 @@ class BaselineParity(unittest.TestCase):
             baseline_docs = self._render_chart(baseline_chart)
             current_docs = [doc for doc in yaml.safe_load_all(render([])) if doc is not None]
             try:
-                current_config = by_kind(current_docs, "ConfigMap")
-                self.assertEqual(
-                    current_config["metadata"]["annotations"],
-                    {"argocd.argoproj.io/sync-options": "ServerSideApply=true"},
-                )
-                current_config["metadata"].pop("annotations")
                 self.assertEqual(current_docs, baseline_docs)
             except AssertionError:
                 current_raw = self._raw_configmap_include(CHART_DIR)

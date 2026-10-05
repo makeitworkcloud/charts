@@ -315,6 +315,8 @@ production ConfigMap checksum, so a normal production pod rollout on the
 chart version pin can occur even when the pilot is disabled. See
 [Memory pilot](docs/memory-pilot.md) for the baseline comparison contract.
 
+The historical render fixture also applies one exact production ConfigMap metadata transform to the extracted baseline: it adds only `argocd.argoproj.io/sync-options: ServerSideApply=true` after the ConfigMap name. The ConfigMap data and full rendered-resource parity remain asserted; the resulting Deployment checksum change is therefore derived from that allowlisted metadata change, not excluded from comparison.
+
 Operators must read [Memory pilot](docs/memory-pilot.md) before enabling it:
 the pilot is single-replica persistence on a dedicated home claim with no
 high-availability or node-loss protection, and backup and restore automation
