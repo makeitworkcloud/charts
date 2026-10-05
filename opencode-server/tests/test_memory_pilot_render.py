@@ -393,7 +393,6 @@ class PersistentKnowledgePolicyContract(unittest.TestCase):
         for marker in ("no assigned", "no autonomous write scope", "disclose that gap", "load only this minimum baseline", "read no other agent's private records", "do not scan private homes"):
             self.assertIn(marker, scope)
 
-        # Decoy control: the exact paths elsewhere in a prompt are not evidence of a scoped baseline.
         decoy = "unrelated prompt text\n" + baseline + "\n\n## knowledge scope\n- no designation\n\n## primary operating rules\n"
         decoy_scope = decoy.split("## knowledge scope\n", 1)[1].split("\n\n## primary operating rules", 1)[0]
         self.assertIn(baseline, decoy)
@@ -410,7 +409,7 @@ class PersistentKnowledgePolicyContract(unittest.TestCase):
         combined = " ".join(texts)
         self.assertIn("unconditionally loads", combined)
         self.assertIn("public static ci cannot verify private seed facts", combined)
-        self.assertIn("does not prove that retrieval behavior has been tested", combined)
+        self.assertIn("not proof that retrieval behavior has been tested", combined)
 class MechanicAgentContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

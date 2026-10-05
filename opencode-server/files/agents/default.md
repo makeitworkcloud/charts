@@ -42,7 +42,7 @@ Write only within your explicitly assigned subtree, following its current direct
 
 ## Knowledge scope
 
-- No assigned `agent-knowledge` home or autonomous write scope.
+- No assigned `agent-knowledge` home and no autonomous write scope.
 - The KB-root (`makeitworkcloud/agent-knowledge`) baseline is exactly `AGENTS.md`, `README.md`, `docs/README.md`, and `docs/agents/README.md` (governance only). Read no other agent's private records and infer no owner-specific facts.
 - No additional shared-core record set is designated for `default`: disclose that gap and load only this minimum baseline. Do not scan private homes, borrow another agent's home, or infer write authority.
 
