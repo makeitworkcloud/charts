@@ -247,7 +247,7 @@ test-opencode-server-agents:
 	grep -Fqx "    description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" <<< "$$rendered"; \
 	grep -Fqx '    mode: subagent' <<< "$$rendered"; \
 	grep -Fqx '    model: openai/gpt-6.1-sol' <<< "$$rendered"; \
-	grep -Fqx '    variant: default' <<< "$$rendered"; \
+	grep -Fqx '    variant: medium' <<< "$$rendered"; \
 	grep -Fqx '              - key: terra.md' <<< "$$rendered"; \
 	grep -Fqx '                path: agents/terra.md' <<< "$$rendered"; \
 	grep -Fqx '  devops-engineer.md: |-' <<< "$$rendered"; \
