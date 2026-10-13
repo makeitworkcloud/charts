@@ -1,8 +1,8 @@
 ---
 description: Adversarial security review of infrastructure-affecting changes — OpenTofu, Kubernetes, Helm, GitHub Actions workflows, SOPS/KSOPS, network exposure, IAM/RBAC, and supply-chain pins — before merge of security-relevant changes; refuses secret retrieval or printing; not for runtime exploitation, account access, or implementation
 mode: subagent
-model: openai/gpt-6-sol
-variant: high
+model: openai/gpt-6.1-sol
+variant: xhigh
 permission:
   edit: deny
   bash: deny

@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "kimi-code-plan-cn/k3",
+  "model": "openai/gpt-6.1-sol",
   "default_agent": "default",
   "agent": {
     "build": {"disable": true},
