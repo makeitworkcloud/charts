@@ -179,6 +179,55 @@ provenance and coverage evidence passes all checks. This is the exact recipe:
    current authorization, the verified snapshot, and full-index evidence to
    delegated workers; that evidence does not extend worker authority.
 
+### Model and reasoning policy
+
+The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
+`default`. The configured OpenAI agent preferences are:
+
+| Agents | Model | Variant |
+| --- | --- | --- |
+| All ten primaries | `openai/gpt-6.1-sol` | `medium` |
+| `terra`, `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-sol` | `medium` |
+| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `xhigh` |
+| `recruiter-resume-reviewer` | `openai/gpt-6.1-sol` | `high` |
+| `luna` | `openai/gpt-6-luna` | `low` |
+| `qa-engineer` | `openai/gpt-6-luna` | `medium` |
+
+The Kimi, GLM, and MiniMax workers, 25-agent inventory, permissions, MCPs,
+provider wiring, image, and opt-in pilot are unchanged. No new agent is added.
+The reasoning policy follows [OpenAI model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection):
+Luna low for focused work, Sol medium for coordinated revisable work, and Sol
+xhigh for decisions involving conflicting evidence. Recruiter high and QA
+medium are role-specific starting points, not benchmarked quality guarantees.
+Astra remains an exceptional, explicit owner-selected review option; no agent
+or automatic escalation is introduced. Avoid a universal high/max default.
+
+The chart preserves its supported legacy frontmatter format: a base model
+plus a separate `variant` field. The pinned OpenCode 2.0.22
+[agent loader](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/core/src/config/plugin/agent.ts)
+converts that preference into a model reference with a variant. This is not a
+native V2 configuration conversion.
+
+A primary preference does not force a session's model or effort. OpenCode
+[V2 agents documentation](https://opencode.ai/v2/docs/agents) distinguishes
+session selection from agent preferences: selecting a primary does not change
+the stored model, while a subagent uses its configured model. The root default
+aligns unspecified session-model selection with Sol; clients can supply a
+model explicitly, and existing sessions keep their selection. The root model
+has no variant override; primary header `medium` is not proof that all primary
+sessions send medium effort. Verify web, TUI, API, and child-session paths
+separately. Configuration is loaded at server startup, not hot-reloaded.
+
+After an approved rollout, verify catalog presence and entitlement, a new
+unqualified session selecting `default`/Sol, unchanged persisted selection
+when switching primaries, explicit client selection taking precedence, and
+representative child agents using their configured models/variants. Use
+synthetic inputs for inference and tool-call checks; inspect only privacy-safe
+selection/effort metadata, never raw session payloads or credentials. Compare
+representative bounded Luna, coordinated Sol, and conflicting-evidence review
+tasks for outcome quality and complete-task usage/latency before claiming an
+improvement. Static CI does not exercise these behavioral cases.
+
 ### Subagents
 
 Subagents receive the short universal floor plus their dedicated agent
@@ -193,8 +242,8 @@ authorization, and final synthesis; it verifies material findings. Independent
 scopes may run in parallel.
 
 [`files/agents/terra.md`](../files/agents/terra.md) defines `terra`, a
-full-capable, generic execution subagent using `openai/gpt-6-sol` with
-the default variant. A primary may select it for bounded coding, debugging, or
+full-capable, generic execution subagent using `openai/gpt-6.1-sol` with
+the medium variant. A primary may select it for bounded coding, debugging, or
 repository tasks when it needs execution capacity. It does not change the
 `default` primary-agent selection or delegate primary ownership; the assigning
 primary must supply authority, scope, safety constraints, and completion
@@ -202,7 +251,7 @@ criteria in the task prompt.
 
 [`files/agents/devops-engineer.md`](../files/agents/devops-engineer.md) defines
 a parent-directed, read-only DevOps integration and delivery reviewer using
-`openai/gpt-6-sol` with no variant override. It reviews supplied DESIGN
+`openai/gpt-6.1-sol` with the medium variant. It reviews supplied DESIGN
 proposals and completed CHANGE diffs for CI, workflow, reusable-workflow,
 artifact, GitOps-handoff, runner, and delivery-integration contracts. All
 native and MCP tools are denied through a wildcard permission rule; the parent
@@ -212,7 +261,7 @@ retains implementation, mutation, and final authority.
 defines a supplied-evidence, read-only cloud architecture design reviewer that
 the code-capable primaries dispatch before implementing a new cloud service or
 a material change to service selection, topology, state placement, recovery,
-scaling, or recurring cost. It runs on `openai/gpt-6-sol` with the default
+scaling, or recurring cost. It runs on `openai/gpt-6.1-sol` with the medium
 variant, all native and MCP tools denied, and a bounded 500-800-word review
 budget; it does not switch models, dispatch specialists, or retrieve evidence
 itself. It may recommend a specialist for a named material risk; the primary
@@ -269,7 +318,7 @@ does all other unspecialized work.
 
 The existing `make test-opencode-server-agents` target statically covers the
 `cloud-architecture-reviewer` packaging: exact frontmatter (description,
-Sol model, default variant, subagent mode, wildcard and `edit`/`bash` tool
+Sol model, medium variant, subagent mode, wildcard and `edit`/`bash` tool
 denies), the mandatory headings and policy markers, the routing markers in
 the five code-capable primaries, the 25-agent inventory with ConfigMap and
 mount keys, and byte-exact archive inclusion. Functional review quality is
