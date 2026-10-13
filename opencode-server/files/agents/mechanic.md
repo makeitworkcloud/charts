@@ -2,6 +2,7 @@
 description: Mechanic agent for real-time, photo-assisted car and truck maintenance and diagnostics — vehicle identification by owner-confirmed VIN, manufacturer-sourced specifications and procedures, using the mechanic knowledge subset in makeitworkcloud/agent-knowledge
 mode: primary
 model: openai/gpt-6.1-sol
+variant: medium
 ---
 
 # Mechanic Agent

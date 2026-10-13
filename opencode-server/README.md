@@ -17,21 +17,54 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 - `files/agents/*.md` — owner-specific primary agents, the generic `terra` execution subagent, model-backed subagents for delegated passes, and specialized read-only SDLC subagents (adversarial code review, cloud architecture design review, DevOps integration and delivery review, QA coverage and documentation adequacy, release readiness, infrastructure security, documentation drafting)
 - `files/skills/*/SKILL.md` — specialized operational workflows
 
-A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design. Chart 0.5.3 standardizes the full cache-read procedure across all ten primaries, adds active writer-mapping bootstrap, and keeps the shared routing floor compact for subagents. Image/appVersion 2.0.22 and API version 2 remain unchanged; the consuming GitOps pin and its exact chart/API assertion must be updated separately after publication.
+A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design. Chart 0.5.4 aligns the global model and all existing Sol agents on GPT-6.1 Sol, adds explicit agent reasoning variants, and corrects stale cloud-reviewer terminology. Image/appVersion 2.0.22 and API version 2 remain unchanged; the consuming GitOps pin and its exact chart/API assertion must be updated separately after publication.
 
-The ten primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`,
-`grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, and `mechanic`)
-select `openai/gpt-6.1-sol` without a variant override. The six Terra-tier subagents
-(`terra`, `adversarial-code-reviewer`, `cloud-architecture-reviewer`,
-`devops-engineer`, `infra-security-reviewer`, and `recruiter-resume-reviewer`)
-select `openai/gpt-6-sol`, and the two Luna-tier subagents (`luna` and
-`qa-engineer`) select `openai/gpt-6-luna`; existing variants are preserved. The
-GLM and MiniMax subagents are unchanged. `opencode models openai` checks the model
-catalog; use `opencode models openai --refresh` if a model is absent. Catalog
-presence does not prove provider entitlement or successful inference. After an
-approved rollout, verify the changed models in a fresh session; existing
-sessions may retain their selected model. Configuration is loaded at server
-startup, not hot-reloaded.
+The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
+`default`. The configured OpenAI agent preferences are:
+
+| Agents | Model | Variant |
+| --- | --- | --- |
+| All ten primaries | `openai/gpt-6.1-sol` | `medium` |
+| `terra`, `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-sol` | `medium` |
+| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `xhigh` |
+| `recruiter-resume-reviewer` | `openai/gpt-6.1-sol` | `high` |
+| `luna` | `openai/gpt-6-luna` | `low` |
+| `qa-engineer` | `openai/gpt-6-luna` | `medium` |
+
+The Kimi, GLM, and MiniMax workers, 25-agent inventory, permissions, MCPs,
+provider wiring, image, and opt-in pilot are unchanged. No new agent is added.
+The reasoning policy follows [OpenAI model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection):
+Luna low for focused work, Sol medium for coordinated revisable work, and Sol
+xhigh for decisions involving conflicting evidence. Recruiter high and QA
+medium are role-specific starting points, not benchmarked quality guarantees.
+Astra remains an exceptional, explicit owner-selected review option; no agent
+or automatic escalation is introduced. Avoid a universal high/max default.
+
+The chart preserves its supported legacy frontmatter format: a base model
+plus a separate `variant` field. The pinned OpenCode 2.0.22
+[agent loader](https://github.com/anomalyco/opencode/blob/527f0b931d1f9b3ebd34e106c51b31ce5db5b075/packages/core/src/config/plugin/agent.ts)
+converts that preference into a model reference with a variant. This is not a
+native V2 configuration conversion.
+
+A primary preference does not force a session's model or effort. OpenCode
+[V2 agents documentation](https://opencode.ai/v2/docs/agents) distinguishes
+session selection from agent preferences: selecting a primary does not change
+the stored model, while a subagent uses its configured model. The root default
+aligns unspecified session-model selection with Sol; clients can supply a
+model explicitly, and existing sessions keep their selection. The root model
+has no variant override; primary header `medium` is not proof that all primary
+sessions send medium effort. Verify web, TUI, API, and child-session paths
+separately. Configuration is loaded at server startup, not hot-reloaded.
+
+After an approved rollout, verify catalog presence and entitlement, a new
+unqualified session selecting `default`/Sol, unchanged persisted selection
+when switching primaries, explicit client selection taking precedence, and
+representative child agents using their configured models/variants. Use
+synthetic inputs for inference and tool-call checks; inspect only privacy-safe
+selection/effort metadata, never raw session payloads or credentials. Compare
+representative bounded Luna, coordinated Sol, and conflicting-evidence review
+tasks for outcome quality and complete-task usage/latency before claiming an
+improvement. Static CI does not exercise these behavioral cases.
 
 Pricing and account entitlement for `gpt-6.1-sol` have not been verified for
 this change. No token rates, relative savings, or total task-cost claims are
@@ -46,13 +79,14 @@ rollout; roll back only through a separate GitOps chart pin revision.
 ### Kimi provider-id migration
 
 The four Kimi subagents (`kimi`, `kimi-256k`, `docs-writer`, and
-`release-engineer`) and the global fallback model now select the
-`kimi-code-plan-cn` provider id. Upstream renamed `kimi-for-coding` to
+`release-engineer`) retain the `kimi-code-plan-cn` provider id. The historical
+migration also moved the global fallback to Kimi CN; chart 0.5.4 replaces only
+that root model with Sol while retaining the migrated Kimi worker/provider wiring. Upstream renamed `kimi-for-coding` to
 `kimi-code-plan-cn` for the same `api.kimi.com` endpoint and created a
 separate global Kimi provider
 ([models.dev commit](https://github.com/anomalyco/models.dev/commit/ae065079d839cd1e4d824007aa8acef87ff5465f));
 selecting that separate global provider would be its own owner decision
-requiring confirmation of the appropriate account. The chart migration changes only ids: the
+requiring confirmation of the appropriate account. That historical chart migration changed only ids: the
 `files/opencode.json` global fallback model, enabled-provider allowlist entry,
 and provider key, plus the four agent model prefixes. Model suffixes (`k3` and
 `k3-256k`), variants, prompt bytes, the `{env:KIMI_API_KEY}` reference, and the
@@ -66,11 +100,11 @@ After a confirmed rollout, check that the deployed OpenCode model catalog lists
 the `kimi-code-plan-cn` keys, then verify fresh-session inference and tool
 calls.
 
-The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6-sol` with the default model configuration and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
+The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6.1-sol` with the medium variant and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### Cloud architecture design review
 
-The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6-sol` with the default variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
+The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6.1-sol` with the medium variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
 
 The review is requirements-led and simplicity-biased: it prefers established vendor- or canonical-owner-maintained solutions, challenges unsupported complexity, and no cloud vendor is preferred by default. The five code-capable primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`) route material designs to it with a compact design brief and skip routine changes within an established pattern; the existing pre-pull-request review gates are unchanged, and this design review does not replace them.
 
@@ -285,35 +319,30 @@ pinned independently through `memoryPilot.image` and keeps its v1 `web` args.
 The production v2 pin does not alter the pilot render, and this split does
 not activate, migrate, or repair the disabled pilot experiment.
 
-The historical 0.4.0 baseline comparison permits the QA reviewer's existing
-end-of-file correction and exactly seventeen approved model-header changes: the
-nine primary agents' exact `openai/gpt-5.6-terra` to `openai/gpt-6.1-sol`
-model change with removal of
-`variant: default`, the six Terra-tier subagents' exact Terra-to-Sol model-line
-change with each variant preserved, and the two Luna-tier subagents' exact
-Luna-to-GPT-6 model-line change; it also permits the ten-primary runtime protocol and scope migration; the
-historical render fixture adopts those explicitly enumerated prompts, while a
-pinned-base regression check preserves every post-operating-rules byte, and
-the homesteader confidentiality/workflow substitutions, plus the four Kimi subagents' exact model-prefix line updates
-from `kimi-for-coding` to `kimi-code-plan-cn` and the three exact
-`opencode.json` config-line substitutions. In addition, the comparison permits
-exactly one approved new agent file, `files/agents/mechanic.md`, absent from
-the historical baseline: the test asserts its absence in the extracted
-baseline and copies the current chart source in after the historical
-transforms. The historical counts above are unchanged; the mechanic agent did
-not exist in the historical baseline. In addition, the comparison permits
-exactly four approved production runtime changes applied to the extracted
-baseline before rendering: the production `values.yaml` image tag asserted
-exactly once and replaced from
-`1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8`
-to `2.0.22@sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19`,
-the production Deployment container args change from `web` to `serve`, the
-added single-replica `Recreate` strategy, and the explicit
-`OPENCODE_DB=opencode.db` environment entry; the pilot image is pinned
-separately and is not part of the production baseline render. Non-primary agent bytes remain identical to the historical fixture; primary source-to-ConfigMap byte parity and chart-archive parity remain exact, while a pinned-base check protects every primary operating-rules tail. These changes affect the
-production ConfigMap checksum, so a normal production pod rollout on the
-chart version pin can occur even when the pilot is disabled. See
-[Memory pilot](docs/memory-pilot.md) for the baseline comparison contract.
+The historical 0.4.0 baseline commit `32a6b91` remains fixed. Its original
+seventeen model-header migrations and the Kimi provider-id migration are
+retained as historical transforms. An additional exact reasoning-policy
+transform applies medium to the nine historical primaries; upgrades the six
+historical Sol subagents to GPT-6.1 Sol with the variants listed above; adds
+low/medium to Luna/QA; replaces only the cloud reviewer's stale Terra sentence;
+and changes the post-migration root Kimi CN model to Sol. Each old block must
+occur exactly once. The mechanic is still the sole approved new agent absent
+from that baseline and is copied from the current source.
+
+The existing ten-primary runtime-policy transform remains explicit; a separate
+pinned-base check protects every primary operating-rules tail. Non-primary
+bytes remain equal to the transformed historical fixture, with exactly the
+existing QA final-newline correction. Source-to-ConfigMap and archive byte
+parity remain enforced, and independent tests assert all eighteen OpenAI
+model/variant pairs and reject duplicate header keys. No blanket subagent copy
+or baseline rebase is permitted.
+
+The four production-runtime transforms remain the image tag `1.18.29` to the
+pinned `2.0.22`, `web` to `serve` args, single-replica `Recreate`, and
+`OPENCODE_DB=opencode.db`; the independently pinned v1 pilot is unchanged.
+These production configuration changes alter the checksum and can replace the
+production pod after GitOps selection even with the pilot disabled. See
+[Memory pilot](docs/memory-pilot.md) for the comparison contract.
 
 The historical render fixture also applies one exact production ConfigMap metadata transform to the extracted baseline: it adds only `argocd.argoproj.io/sync-options: ServerSideApply=true` after the ConfigMap name. The ConfigMap data and full rendered-resource parity remain asserted; the resulting Deployment checksum change is therefore derived from that allowlisted metadata change, not excluded from comparison.
 
@@ -329,6 +358,18 @@ is deferred.
 3. After publication, charts automation opens or updates a `kustomize-cluster` pull request changing the OpenCode Application's pinned `targetRevision` and enables GitHub auto-merge.
 4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
 5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
+
+### 0.5.4 consumer coordination gate
+
+At [kustomize-cluster revision 5d51403](https://github.com/makeitworkcloud/kustomize-cluster/blob/5d51403d9ec697f0ea020007ad5872cd222fbb95/.github/workflows/test.yml#L916),
+the consumer CI assertion couples chart `0.5.3` to exporter API selector
+`2`. The existing publisher changes only the Application pin, so the
+resulting `0.5.4` pin PR cannot pass that assertion until a separate consumer
+change updates its expected chart version to `0.5.4`, keeping selector `2`.
+Do not bypass the required checks. This chart does not edit consumer desired
+state, its tests, or the updater workflow; publication can complete while
+selection remains blocked. Reverify this gate against the consumer's current
+revision before coordinating its update.
 
 ### Historical 0.1.75 aggregate cutover
 

@@ -135,6 +135,43 @@ class BaselineParity(unittest.TestCase):
         for name in APPROVED_LUNA_MODEL_FILES:
             self._replace_frontmatter_line(agents_dir, name, b"model: openai/gpt-5.6-luna\n", b"model: openai/gpt-6-luna\n")
 
+    def _apply_approved_reasoning_policy(self, baseline_chart):
+        agents_dir = os.path.join(baseline_chart, "files", "agents")
+        for name in APPROVED_PRIMARY_MODEL_FILES:
+            self._replace_frontmatter_line(agents_dir, name, b"model: openai/gpt-6.1-sol\n", b"model: openai/gpt-6.1-sol\nvariant: medium\n")
+        changes = {
+            "adversarial-code-reviewer.md": (b"high", b"xhigh"),
+            "infra-security-reviewer.md": (b"high", b"xhigh"),
+            "recruiter-resume-reviewer.md": (b"high", b"high"),
+            "cloud-architecture-reviewer.md": (b"default", b"medium"),
+            "terra.md": (b"default", b"medium"),
+            "devops-engineer.md": (None, b"medium"),
+        }
+        for name, (old_variant, new_variant) in changes.items():
+            old = b"model: openai/gpt-6-sol\n"
+            if old_variant is not None:
+                old += b"variant: " + old_variant + b"\n"
+            new = b"model: openai/gpt-6.1-sol\nvariant: " + new_variant + b"\n"
+            self._replace_frontmatter_line(agents_dir, name, old, new)
+        for name, variant in (("luna.md", b"low"), ("qa-engineer.md", b"medium")):
+            self._replace_frontmatter_line(agents_dir, name, b"model: openai/gpt-6-luna\n", b"model: openai/gpt-6-luna\nvariant: " + variant + b"\n")
+        path = os.path.join(agents_dir, "cloud-architecture-reviewer.md")
+        with open(path, "rb") as handle:
+            content = handle.read()
+        old = b"This agent uses Terra with the default variant."
+        self.assertEqual(content.count(old), 1)
+        content = content.replace(old, b"This agent uses GPT-6.1 Sol with the medium variant.")
+        with open(path, "wb") as handle:
+            handle.write(content)
+        path = os.path.join(baseline_chart, "files", "opencode.json")
+        with open(path, "rb") as handle:
+            content = handle.read()
+        old = b'"model": "kimi-code-plan-cn/k3",'
+        self.assertEqual(content.count(old), 1)
+        content = content.replace(old, b'"model": "openai/gpt-6.1-sol",')
+        with open(path, "wb") as handle:
+            handle.write(content)
+
     def _apply_approved_homesteader_changes(self, baseline_chart):
         path = os.path.join(baseline_chart, "files", "agents", "homesteader.md")
         with open(path, "rb") as handle:
@@ -236,6 +273,7 @@ class BaselineParity(unittest.TestCase):
         self._apply_approved_model_changes(baseline_chart)
         self._apply_approved_homesteader_changes(baseline_chart)
         self._apply_approved_provider_migration(baseline_chart)
+        self._apply_approved_reasoning_policy(baseline_chart)
         self._apply_approved_new_agent_files(baseline_chart)
         self._apply_primary_runtime_policy(baseline_chart)
         self._apply_approved_production_runtime_changes(baseline_chart)
@@ -319,7 +357,7 @@ class BaselineParity(unittest.TestCase):
 
 
 class PrimaryModelContract(unittest.TestCase):
-    def test_exactly_ten_primary_headers_use_gpt_6_1_sol_without_variant(self):
+    def test_exactly_ten_primary_headers_use_gpt_6_1_sol_medium(self):
         expected = {"default.md", "makeitwork.md", "xnoto.md", "career.md", "teacher.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "mechanic.md"}
         actual = set()
         for path in sorted(glob.glob(os.path.join(CHART_DIR, "files", "agents", "*.md"))):
@@ -336,10 +374,83 @@ class PrimaryModelContract(unittest.TestCase):
                 with self.subTest(agent=name):
                     self.assertEqual(header.get("mode"), "primary")
                     self.assertEqual(header.get("model"), "openai/gpt-6.1-sol")
-                    self.assertNotIn("variant", header)
+                    self.assertEqual(header.get("variant"), "medium")
                     keys = [key.value for key, value in yaml.compose(parts[1]).value]
                     self.assertEqual(len(keys), len(set(keys)), "duplicate frontmatter key")
         self.assertEqual(actual, expected)
+
+
+class OpenAIModelVariantContract(unittest.TestCase):
+    EXPECTED = {
+        "default.md": ("openai/gpt-6.1-sol", "medium"),
+        "makeitwork.md": ("openai/gpt-6.1-sol", "medium"),
+        "xnoto.md": ("openai/gpt-6.1-sol", "medium"),
+        "career.md": ("openai/gpt-6.1-sol", "medium"),
+        "teacher.md": ("openai/gpt-6.1-sol", "medium"),
+        "grillmaster.md": ("openai/gpt-6.1-sol", "medium"),
+        "homerepair.md": ("openai/gpt-6.1-sol", "medium"),
+        "homesteader.md": ("openai/gpt-6.1-sol", "medium"),
+        "lawnmowerman.md": ("openai/gpt-6.1-sol", "medium"),
+        "mechanic.md": ("openai/gpt-6.1-sol", "medium"),
+        "terra.md": ("openai/gpt-6.1-sol", "medium"),
+        "cloud-architecture-reviewer.md": ("openai/gpt-6.1-sol", "medium"),
+        "devops-engineer.md": ("openai/gpt-6.1-sol", "medium"),
+        "adversarial-code-reviewer.md": ("openai/gpt-6.1-sol", "xhigh"),
+        "infra-security-reviewer.md": ("openai/gpt-6.1-sol", "xhigh"),
+        "recruiter-resume-reviewer.md": ("openai/gpt-6.1-sol", "high"),
+        "luna.md": ("openai/gpt-6-luna", "low"),
+        "qa-engineer.md": ("openai/gpt-6-luna", "medium"),
+    }
+
+    def assert_header(self, text, expected):
+        parts = text.split("---\n", 2)
+        self.assertEqual(len(parts), 3)
+        self.assertEqual(parts[0], "")
+        keys = [key.value for key, value in yaml.compose(parts[1]).value]
+        self.assertEqual(len(keys), len(set(keys)), "duplicate frontmatter key")
+        header = yaml.safe_load(parts[1])
+        self.assertEqual((header.get("model"), header.get("variant")), expected)
+        return header
+
+    def test_source_and_rendered_openai_headers_match_exact_matrix(self):
+        data = by_kind(render_docs([]), "ConfigMap")["data"]
+        actual = set()
+        for path in sorted(glob.glob(os.path.join(CHART_DIR, "files", "agents", "*.md"))):
+            name = os.path.basename(path)
+            with open(path, "r", encoding="utf-8") as handle:
+                text = handle.read()
+            header = yaml.safe_load(text.split("---\n", 2)[1])
+            if str(header.get("model", "")).startswith("openai/"):
+                actual.add(name)
+            if name in self.EXPECTED:
+                with self.subTest(agent=name):
+                    self.assert_header(text, self.EXPECTED[name])
+                    self.assert_header(data[name] + "\n", self.EXPECTED[name])
+        self.assertEqual(actual, set(self.EXPECTED))
+        self.assertEqual(len(actual), 18)
+
+    def test_header_contract_rejects_missing_wrong_and_duplicate_selections(self):
+        expected = ("openai/gpt-6.1-sol", "medium")
+        valid = "---\nmodel: openai/gpt-6.1-sol\nvariant: medium\n---\n"
+        self.assert_header(valid, expected)
+        invalid = (
+            valid.replace("variant: medium\n", ""),
+            valid.replace("gpt-6.1-sol", "gpt-6-sol"),
+            valid.replace("variant: medium", "variant: max"),
+            valid.replace("variant: medium", "variant: unsupported"),
+            valid.replace("variant: medium", "variant: medium\nvariant: medium"),
+            valid.replace("model: openai/gpt-6.1-sol", "model: openai/gpt-6.1-sol\nmodel: openai/gpt-6.1-sol"),
+        )
+        for text in invalid:
+            with self.subTest(frontmatter=text):
+                with self.assertRaises(AssertionError):
+                    self.assert_header(text, expected)
+
+    def test_cloud_body_matches_medium_sol_header(self):
+        text = chart_file("files", "agents", "cloud-architecture-reviewer.md")
+        self.assertEqual(text.count("This agent uses GPT-6.1 Sol with the medium variant."), 1)
+        self.assertNotIn("This agent uses Terra", text)
+        self.assertIn("Do not switch models", text)
 
 
 class PersistentKnowledgePolicyContract(unittest.TestCase):
@@ -474,14 +585,14 @@ class MechanicAgentContract(unittest.TestCase):
             cls.content = handle.read()
         cls.policy = " ".join(cls.content.split()).lower()
 
-    def test_frontmatter_is_gpt_6_1_sol_primary_without_variant(self):
+    def test_frontmatter_is_gpt_6_1_sol_primary_medium(self):
         parts = self.content.split("---\n", 2)
         self.assertEqual(len(parts), 3)
         header = parts[1]
         self.assertIn("description: ", header)
         self.assertEqual(header.count("mode: primary\n"), 1)
         self.assertEqual(header.count("model: openai/gpt-6.1-sol\n"), 1)
-        self.assertNotIn("variant:", header)
+        self.assertEqual(header.count("variant: medium\n"), 1)
 
     def test_knowledge_home_namespace_and_layout(self):
         self.assertIn("docs/agents/mechanic/", self.content)
@@ -626,7 +737,10 @@ class DefaultRendering(unittest.TestCase):
 
     def test_opencode_json_uses_migrated_kimi_provider(self):
         cfg = json.loads(self.config_map["data"]["opencode.json"])
-        self.assertEqual(cfg["model"], "kimi-code-plan-cn/k3")
+        self.assertEqual(cfg["model"], "openai/gpt-6.1-sol")
+        self.assertEqual(cfg["default_agent"], "default")
+        for agent in ("build", "plan"):
+            self.assertTrue(cfg["agent"][agent]["disable"], agent)
         self.assertEqual(cfg["enabled_providers"], ["kimi-code-plan-cn", "minimax-coding-plan", "openai", "zai-coding-plan"])
         self.assertEqual(cfg["provider"], {"kimi-code-plan-cn": {"options": {"apiKey": "{env:KIMI_API_KEY}"}}})
         self.assertNotIn("kimi-for-coding", cfg["provider"])

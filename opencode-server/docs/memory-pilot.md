@@ -124,63 +124,38 @@ data.
 
 ## Baseline and checksum parity
 
-The pilot tests retain the historical 0.4.0 baseline commit `32a6b91` and
-allow only enumerated agent changes: the QA reviewer's existing end-of-file
-correction plus exactly seventeen approved model-header changes, eight
-explicit knowledge-first sections placed before their named agents' operating
-rules, one owner-context routing section for `default`, the homesteader's
-explicit confidentiality and workflow replacements, and the approved Kimi
-provider-id migration of four further frontmatter model-prefix updates and
-three exact `files/opencode.json` config-line substitutions. In addition, the
-comparison permits exactly one approved new agent file,
-`files/agents/mechanic.md`, which does not exist in the historical 0.4.0
-baseline: the test asserts its absence in the extracted baseline and copies
-the current chart source in after the historical transforms. The comparison
-also permits exactly four approved production runtime changes applied to the
-extracted baseline before rendering: the production `values.yaml` image tag
-asserted exactly once and replaced from
-`1.18.29@sha256:ecc3bf96ee55dad226d9cde50d79aaa8a1215c47860c0fcdc71570461bf438b8`
-to `2.0.22@sha256:11f2b6c96d380867387fbee390c06cb47efffd9fdc37009b4cd40795b45dad19`,
-the production Deployment container args change from `web` to `serve`, the
-added single-replica `Recreate` strategy, and the explicit
-`OPENCODE_DB=opencode.db` environment entry. The pilot remains on the
-historical v1 image through the separate `memoryPilot.image` values and keeps
-its v1 `web` args; the production v2 runtime changes do not alter the pilot
-render. The historical constants — the seventeen approved model-header
-changes, the eight knowledge-first sections, the `default` owner-context
-section, the homesteader substitutions, and the Kimi migration — are
-unchanged. The baseline
-`files/agents/qa-engineer.md` lacks a final newline; the render comparison
-appends exactly one. The nine primary files (`career.md`, `default.md`,
-`grillmaster.md`, `homerepair.md`, `homesteader.md`, `lawnmowerman.md`,
-`makeitwork.md`, `teacher.md`, and `xnoto.md`) receive the exact frontmatter
-replacement from `openai/gpt-5.6-terra` plus `variant: default` to
-`openai/gpt-6.1-sol` with no variant override. The eight named primaries
-(all except `default.md`) receive explicit literal policy paragraphs with
-one asserted early anchor; `default` receives its own explicit read-only
-routing paragraph. The homesteader substitutions are independently asserted
-to occur once. The six Terra-tier files (`adversarial-code-reviewer.md`,
-`cloud-architecture-reviewer.md`, `devops-engineer.md`,
-`infra-security-reviewer.md`, `recruiter-resume-reviewer.md`, and `terra.md`)
-receive the exact model-line replacement from `openai/gpt-5.6-terra` to
-`openai/gpt-6-sol` with each existing variant preserved. The two Luna-tier
-files (`luna.md` and `qa-engineer.md`) receive the exact model-line
-replacement from `openai/gpt-5.6-luna` to `openai/gpt-6-luna`. The four Kimi
-subagents (`kimi.md` to `kimi-code-plan-cn/k3`; `kimi-256k.md`,
-`docs-writer.md`, and `release-engineer.md` to `kimi-code-plan-cn/k3-256k`,
-each existing variant preserved) receive the exact model-prefix line
-replacement from `kimi-for-coding` to `kimi-code-plan-cn`, and the baseline
-`files/opencode.json` receives exactly three config-line substitutions: the
-global fallback model, the enabled-provider allowlist entry, and the provider
-key. The test asserts each old block exists exactly once before replacing it;
-all other agent bytes and production render comparisons remain enforced.
-Static checks cannot prove actual knowledge retrieval or application; use the
-fresh-session acceptance matrix in [Agent instruction architecture](agent-instruction-architecture.md)
-after separately approved rollout. These changes affect the production
-ConfigMap checksum relative to the published 0.4.0 chart, so a normal
-production pod rollout on the chart version pin can occur even when the pilot
-is disabled. No claim is made that the current production manifest or checksum
-exactly matches the original baseline.
+The historical 0.4.0 baseline commit `32a6b91` remains fixed. Its original
+seventeen model-header migrations and the Kimi provider-id migration are
+retained as historical transforms. An additional exact reasoning-policy
+transform applies medium to the nine historical primaries; upgrades the six
+historical Sol subagents to GPT-6.1 Sol with the variants in the [chart model policy](../README.md#packaged-configuration); adds
+low/medium to Luna/QA; replaces only the cloud reviewer's stale Terra sentence;
+and changes the post-migration root Kimi CN model to Sol. Each old block must
+occur exactly once. The mechanic is still the sole approved new agent absent
+from that baseline and is copied from the current source.
+
+The existing ten-primary runtime-policy transform remains explicit; a separate
+pinned-base check protects every primary operating-rules tail. Non-primary
+bytes remain equal to the transformed historical fixture, with exactly the
+existing QA final-newline correction. Source-to-ConfigMap and archive byte
+parity remain enforced, and independent tests assert all eighteen OpenAI
+model/variant pairs and reject duplicate header keys. No blanket subagent copy
+or baseline rebase is permitted.
+
+The four production-runtime transforms remain the image tag `1.18.29` to the
+pinned `2.0.22`, `web` to `serve` args, single-replica `Recreate`, and
+`OPENCODE_DB=opencode.db`; the independently pinned v1 pilot is unchanged.
+These production configuration changes alter the checksum and can replace the
+production pod after GitOps selection even with the pilot disabled. See
+[the chart README](../README.md) for the comparison contract.
+
+The historical production ConfigMap transform still adds exactly
+`argocd.argoproj.io/sync-options: ServerSideApply=true`. Rendered resource
+and data parity remain enforced; no checksum exclusions are introduced.
+Static checks cannot prove inference, effective effort, or knowledge retrieval;
+use the fresh-session acceptance matrix in
+[Agent instruction architecture](agent-instruction-architecture.md) after a
+separately approved rollout.
 
 ## Security posture
 
