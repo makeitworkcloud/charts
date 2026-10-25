@@ -221,6 +221,16 @@ class BaselineParity(unittest.TestCase):
         with open(config_path, "wb") as handle:
             handle.write(content)
 
+    def _apply_approved_kimi_3_1_model_changes(self, baseline_chart):
+        agents_dir = os.path.join(baseline_chart, "files", "agents")
+        changes = {
+            "kimi.md": (b"mode: subagent\nmodel: kimi-code-plan-cn/k3\nvariant: low\n", b"mode: subagent\nmodel: kimi-code-plan-cn/k3.1-pro\nvariant: low\n"),
+            "docs-writer.md": (b"mode: subagent\nmodel: kimi-code-plan-cn/k3-256k\nvariant: high\n", b"mode: subagent\nmodel: kimi-code-plan-cn/k3.1-pro\nvariant: high\n"),
+            "release-engineer.md": (b"mode: subagent\nmodel: kimi-code-plan-cn/k3-256k\nvariant: high\n", b"mode: subagent\nmodel: kimi-code-plan-cn/k3.1-pro\nvariant: high\n"),
+        }
+        for name, (old, new) in changes.items():
+            self._replace_frontmatter_line(agents_dir, name, old, new)
+
     def _apply_approved_new_agent_files(self, baseline_chart):
         baseline_agents = os.path.join(baseline_chart, "files", "agents")
         current_agents = os.path.join(CHART_DIR, "files", "agents")
@@ -273,6 +283,7 @@ class BaselineParity(unittest.TestCase):
         self._apply_approved_model_changes(baseline_chart)
         self._apply_approved_homesteader_changes(baseline_chart)
         self._apply_approved_provider_migration(baseline_chart)
+        self._apply_approved_kimi_3_1_model_changes(baseline_chart)
         self._apply_approved_reasoning_policy(baseline_chart)
         self._apply_approved_new_agent_files(baseline_chart)
         self._apply_primary_runtime_policy(baseline_chart)
@@ -451,6 +462,82 @@ class OpenAIModelVariantContract(unittest.TestCase):
         self.assertEqual(text.count("This agent uses GPT-6.1 Sol with the medium variant."), 1)
         self.assertNotIn("This agent uses Terra", text)
         self.assertIn("Do not switch models", text)
+
+
+class KimiModelVariantContract(unittest.TestCase):
+    EXPECTED = {
+        "kimi.md": ("kimi-code-plan-cn/k3.1-pro", "low", "subagent"),
+        "kimi-256k.md": ("kimi-code-plan-cn/k3-256k", "high", "subagent"),
+        "docs-writer.md": ("kimi-code-plan-cn/k3.1-pro", "high", "subagent"),
+        "release-engineer.md": ("kimi-code-plan-cn/k3.1-pro", "high", "subagent"),
+    }
+
+    def assert_header(self, text, expected):
+        parts = text.split("---\n", 2)
+        self.assertEqual(len(parts), 3)
+        self.assertEqual(parts[0], "")
+        node = yaml.compose(parts[1])
+        self.assertIsInstance(node, yaml.MappingNode)
+        keys = [key.value for key, value in node.value]
+        self.assertEqual(len(keys), len(set(keys)), "duplicate frontmatter key")
+        header = yaml.safe_load(parts[1])
+        self.assertEqual(tuple(header.get(key) for key in ("model", "variant", "mode")), expected)
+
+    def assert_inventory(self, agents):
+        actual = set()
+        for name, text in agents.items():
+            parts = text.split("---\n", 2)
+            self.assertEqual(len(parts), 3, name)
+            self.assertEqual(parts[0], "", name)
+            node = yaml.compose(parts[1])
+            self.assertIsInstance(node, yaml.MappingNode, name)
+            models = [value.value for key, value in node.value if key.value == "model" and isinstance(value, yaml.ScalarNode)]
+            if name.startswith("kimi") or any(model.startswith("kimi") for model in models):
+                actual.add(name)
+            if name in self.EXPECTED:
+                with self.subTest(agent=name):
+                    self.assert_header(text, self.EXPECTED[name])
+        self.assertEqual(actual, set(self.EXPECTED))
+        self.assertEqual(len(actual), 4)
+
+    def test_source_and_rendered_kimi_headers_match_exact_matrix(self):
+        source = {}
+        for path in sorted(glob.glob(os.path.join(CHART_DIR, "files", "agents", "*.md"))):
+            with open(path, "r", encoding="utf-8") as handle:
+                source[os.path.basename(path)] = handle.read()
+        data = by_kind(render_docs([]), "ConfigMap")["data"]
+        rendered = {name: text + "\n" for name, text in data.items() if name.endswith(".md") and name != "AGENTS.md" and not name.startswith("skills-")}
+        with self.subTest(surface="source"):
+            self.assert_inventory(source)
+        with self.subTest(surface="rendered"):
+            self.assert_inventory(rendered)
+
+    def test_header_contract_rejects_missing_wrong_and_duplicate_selections(self):
+        for expected in set(self.EXPECTED.values()):
+            valid = "---\nmodel: %s\nvariant: %s\nmode: %s\n---\n" % expected
+            self.assert_header(valid, expected)
+            for key, value in zip(("model", "variant", "mode"), expected):
+                line = "%s: %s\n" % (key, value)
+                invalid = [valid.replace(line, ""), valid.replace(line, line + line)]
+                for wrong in ("unsupported", "none", "primary" if key == "mode" else "kimi-code-plan-cn/k3.1-pro-highspeed" if key == "model" else "max"):
+                    invalid.append(valid.replace(line, "%s: %s\n" % (key, wrong)))
+                for text in invalid:
+                    with self.subTest(expected=expected, key=key, frontmatter=text):
+                        with self.assertRaises(AssertionError):
+                            self.assert_header(text, expected)
+
+    def test_inventory_rejects_missing_and_extra_kimi_agents(self):
+        valid = {name: "---\nmodel: %s\nvariant: %s\nmode: %s\n---\n" % expected for name, expected in self.EXPECTED.items()}
+        self.assert_inventory(valid)
+        for name in self.EXPECTED:
+            missing = dict(valid)
+            del missing[name]
+            with self.subTest(missing=name):
+                with self.assertRaises(AssertionError):
+                    self.assert_inventory(missing)
+        extra = dict(valid, **{"extra-worker.md": valid["kimi.md"]})
+        with self.assertRaises(AssertionError):
+            self.assert_inventory(extra)
 
 
 class PersistentKnowledgePolicyContract(unittest.TestCase):
@@ -747,7 +834,7 @@ class DefaultRendering(unittest.TestCase):
         self.assertNotIn("kimi-for-coding", json.dumps(cfg))
 
     def test_kimi_agent_headers_use_migrated_provider(self):
-        expected = {"kimi.md": ("kimi-code-plan-cn/k3", "low"), "kimi-256k.md": ("kimi-code-plan-cn/k3-256k", "high"), "docs-writer.md": ("kimi-code-plan-cn/k3-256k", "high"), "release-engineer.md": ("kimi-code-plan-cn/k3-256k", "high")}
+        expected = {"kimi.md": ("kimi-code-plan-cn/k3.1-pro", "low"), "kimi-256k.md": ("kimi-code-plan-cn/k3-256k", "high"), "docs-writer.md": ("kimi-code-plan-cn/k3.1-pro", "high"), "release-engineer.md": ("kimi-code-plan-cn/k3.1-pro", "high")}
         for key, (model, variant) in expected.items():
             parts = self.config_map["data"][key].split("---\n", 2)
             self.assertEqual(len(parts), 3, key)

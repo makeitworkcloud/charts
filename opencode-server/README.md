@@ -17,7 +17,7 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 - `files/agents/*.md` — owner-specific primary agents, the generic `terra` execution subagent, model-backed subagents for delegated passes, and specialized read-only SDLC subagents (adversarial code review, cloud architecture design review, DevOps integration and delivery review, QA coverage and documentation adequacy, release readiness, infrastructure security, documentation drafting)
 - `files/skills/*/SKILL.md` — specialized operational workflows
 
-A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design. Chart 0.5.4 aligns the global model and all existing Sol agents on GPT-6.1 Sol, adds explicit agent reasoning variants, and corrects stale cloud-reviewer terminology. Image/appVersion 2.0.22 and API version 2 remain unchanged; the consuming GitOps pin and its exact chart/API assertion must be updated separately after publication.
+A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design. Chart 0.5.4 aligns the global model and all existing Sol agents on GPT-6.1 Sol, adds explicit agent reasoning variants, and corrects stale cloud-reviewer terminology. Chart 0.5.5 upgrades three Kimi model headers to K3.1 Pro while retaining the reduced-quota `kimi-256k` agent. Image/appVersion 2.0.22 and API version 2 remain unchanged; the consuming GitOps pin and its exact chart/API assertion must be updated separately after publication.
 
 The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
 `default`. The configured OpenAI agent preferences are:
@@ -31,8 +31,10 @@ The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
 | `luna` | `openai/gpt-6-luna` | `low` |
 | `qa-engineer` | `openai/gpt-6-luna` | `medium` |
 
-The Kimi, GLM, and MiniMax workers, 25-agent inventory, permissions, MCPs,
-provider wiring, image, and opt-in pilot are unchanged. No new agent is added.
+Chart 0.5.4 left the Kimi, GLM, and MiniMax workers unchanged. Chart 0.5.5
+updates three Kimi model headers as described below; the 25-agent inventory,
+permissions, MCPs, provider wiring, image, and opt-in pilot remain unchanged.
+No new agent is added.
 The reasoning policy follows [OpenAI model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection):
 Luna low for focused work, Sol medium for coordinated revisable work, and Sol
 xhigh for decisions involving conflicting evidence. Recruiter high and QA
@@ -76,6 +78,30 @@ verify account entitlement and current pricing, and accept the resulting usage
 and cost. Fresh-session inference and tool-call checks remain required after
 rollout; roll back only through a separate GitOps chart pin revision.
 
+### Kimi 3.1 model policy (0.5.5)
+
+Chart 0.5.5 changes only the model headers of three Kimi subagents:
+
+| Agent | Model | Variant | Mode |
+| --- | --- | --- | --- |
+| `kimi` | `kimi-code-plan-cn/k3.1-pro` | `low` | `subagent` |
+| `docs-writer` | `kimi-code-plan-cn/k3.1-pro` | `high` | `subagent` |
+| `release-engineer` | `kimi-code-plan-cn/k3.1-pro` | `high` | `subagent` |
+| `kimi-256k` | `kimi-code-plan-cn/k3-256k` | `high` | `subagent` |
+
+The exact provider-qualified `kimi-code-plan-cn/k3.1-pro` ID and its
+`low`/`high` variants were validated against the OpenCode model catalog on
+2026-10-25. K3.1 uses always-on thinking; explicit `low` and `high` are
+required reasoning preferences, not a thinking-off setting. See the
+[official Kimi Code model documentation](https://www.kimi.com/code/docs/en/kimi-code/models.html).
+The existing `kimi-256k` agent remains byte-for-byte unchanged for its explicit
+reduced-quota K3 purpose; no K3.1 256K successor is listed. Highspeed is not
+selected. The provider, endpoint, account, options, and Secret wiring are not
+changed. K3.1 Pro quota consumption relative to K3 is unverified; this change
+claims neither quota neutrality nor performance, savings, or free usage.
+Catalog validation is not inference, entitlement, or tool-call verification;
+those remain separate checks after an explicitly authorized rollout.
+
 ### Kimi provider-id migration
 
 The four Kimi subagents (`kimi`, `kimi-256k`, `docs-writer`, and
@@ -88,7 +114,7 @@ separate global Kimi provider
 selecting that separate global provider would be its own owner decision
 requiring confirmation of the appropriate account. That historical chart migration changed only ids: the
 `files/opencode.json` global fallback model, enabled-provider allowlist entry,
-and provider key, plus the four agent model prefixes. Model suffixes (`k3` and
+and provider key, plus the four agent model prefixes. For that historical migration, model suffixes (`k3` and
 `k3-256k`), variants, prompt bytes, the `{env:KIMI_API_KEY}` reference, and the
 `opencode-kimi` Secret wiring are unchanged, and no custom SDK, base URL, or
 model definition is introduced. The upstream catalog migration also switches
@@ -321,7 +347,11 @@ not activate, migrate, or repair the disabled pilot experiment.
 
 The historical 0.4.0 baseline commit `32a6b91` remains fixed. Its original
 seventeen model-header migrations and the Kimi provider-id migration are
-retained as historical transforms. An additional exact reasoning-policy
+retained as historical transforms. A separate exact Kimi 3.1 header-only
+allowlist transform runs after provider migration and changes only `kimi.md`,
+`docs-writer.md`, and `release-engineer.md` to `kimi-code-plan-cn/k3.1-pro`,
+asserting each old model/variant/mode block exactly once; `kimi-256k.md` stays
+unchanged. An additional exact reasoning-policy
 transform applies medium to the nine historical primaries; upgrades the six
 historical Sol subagents to GPT-6.1 Sol with the variants listed above; adds
 low/medium to Luna/QA; replaces only the cloud reviewer's stale Terra sentence;
@@ -334,7 +364,9 @@ pinned-base check protects every primary operating-rules tail. Non-primary
 bytes remain equal to the transformed historical fixture, with exactly the
 existing QA final-newline correction. Source-to-ConfigMap and archive byte
 parity remain enforced, and independent tests assert all eighteen OpenAI
-model/variant pairs and reject duplicate header keys. No blanket subagent copy
+model/variant pairs and the exact four Kimi model/variant/mode selections in
+source and rendered configuration, rejecting duplicate, missing, or wrong
+selection keys and extra Kimi agents. No blanket subagent copy
 or baseline rebase is permitted.
 
 The four production-runtime transforms remain the image tag `1.18.29` to the
@@ -359,13 +391,13 @@ is deferred.
 4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
 5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
 
-### 0.5.4 consumer coordination gate
+### 0.5.5 consumer coordination gate
 
-At [kustomize-cluster revision 5d51403](https://github.com/makeitworkcloud/kustomize-cluster/blob/5d51403d9ec697f0ea020007ad5872cd222fbb95/.github/workflows/test.yml#L916),
-the consumer CI assertion couples chart `0.5.3` to exporter API selector
-`2`. The existing publisher changes only the Application pin, so the
-resulting `0.5.4` pin PR cannot pass that assertion until a separate consumer
-change updates its expected chart version to `0.5.4`, keeping selector `2`.
+At [kustomize-cluster revision 456a46ae](https://github.com/makeitworkcloud/kustomize-cluster/blob/456a46aebb92ced4f9e92f9f865e3367a303a0ee/.github/workflows/test.yml),
+the consumer CI assertion expects chart/API pair (`0.5.4`, `2`). The existing
+publisher changes only the Application pin, so the generated `0.5.5` pin PR
+cannot pass that assertion until separate consumer assertion coordination
+updates its expected chart version to `0.5.5`, keeping API selector `2`.
 Do not bypass the required checks. This chart does not edit consumer desired
 state, its tests, or the updater workflow; publication can complete while
 selection remains blocked. Reverify this gate against the consumer's current
