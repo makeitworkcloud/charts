@@ -193,8 +193,10 @@ The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
 | `luna` | `openai/gpt-6-luna` | `low` |
 | `qa-engineer` | `openai/gpt-6-luna` | `medium` |
 
-The Kimi, GLM, and MiniMax workers, 25-agent inventory, permissions, MCPs,
-provider wiring, image, and opt-in pilot are unchanged. No new agent is added.
+Chart 0.5.4 left the Kimi, GLM, and MiniMax workers unchanged. Chart 0.5.5
+updates three Kimi model headers as described below; the 25-agent inventory,
+permissions, MCPs, provider wiring, image, and opt-in pilot remain unchanged.
+No new agent is added.
 The reasoning policy follows [OpenAI model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection):
 Luna low for focused work, Sol medium for coordinated revisable work, and Sol
 xhigh for decisions involving conflicting evidence. Recruiter high and QA
@@ -227,6 +229,37 @@ selection/effort metadata, never raw session payloads or credentials. Compare
 representative bounded Luna, coordinated Sol, and conflicting-evidence review
 tasks for outcome quality and complete-task usage/latency before claiming an
 improvement. Static CI does not exercise these behavioral cases.
+
+### Kimi 3.1 model policy (0.5.5)
+
+Chart 0.5.5 changes only the model headers of three Kimi subagents:
+
+| Agent | Model | Variant | Mode |
+| --- | --- | --- | --- |
+| `kimi` | `kimi-code-plan-cn/k3.1-pro` | `low` | `subagent` |
+| `docs-writer` | `kimi-code-plan-cn/k3.1-pro` | `high` | `subagent` |
+| `release-engineer` | `kimi-code-plan-cn/k3.1-pro` | `high` | `subagent` |
+| `kimi-256k` | `kimi-code-plan-cn/k3-256k` | `high` | `subagent` |
+
+The exact provider-qualified `kimi-code-plan-cn/k3.1-pro` ID and its
+`low`/`high` variants were validated against the OpenCode model catalog on
+2026-10-25. K3.1 uses always-on thinking; explicit `low` and `high` are
+required reasoning preferences, not a thinking-off setting. See the
+[official Kimi Code model documentation](https://www.kimi.com/code/docs/en/kimi-code/models.html).
+The existing `kimi-256k` agent remains byte-for-byte unchanged for its explicit
+reduced-quota K3 purpose; no K3.1 256K successor is listed. Highspeed is not
+selected. The provider, endpoint, account, options, and Secret wiring are not
+changed. K3.1 Pro quota consumption relative to K3 is unverified; this change
+claims neither quota neutrality nor performance, savings, or free usage.
+Catalog validation is not inference, entitlement, or tool-call verification;
+those remain separate checks after an explicitly authorized rollout.
+
+The historical `32a6b91` baseline remains pinned. A separate exact three-file
+Kimi 3.1 header allowlist runs after the historical provider-id migration;
+each old block must occur exactly once. Source and render tests independently
+assert the four Kimi model/variant/mode selections and reject missing, duplicate,
+or wrong selections and extra Kimi agents. Full parity and archive tests retain
+prompt, permission, and unrelated-file protection without a baseline rebase.
 
 ### Subagents
 

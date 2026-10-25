@@ -126,7 +126,11 @@ data.
 
 The historical 0.4.0 baseline commit `32a6b91` remains fixed. Its original
 seventeen model-header migrations and the Kimi provider-id migration are
-retained as historical transforms. An additional exact reasoning-policy
+retained as historical transforms. A separate exact Kimi 3.1 header-only
+allowlist transform runs after provider migration and changes only `kimi.md`,
+`docs-writer.md`, and `release-engineer.md` to `kimi-code-plan-cn/k3.1-pro`,
+asserting each old model/variant/mode block exactly once; `kimi-256k.md` stays
+unchanged. An additional exact reasoning-policy
 transform applies medium to the nine historical primaries; upgrades the six
 historical Sol subagents to GPT-6.1 Sol with the variants in the [chart model policy](../README.md#packaged-configuration); adds
 low/medium to Luna/QA; replaces only the cloud reviewer's stale Terra sentence;
@@ -139,7 +143,9 @@ pinned-base check protects every primary operating-rules tail. Non-primary
 bytes remain equal to the transformed historical fixture, with exactly the
 existing QA final-newline correction. Source-to-ConfigMap and archive byte
 parity remain enforced, and independent tests assert all eighteen OpenAI
-model/variant pairs and reject duplicate header keys. No blanket subagent copy
+model/variant pairs and the exact four Kimi model/variant/mode selections in
+source and rendered configuration, rejecting duplicate, missing, or wrong
+selection keys and extra Kimi agents. No blanket subagent copy
 or baseline rebase is permitted.
 
 The four production-runtime transforms remain the image tag `1.18.29` to the
