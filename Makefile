@@ -87,7 +87,7 @@ test-opencode-server-agents:
 		case "$$agent" in luna) variant=low ;; *) variant=medium ;; esac; \
 		grep -Fqx "variant: $$variant" <<< "$$luna_frontmatter"; \
 	done; \
-	grep -Fqx 'version: 0.5.5' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.5.6' opencode-server/Chart.yaml; \
 	grep -Fqx '  "model": "openai/gpt-6.1-sol",' opencode-server/files/opencode.json; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
@@ -152,6 +152,34 @@ test-opencode-server-agents:
 		grep -Fqi 'Module' <<< "$$policy"; \
 		grep -Fqi 'search_graph' <<< "$$policy"; \
 		grep -Fqi 'get_code_snippet' <<< "$$policy"; \
+		grep -Fq 'exact advertised schemas FIRST' <<< "$$policy"; \
+		grep -Fq 'Legacy 0.10.8' <<< "$$policy"; \
+		grep -Fq 'Only when advertised, 0.12.1' <<< "$$policy"; \
+		grep -Fq 'diagnostics: "full"' <<< "$$policy"; \
+		grep -Fq 'source_mode: "full"' <<< "$$policy"; \
+		grep -Fq 'max_lines: 500' <<< "$$policy"; \
+		grep -Fq 'do not set `max_output_tokens`' <<< "$$policy"; \
+		grep -Fq 'Unknown or mixed schemas' <<< "$$policy"; \
+		grep -Fq 'not pageable' <<< "$$policy"; \
+		grep -Fq 'count/sample mismatches' <<< "$$policy"; \
+		grep -Fq 'target coverage cannot be established' <<< "$$policy"; \
+		grep -Fq 'filtered-out `check_index_coverage`' <<< "$$policy"; \
+		grep -Fq 'next_offset' <<< "$$policy"; \
+		grep -Fq 'source_clipped' <<< "$$policy"; \
+		grep -Fq 'clipped_at_lines' <<< "$$policy"; \
+		grep -Fq 'source_truncated' <<< "$$policy"; \
+		grep -Fq 'source_omitted' <<< "$$policy"; \
+		grep -Fq 'continuation_requires_higher_budget' <<< "$$policy"; \
+		grep -Fq 'next_start_line' <<< "$$policy"; \
+		grep -Fq '(source not available)' <<< "$$policy"; \
+		grep -Fq 'coverage_note' <<< "$$policy"; \
+		grep -Fq 'true/populated' <<< "$$policy"; \
+		grep -Fq '500-line' <<< "$$policy"; \
+		grep -Fq 'outline' <<< "$$policy"; \
+		grep -Fq 'missing source' <<< "$$policy"; \
+		grep -Fq 'successful completed synchronous full-mode' <<< "$$policy"; \
+		grep -Fq 'failed, cancelled, degraded, or memory-budget-limited' <<< "$$policy"; \
+		! grep -Fqi 'falls back to 51 lines' <<< "$$policy"; \
 		grep -Eiq 'range (begins|starts) at line 1' <<< "$$policy"; \
 		grep -Fqi 'complete and unclipped' <<< "$$policy"; \
 		grep -Fqi 'partial, skipped' <<< "$$policy"; \
@@ -257,7 +285,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.5.5.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.5.6.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \

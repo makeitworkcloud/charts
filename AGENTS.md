@@ -21,7 +21,7 @@ publish changed charts as OCI artifacts to GHCR.
   This path belongs to the remote backend, not OpenCode's local filesystem.
   Resolve the repository's default-branch HEAD through GitHub MCP once per
   repository task or batch, never per file. Call `list_projects`, then
-  `index_status` with its verbose git context, as discovery and health
+  schema-selected `index_status`, as discovery and health
   checks only; do not assume an index mode or `git.head_sha` is present.
   Documentation sources and knowledge bases require a recorded successful
   `full`-mode `index_repository` invocation of `/repos/<repo>/current`;
@@ -45,9 +45,13 @@ publish changed charts as OCI artifacts to GHCR.
   document's `Module` using `search_graph` and pass the returned exact
   qualified name to `get_code_snippet`. Accept a complete-document read
   only when the range starts at line 1, covers the required document, is
-  complete and unclipped within the deployed 0.10.8 500-line cap, and is
-  not partial, skipped, or excluded; File nodes without ranges fall back to
-  51 lines and there is no paging argument. Verified provenance replaces a
+  complete and unclipped within the strict 500-line cap, and is
+  not partial, skipped, or excluded. Check the actual returned source range,
+  not only the node range; require full-file extent from line 1. Reject
+  outline/omitted/missing source, `(source not available)`, flagged
+  `coverage_note`, true/populated `source_clipped`, `clipped_at_lines`, `source_truncated`,
+  `truncated`, `source_omitted`, `continuation_requires_higher_budget`,
+  and any `next_start_line`. No paged-source acceptance. Verified provenance replaces a
   per-file duplicate GitHub contents check. Index coverage is best-effort,
   not proof of parser completeness. Do not use GitHub file reads as an
   alternate broad discovery path.
@@ -74,6 +78,8 @@ publish changed charts as OCI artifacts to GHCR.
   validation ran from the shared server.
 
 ## Cached source safety
+
+Inspect the exact advertised schemas FIRST; never infer capability from a project name. Legacy 0.10.8 uses `list_projects` without `format`, `index_status` with `verbose: true`, and `get_code_snippet` with only `project` and `qualified_name`. Only when advertised, 0.12.1 uses `list_projects` with `format: "json"`, `index_status` with `verbose: true, format: "json", diagnostics: "full"`, and `get_code_snippet` with `source_mode: "full", start_line: 1, max_lines: 500, format: "json"`; do not set `max_output_tokens`. Unknown or mixed schemas fall back to verified-SHA GitHub. Status full diagnostics cap each ordinary category at 500 and are not pageable: count/sample mismatches, omitted or truncated coverage are not clean coverage; if target coverage cannot be established, fall back for that target. Do not invent status offsets or require the filtered-out `check_index_coverage` tool. Follow advertised discovery continuations using returned `next_offset`/`has_more`, not assumed page sizes. Require a successful completed synchronous full-mode index invocation; reject failed, cancelled, degraded, or memory-budget-limited outcomes.
 
 - The cache read path is provenance verification — `index_status` root plus
   the verified git-sync root hash against the GitHub default-branch HEAD
