@@ -41,7 +41,7 @@ test-opencode-server-agents:
 	@set -euo pipefail; \
 	expected="$$(printf '%s\n' '---' "description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" 'mode: subagent' 'model: openai/gpt-6.1-terra' 'variant: medium' '---')"; \
 	test "$$(cat opencode-server/files/agents/terra.md)" = "$$expected"; \
-	expected_devops="$$(printf '%s\n' '---' 'description: Read-only DevOps integration and delivery reviewer for proposed designs or completed changes involving CI, GitHub Actions, shared workflows, artifacts, GitOps handoffs, runners, permissions, and deployment contracts; requires a supplied integration map and never implements or mutates systems' 'mode: subagent' 'model: openai/gpt-6.1-terra' 'variant: medium' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
+	expected_devops="$$(printf '%s\n' '---' 'description: Read-only DevOps integration and delivery reviewer for proposed designs or completed changes involving CI, GitHub Actions, shared workflows, artifacts, GitOps handoffs, runners, permissions, and deployment contracts; requires a supplied integration map and never implements or mutates systems' 'mode: subagent' 'model: openai/gpt-6.1-sol' 'variant: medium' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
 	actual_devops="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' opencode-server/files/agents/devops-engineer.md)"; \
 	test "$$actual_devops" = "$$expected_devops"; \
 	grep -Fqx 'variant: medium' opencode-server/files/agents/devops-engineer.md; \
@@ -49,7 +49,7 @@ test-opencode-server-agents:
 	grep -Fqx 'Use `CHANGE` mode only for a completed diff and all affected workflows. Assess the implemented integration contract and supplied validation evidence. Flag needless bespoke automation even where no supplied contract expressly prohibits it.' opencode-server/files/agents/devops-engineer.md; \
 	grep -Fqx '## VERDICT: ADVANCE / HOLD / REJECT' opencode-server/files/agents/devops-engineer.md; \
 	for agent in default makeitwork xnoto career teacher; do grep -Fq '`devops-engineer` for CI, workflow, shared-workflow, artifact,' "opencode-server/files/agents/$$agent.md"; done; \
-	expected_cloud="$$(printf '%s\n' '---' 'description: Read-only preimplementation cloud architecture review for new services or material service-selection, topology, state, recovery, scaling, or cost changes; challenges supplied designs for requirements fit and unnecessary complexity, not routine changes or completed-code review' 'mode: subagent' 'model: openai/gpt-6.1-terra' 'variant: medium' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
+	expected_cloud="$$(printf '%s\n' '---' 'description: Read-only preimplementation cloud architecture review for new services or material service-selection, topology, state, recovery, scaling, or cost changes; challenges supplied designs for requirements fit and unnecessary complexity, not routine changes or completed-code review' 'mode: subagent' 'model: openai/gpt-6.1-sol' 'variant: medium' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
 	actual_cloud="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' opencode-server/files/agents/cloud-architecture-reviewer.md)"; \
 	test "$$actual_cloud" = "$$expected_cloud"; \
 	grep -Fqx '## Required inputs' opencode-server/files/agents/cloud-architecture-reviewer.md; \
@@ -77,7 +77,7 @@ test-opencode-server-agents:
 	done; \
 	for reviewer in adversarial-code-reviewer infra-security-reviewer recruiter-resume-reviewer; do \
 		reviewer_frontmatter="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' "opencode-server/files/agents/$$reviewer.md")"; \
-		grep -Fqx 'model: openai/gpt-6.1-terra' <<< "$$reviewer_frontmatter"; \
+		grep -Fqx 'model: openai/gpt-6.1-sol' <<< "$$reviewer_frontmatter"; \
 		case "$$reviewer" in recruiter-resume-reviewer) variant=high ;; *) variant=xhigh ;; esac; \
 		grep -Fqx "variant: $$variant" <<< "$$reviewer_frontmatter"; \
 	done; \
@@ -211,8 +211,7 @@ test-opencode-server-agents:
 	grep -Fqi 'actual vehicle (year, market, build date, engine, transmission, drivetrain, and modifications)' opencode-server/files/agents/mechanic.md; \
 	for agent in $$primary_agents; do \
 		frontmatter="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' "opencode-server/files/agents/$$agent.md")"; \
-		case "$$agent" in mechanic) model=openai/gpt-6.1-sol ;; *) model=openai/gpt-6.1-terra ;; esac; \
-		grep -Fqx "model: $$model" <<< "$$frontmatter"; \
+		grep -Fqx 'model: openai/gpt-6.1-sol' <<< "$$frontmatter"; \
 		grep -Fqx 'variant: medium' <<< "$$frontmatter"; \
 		policy="$$(tr -s '[:space:]' ' ' < "opencode-server/files/agents/$$agent.md")"; \
 		grep -Fqi 'without a custom project name' <<< "$$policy"; \
