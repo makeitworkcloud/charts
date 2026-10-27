@@ -39,7 +39,7 @@ test-changed-charts:
 
 test-opencode-server-agents:
 	@set -euo pipefail; \
-	expected="$$(printf '%s\n' '---' "description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" 'mode: subagent' 'model: openai/gpt-6.1-sol' 'variant: medium' '---')"; \
+	expected="$$(printf '%s\n' '---' "description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" 'mode: subagent' 'model: openai/gpt-6.1-terra' 'variant: medium' '---')"; \
 	test "$$(cat opencode-server/files/agents/terra.md)" = "$$expected"; \
 	expected_devops="$$(printf '%s\n' '---' 'description: Read-only DevOps integration and delivery reviewer for proposed designs or completed changes involving CI, GitHub Actions, shared workflows, artifacts, GitOps handoffs, runners, permissions, and deployment contracts; requires a supplied integration map and never implements or mutates systems' 'mode: subagent' 'model: openai/gpt-6.1-sol' 'variant: medium' 'permission:' '  "*": deny' '  edit: deny' '  bash: deny' '---')"; \
 	actual_devops="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' opencode-server/files/agents/devops-engineer.md)"; \
@@ -87,7 +87,7 @@ test-opencode-server-agents:
 		case "$$agent" in luna) variant=low ;; *) variant=medium ;; esac; \
 		grep -Fqx "variant: $$variant" <<< "$$luna_frontmatter"; \
 	done; \
-	grep -Fqx 'version: 0.5.6' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.5.7' opencode-server/Chart.yaml; \
 	grep -Fqx '  "model": "openai/gpt-6.1-sol",' opencode-server/files/opencode.json; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
@@ -274,7 +274,7 @@ test-opencode-server-agents:
 	grep -Fqx '  terra.md: |-' <<< "$$rendered"; \
 	grep -Fqx "    description: Use for bounded generic coding, debugging, or repository tasks when the assigning primary agent's execution budget is nearing completion or it otherwise needs execution capacity; the primary retains task interpretation, safety, delivery decisions, and final synthesis" <<< "$$rendered"; \
 	grep -Fqx '    mode: subagent' <<< "$$rendered"; \
-	grep -Fqx '    model: openai/gpt-6.1-sol' <<< "$$rendered"; \
+	grep -Fqx '    model: openai/gpt-6.1-terra' <<< "$$rendered"; \
 	grep -Fqx '    variant: medium' <<< "$$rendered"; \
 	grep -Fqx '              - key: terra.md' <<< "$$rendered"; \
 	grep -Fqx '                path: agents/terra.md' <<< "$$rendered"; \
@@ -285,7 +285,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.5.6.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.5.7.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \

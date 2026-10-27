@@ -177,6 +177,20 @@ class BaselineParity(unittest.TestCase):
         with open(path, "wb") as handle:
             handle.write(content)
 
+    def _apply_approved_terra_restoration(self, baseline_chart):
+        agents_dir = os.path.join(baseline_chart, "files", "agents")
+        with open(os.path.join(agents_dir, "terra.md"), "rb") as handle:
+            parts = handle.read().split(b"---\n", 2)
+        self.assertEqual(len(parts), 3)
+        self.assertEqual(parts[0], b"")
+        for key in (b"mode:", b"model:", b"variant:"):
+            self.assertEqual(sum(line.startswith(key) for line in parts[1].splitlines()), 1, key)
+        self._replace_frontmatter_line(
+            agents_dir, "terra.md",
+            b"mode: subagent\nmodel: openai/gpt-6.1-sol\nvariant: medium\n",
+            b"mode: subagent\nmodel: openai/gpt-6.1-terra\nvariant: medium\n",
+        )
+
     def _apply_approved_homesteader_changes(self, baseline_chart):
         path = os.path.join(baseline_chart, "files", "agents", "homesteader.md")
         with open(path, "rb") as handle:
@@ -303,6 +317,7 @@ class BaselineParity(unittest.TestCase):
         self._apply_approved_kimi_3_1_model_changes(baseline_chart)
         self._apply_approved_cbm_worker_source_changes(baseline_chart)
         self._apply_approved_reasoning_policy(baseline_chart)
+        self._apply_approved_terra_restoration(baseline_chart)
         self._apply_approved_new_agent_files(baseline_chart)
         self._apply_primary_runtime_policy(baseline_chart)
         self._apply_approved_production_runtime_changes(baseline_chart)
@@ -385,6 +400,56 @@ class BaselineParity(unittest.TestCase):
         self.assertEqual(APPROVED_NEW_AGENT_FILES, ("mechanic.md",))
 
 
+class TerraRestorationTransformContract(unittest.TestCase):
+    ORIGINAL = b"---\ndescription: Fixture\nmode: subagent\nmodel: openai/gpt-6.1-sol\nvariant: medium\n---\nBody keeps model: openai/gpt-6.1-sol and variant: medium.\n"
+
+    def _write_fixture(self, chart, terra):
+        agents_dir = os.path.join(chart, "files", "agents")
+        os.makedirs(agents_dir)
+        originals = {"terra.md": terra}
+        for name in ("career.md", "default.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "makeitwork.md", "mechanic.md", "teacher.md", "xnoto.md", "adversarial-code-reviewer.md", "cloud-architecture-reviewer.md", "devops-engineer.md", "infra-security-reviewer.md", "recruiter-resume-reviewer.md", "luna.md", "qa-engineer.md", "kimi.md", "kimi-256k.md", "docs-writer.md", "release-engineer.md", "glm.md", "glm-flash.md", "minimax.md"):
+            originals[name] = b"Unrelated model: openai/gpt-6.1-sol bytes must not change.\n"
+        for name, content in originals.items():
+            with open(os.path.join(agents_dir, name), "wb") as handle:
+                handle.write(content)
+        with open(os.path.join(chart, "files", "opencode.json"), "wb") as handle:
+            handle.write(b'{"model": "openai/gpt-6.1-sol"}\n')
+        return agents_dir, originals
+
+    def test_only_terra_header_changes_with_body_and_unrelated_files_preserved(self):
+        with tempfile.TemporaryDirectory() as chart:
+            agents_dir, originals = self._write_fixture(chart, self.ORIGINAL)
+            BaselineParity()._apply_approved_terra_restoration(chart)
+            self.assertEqual(set(os.listdir(agents_dir)), set(originals))
+            for name, original in originals.items():
+                expected = original
+                if name == "terra.md":
+                    expected = original.replace(
+                        b"mode: subagent\nmodel: openai/gpt-6.1-sol\nvariant: medium\n",
+                        b"mode: subagent\nmodel: openai/gpt-6.1-terra\nvariant: medium\n",
+                        1,
+                    )
+                with open(os.path.join(agents_dir, name), "rb") as handle:
+                    self.assertEqual(handle.read(), expected, name)
+            with open(os.path.join(chart, "files", "opencode.json"), "rb") as handle:
+                self.assertEqual(handle.read(), b'{"model": "openai/gpt-6.1-sol"}\n')
+
+    def test_transform_rejects_missing_wrong_or_duplicate_old_selections(self):
+        old_block = b"mode: subagent\nmodel: openai/gpt-6.1-sol\nvariant: medium\n"
+        invalid = [self.ORIGINAL.replace(old_block, b""), self.ORIGINAL.replace(old_block, old_block * 2)]
+        for line, wrong in ((b"mode: subagent\n", b"mode: primary\n"),
+                            (b"model: openai/gpt-6.1-sol\n", b"model: openai/gpt-6.1-terra\n"),
+                            (b"variant: medium\n", b"variant: high\n")):
+            invalid.extend((self.ORIGINAL.replace(line, b""),
+                            self.ORIGINAL.replace(line, wrong),
+                            self.ORIGINAL.replace(line, line * 2)))
+        for candidate in invalid:
+            with self.subTest(frontmatter=candidate), tempfile.TemporaryDirectory() as chart:
+                self._write_fixture(chart, candidate)
+                with self.assertRaises(AssertionError):
+                    BaselineParity()._apply_approved_terra_restoration(chart)
+
+
 class PrimaryModelContract(unittest.TestCase):
     def test_exactly_ten_primary_headers_use_gpt_6_1_sol_medium(self):
         expected = {"default.md", "makeitwork.md", "xnoto.md", "career.md", "teacher.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "mechanic.md"}
@@ -421,7 +486,7 @@ class OpenAIModelVariantContract(unittest.TestCase):
         "homesteader.md": ("openai/gpt-6.1-sol", "medium"),
         "lawnmowerman.md": ("openai/gpt-6.1-sol", "medium"),
         "mechanic.md": ("openai/gpt-6.1-sol", "medium"),
-        "terra.md": ("openai/gpt-6.1-sol", "medium"),
+        "terra.md": ("openai/gpt-6.1-terra", "medium"),
         "cloud-architecture-reviewer.md": ("openai/gpt-6.1-sol", "medium"),
         "devops-engineer.md": ("openai/gpt-6.1-sol", "medium"),
         "adversarial-code-reviewer.md": ("openai/gpt-6.1-sol", "xhigh"),
@@ -459,16 +524,19 @@ class OpenAIModelVariantContract(unittest.TestCase):
         self.assertEqual(len(actual), 18)
 
     def test_header_contract_rejects_missing_wrong_and_duplicate_selections(self):
-        expected = ("openai/gpt-6.1-sol", "medium")
-        valid = "---\nmodel: openai/gpt-6.1-sol\nvariant: medium\n---\n"
+        expected = ("openai/gpt-6.1-terra", "medium")
+        valid = "---\nmodel: openai/gpt-6.1-terra\nvariant: medium\n---\n"
         self.assert_header(valid, expected)
         invalid = (
+            valid.replace("model: openai/gpt-6.1-terra\n", ""),
+            valid.replace("gpt-6.1-terra", "gpt-6.1-sol"),
+            valid.replace("variant: medium", "variant: high"),
             valid.replace("variant: medium\n", ""),
-            valid.replace("gpt-6.1-sol", "gpt-6-sol"),
+            valid.replace("gpt-6.1-terra", "gpt-6-sol"),
             valid.replace("variant: medium", "variant: max"),
             valid.replace("variant: medium", "variant: unsupported"),
             valid.replace("variant: medium", "variant: medium\nvariant: medium"),
-            valid.replace("model: openai/gpt-6.1-sol", "model: openai/gpt-6.1-sol\nmodel: openai/gpt-6.1-sol"),
+            valid.replace("model: openai/gpt-6.1-terra", "model: openai/gpt-6.1-terra\nmodel: openai/gpt-6.1-terra"),
         )
         for text in invalid:
             with self.subTest(frontmatter=text):
