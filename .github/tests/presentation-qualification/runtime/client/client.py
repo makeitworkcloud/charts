@@ -31,7 +31,7 @@ for _candidate in ("/fixture", "/opt/qual"):
     if os.path.isdir(_candidate) and _candidate not in sys.path:
         sys.path.insert(0, _candidate)
 
-from lib import framing, verify_artifacts  # noqa: E402
+from lib import framing, observation, verify_artifacts  # noqa: E402
 
 import urllib.error  # noqa: E402
 import urllib.request  # noqa: E402
@@ -261,6 +261,10 @@ def mode_full(args):
         try:
             session = uuid.uuid4().hex
             await_ready(ws, session, time.time() + 120)
+            try:
+                observation.rendezvous(args.observation_dir, build_id)
+            except observation.ObservationError:
+                raise QualificationError("kernel observation handshake failed") from None
             build_assembler = execute_task(ws, session, BUILD_TASK_CODE, time.time() + args.timeout)
         finally:
             try:
@@ -425,7 +429,10 @@ def main():
     parser.add_argument("--set-env", action="append", default=[], metavar="KEY=VALUE")
     parser.add_argument("--hold", type=int, default=15)
     parser.add_argument("--timeout", type=int, default=300)
+    parser.add_argument("--observation-dir")
     args = parser.parse_args()
+    if (args.mode == "full") != bool(args.observation_dir):
+        parser.error("--observation-dir is required only in full mode")
     try:
         if args.mode == "full":
             return mode_full(args)

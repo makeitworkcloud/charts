@@ -28,6 +28,7 @@ umask 077
 mkdir -p "$WORK_DIR/bin"
 export KUBECONFIG="$WORK_DIR/kubeconfig"
 KUBECTL_BIN=""
+OBSERVATION_DIR=""
 
 cleanup() {
   local rc=$?
@@ -43,6 +44,10 @@ cleanup() {
   fi
   docker rmi -f "$WORKER_TAG" "$GATEWAY_TAG" >/dev/null 2>&1 || true
   rm -f "$KUBECONFIG" "$WORK_DIR/gateway.yaml" "$WORK_DIR/deny.err" "$WORK_DIR/pf.log" "$WORK_DIR"/pods-*.json
+  if [[ -n "${OBSERVATION_DIR:-}" ]]; then
+    rm -f "$OBSERVATION_DIR"/ready.json{,.tmp} "$OBSERVATION_DIR"/release.json{,.tmp}
+    rmdir "$OBSERVATION_DIR" 2>/dev/null || true
+  fi
   exit "$rc"
 }
 trap cleanup EXIT
@@ -237,6 +242,41 @@ wait_for_kernel_pod_and_assert() {
   return 1
 }
 
+wait_for_full_kernel() {
+  local client_pid=$1
+  local deadline=$(( SECONDS + 240 ))
+  local observed_id="" phase="" ready_rc=0
+  while (( SECONDS < deadline )); do
+    if ! kill -0 "$client_pid" 2>/dev/null; then return 2; fi
+    if [[ -z "$observed_id" ]]; then
+      if observed_id=$(python3 "$FIXTURE_DIR/lib/observation.py" read "$OBSERVATION_DIR"); then
+        :
+      else
+        ready_rc=$?
+        [[ "$ready_rc" -eq 2 ]] || fail "invalid full-kernel observation readiness"
+      fi
+    fi
+    if [[ -n "$observed_id" ]]; then
+      phase=$("$KUBECTL_BIN" --context "$KIND_CONTEXT" --request-timeout=5s -n "$NAMESPACE" get pods \
+        -l "app=pptx-qualification-kernel,kernel_id=$observed_id" \
+        -o 'jsonpath={range .items[*]}{.status.phase}{"\n"}{end}' 2>/dev/null) \
+        || fail "full-kernel observation query failed"
+      if [[ "$phase" == "Running" ]]; then
+        "$KUBECTL_BIN" --context "$KIND_CONTEXT" --request-timeout=5s -n "$NAMESPACE" get pods \
+          -l "app=pptx-qualification-kernel,kernel_id=$observed_id" -o json 2>/dev/null \
+          | python3 "$FIXTURE_DIR/runtime/client/probe_pod_invariants.py" "$NAMESPACE" "$WORKER_TAG" \
+          || fail "live full-kernel pod invariants violated"
+        python3 "$FIXTURE_DIR/lib/observation.py" release "$OBSERVATION_DIR" "$observed_id" \
+          || fail "full-kernel observation acknowledgement failed"
+        echo 'KERNEL_OBSERVATION_DIAGNOSTIC outcome=running_verified'
+        return 0
+      fi
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 pods_snapshot "$WORK_DIR/pods-ns-before.json"
 set +e
 run_client start-expect-failure --set-env KERNEL_NAMESPACE=pptx-wrong --timeout 200
@@ -260,11 +300,12 @@ assert_snapshots_clean "$WORK_DIR/pods-ns-before.json" "$WORK_DIR/pods-ns-after.
 "$KUBECTL_BIN" --context "$KIND_CONTEXT" -n "$NAMESPACE" delete pods -l app=pptx-qualification-kernel \
   --ignore-not-found --wait=false >/dev/null 2>&1 || true
 
+OBSERVATION_DIR=$(mktemp -d "$WORK_DIR/observe.XXXXXX") || fail "observation directory creation failed"
 set +e
-run_client full --timeout 420 &
+run_client full --timeout 420 --observation-dir "/out/${OBSERVATION_DIR##*/}" &
 FULL_PID=$!
 set -e
-if wait_for_kernel_pod_and_assert "$FULL_PID"; then
+if wait_for_full_kernel "$FULL_PID"; then
   :
 else
   observe_rc=$?

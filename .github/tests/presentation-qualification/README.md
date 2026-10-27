@@ -252,3 +252,7 @@ validation environment.
 ## Gateway startup exception diagnostics
 
 The disposable gateway runs its installed vendor entry point through a capture wrapper. On startup failure it writes a bounded JSON report to `/dev/termination-log` with `terminationMessagePolicy: File` (never log fallback). The readiness failure path validates that report before printing fixed-allowlist exception classes, public module roots, source basenames and line numbers. Unknown identifiers are replaced; exception messages, locals, environments, raw logs and absolute paths are never included. Successful exits are unchanged; capture is diagnostic, not qualification proof.
+
+## Build observation rendezvous
+
+The full client holds its build kernel after readiness and before execution until the host observes that exact kernel in Running state and its existing pod-invariant probe passes. A fresh private runner directory carries bounded, versioned UUID-bound ready/release messages; worker pods cannot access it. Client acknowledgement wait is capped at 120 seconds. The host has a 240-second polling deadline and five-second Kubernetes request timeouts. Missing, malformed, stale, or mismatched messages fail closed, and existing kernel cleanup remains in force. The image-tamper probe keeps its separate hold-and-observe flow. This synchronization repairs observation ordering; it does not establish network isolation or overall qualification.
