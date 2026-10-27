@@ -78,7 +78,7 @@ test-opencode-server-agents:
 	for reviewer in adversarial-code-reviewer infra-security-reviewer recruiter-resume-reviewer; do \
 		reviewer_frontmatter="$$(awk '{print} /^---$$/{n++; if (n==2) exit}' "opencode-server/files/agents/$$reviewer.md")"; \
 		grep -Fqx 'model: openai/gpt-6.1-sol' <<< "$$reviewer_frontmatter"; \
-		case "$$reviewer" in recruiter-resume-reviewer) variant=high ;; *) variant=xhigh ;; esac; \
+		variant=high; \
 		grep -Fqx "variant: $$variant" <<< "$$reviewer_frontmatter"; \
 	done; \
 	for agent in luna qa-engineer; do \
@@ -87,7 +87,7 @@ test-opencode-server-agents:
 		case "$$agent" in luna) variant=low ;; *) variant=medium ;; esac; \
 		grep -Fqx "variant: $$variant" <<< "$$luna_frontmatter"; \
 	done; \
-	grep -Fqx 'version: 0.5.7' opencode-server/Chart.yaml; \
+	grep -Fqx 'version: 0.5.8' opencode-server/Chart.yaml; \
 	grep -Fqx '  "model": "openai/gpt-6.1-sol",' opencode-server/files/opencode.json; \
 	grep -Fqx '  "default_agent": "default",' opencode-server/files/opencode.json; \
 	! grep -Fq 'twilio-docs' opencode-server/files/opencode.json; \
@@ -285,7 +285,7 @@ test-opencode-server-agents:
 	archive_dir="$$(mktemp -d)"; \
 	trap 'rm -rf "$$archive_dir"' EXIT; \
 	helm package opencode-server --destination "$$archive_dir" > /dev/null; \
-	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.5.7.tgz' -print -quit)"; \
+	archive="$$(find "$$archive_dir" -maxdepth 1 -type f -name 'opencode-server-0.5.8.tgz' -print -quit)"; \
 	test -n "$$archive"; \
 	archive_entries="$$(tar -tzf "$$archive")"; \
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \

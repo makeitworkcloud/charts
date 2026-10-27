@@ -191,6 +191,21 @@ class BaselineParity(unittest.TestCase):
             b"mode: subagent\nmodel: openai/gpt-6.1-terra\nvariant: medium\n",
         )
 
+    def _apply_approved_reviewer_reasoning_change(self, baseline_chart):
+        agents_dir = os.path.join(baseline_chart, "files", "agents")
+        for name in ("adversarial-code-reviewer.md", "infra-security-reviewer.md"):
+            with open(os.path.join(agents_dir, name), "rb") as handle:
+                parts = handle.read().split(b"---\n", 2)
+            self.assertEqual(len(parts), 3, name)
+            self.assertEqual(parts[0], b"", name)
+            for key in (b"mode:", b"model:", b"variant:"):
+                self.assertEqual(sum(line.startswith(key) for line in parts[1].splitlines()), 1, name)
+            self._replace_frontmatter_line(
+                agents_dir, name,
+                b"mode: subagent\nmodel: openai/gpt-6.1-sol\nvariant: xhigh\n",
+                b"mode: subagent\nmodel: openai/gpt-6.1-sol\nvariant: high\n",
+            )
+
     def _apply_approved_homesteader_changes(self, baseline_chart):
         path = os.path.join(baseline_chart, "files", "agents", "homesteader.md")
         with open(path, "rb") as handle:
@@ -318,6 +333,7 @@ class BaselineParity(unittest.TestCase):
         self._apply_approved_cbm_worker_source_changes(baseline_chart)
         self._apply_approved_reasoning_policy(baseline_chart)
         self._apply_approved_terra_restoration(baseline_chart)
+        self._apply_approved_reviewer_reasoning_change(baseline_chart)
         self._apply_approved_new_agent_files(baseline_chart)
         self._apply_primary_runtime_policy(baseline_chart)
         self._apply_approved_production_runtime_changes(baseline_chart)
@@ -450,6 +466,51 @@ class TerraRestorationTransformContract(unittest.TestCase):
                     BaselineParity()._apply_approved_terra_restoration(chart)
 
 
+class ReviewerReasoningTransformContract(unittest.TestCase):
+    REVIEWERS = ("adversarial-code-reviewer.md", "infra-security-reviewer.md")
+    OLD = b"mode: subagent\nmodel: openai/gpt-6.1-sol\nvariant: xhigh\n"
+    NEW = b"mode: subagent\nmodel: openai/gpt-6.1-sol\nvariant: high\n"
+    ORIGINAL = b"---\ndescription: Fixture\n" + OLD + b"permission:\n  edit: deny\n---\nBody retains variant: xhigh.\n"
+
+    def _write_fixture(self, chart, originals):
+        agents_dir = os.path.join(chart, "files", "agents")
+        os.makedirs(agents_dir)
+        for name, content in originals.items():
+            with open(os.path.join(agents_dir, name), "wb") as handle:
+                handle.write(content)
+        return agents_dir
+
+    def test_only_allowlisted_headers_change(self):
+        originals = {name: self.ORIGINAL for name in self.REVIEWERS}
+        originals["recruiter-resume-reviewer.md"] = self.ORIGINAL
+        originals["terra.md"] = self.ORIGINAL
+        with tempfile.TemporaryDirectory() as chart:
+            agents_dir = self._write_fixture(chart, originals)
+            BaselineParity()._apply_approved_reviewer_reasoning_change(chart)
+            self.assertEqual(set(os.listdir(agents_dir)), set(originals))
+            for name, original in originals.items():
+                expected = original.replace(self.OLD, self.NEW, 1) if name in self.REVIEWERS else original
+                with open(os.path.join(agents_dir, name), "rb") as handle:
+                    self.assertEqual(handle.read(), expected, name)
+
+    def test_rejects_missing_wrong_or_duplicate_old_selections(self):
+        invalid = [self.ORIGINAL.replace(self.OLD, b""), self.ORIGINAL.replace(self.OLD, self.OLD * 2)]
+        for line, wrong in ((b"mode: subagent\n", b"mode: primary\n"),
+                            (b"model: openai/gpt-6.1-sol\n", b"model: openai/gpt-6.1-terra\n"),
+                            (b"variant: xhigh\n", b"variant: high\n")):
+            invalid.extend((self.ORIGINAL.replace(line, b""),
+                            self.ORIGINAL.replace(line, wrong),
+                            self.ORIGINAL.replace(line, line * 2)))
+        for name in self.REVIEWERS:
+            for candidate in invalid:
+                with self.subTest(agent=name, frontmatter=candidate), tempfile.TemporaryDirectory() as chart:
+                    originals = {reviewer: self.ORIGINAL for reviewer in self.REVIEWERS}
+                    originals[name] = candidate
+                    self._write_fixture(chart, originals)
+                    with self.assertRaises(AssertionError):
+                        BaselineParity()._apply_approved_reviewer_reasoning_change(chart)
+
+
 class PrimaryModelContract(unittest.TestCase):
     def test_exactly_ten_primary_headers_use_gpt_6_1_sol_medium(self):
         expected = {"default.md", "makeitwork.md", "xnoto.md", "career.md", "teacher.md", "grillmaster.md", "homerepair.md", "homesteader.md", "lawnmowerman.md", "mechanic.md"}
@@ -489,8 +550,8 @@ class OpenAIModelVariantContract(unittest.TestCase):
         "terra.md": ("openai/gpt-6.1-terra", "medium"),
         "cloud-architecture-reviewer.md": ("openai/gpt-6.1-sol", "medium"),
         "devops-engineer.md": ("openai/gpt-6.1-sol", "medium"),
-        "adversarial-code-reviewer.md": ("openai/gpt-6.1-sol", "xhigh"),
-        "infra-security-reviewer.md": ("openai/gpt-6.1-sol", "xhigh"),
+        "adversarial-code-reviewer.md": ("openai/gpt-6.1-sol", "high"),
+        "infra-security-reviewer.md": ("openai/gpt-6.1-sol", "high"),
         "recruiter-resume-reviewer.md": ("openai/gpt-6.1-sol", "high"),
         "luna.md": ("openai/gpt-6-luna", "low"),
         "qa-engineer.md": ("openai/gpt-6-luna", "medium"),
