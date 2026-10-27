@@ -1,7 +1,7 @@
 ---
 description: Independent high-reasoning recruiter-perspective review for a tailored resume immediately before export; read-only and never an authoring or delivery agent
 mode: subagent
-model: openai/gpt-6.1-sol
+model: openai/gpt-6.1-terra
 variant: high
 permission:
   edit: deny

@@ -1,7 +1,7 @@
 ---
 description: Independent hostile review of a completed implementation immediately before its pull request is opened; use for any non-trivial code, chart, workflow, or documentation change and for owner-requested second opinions; not for research, planning, trivial rewording, or implementation
 mode: subagent
-model: openai/gpt-6.1-sol
+model: openai/gpt-6.1-terra
 variant: xhigh
 permission:
   edit: deny
