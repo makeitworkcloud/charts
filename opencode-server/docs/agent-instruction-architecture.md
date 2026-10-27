@@ -196,11 +196,11 @@ The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
 
 | Agents | Model | Variant |
 | --- | --- | --- |
-| `career`, `default`, `grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, `makeitwork`, `teacher`, `xnoto` | `openai/gpt-6.1-terra` | `medium` |
-| `mechanic` | `openai/gpt-6.1-sol` | `medium` |
-| `terra`, `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-terra` | `medium` |
-| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-terra` | `xhigh` |
-| `recruiter-resume-reviewer` | `openai/gpt-6.1-terra` | `high` |
+| All ten primaries | `openai/gpt-6.1-sol` | `medium` |
+| `terra` | `openai/gpt-6.1-terra` | `medium` |
+| `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-sol` | `medium` |
+| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `xhigh` |
+| `recruiter-resume-reviewer` | `openai/gpt-6.1-sol` | `high` |
 | `luna` | `openai/gpt-6-luna` | `low` |
 | `qa-engineer` | `openai/gpt-6-luna` | `medium` |
 
@@ -209,11 +209,16 @@ updates three Kimi model headers as described below; the 25-agent inventory,
 permissions, MCPs, provider wiring, image, and opt-in pilot remain unchanged.
 No new agent is added.
 
-Chart 0.5.7 restores only the nine historical Terra primaries and six historical Terra subagents to GPT-6.1 Terra, preserving every current variant. The primary scope is evidenced by [1b93cbea](https://github.com/makeitworkcloud/charts/commit/1b93cbea51987b5b227802efd71b090e810134d7), and the subagent scope by [a7ab3555](https://github.com/makeitworkcloud/charts/commit/a7ab35550b139ca3c92cb54cd2b6b294cf64f1af). Mechanic was never a Terra agent and remains Sol; the global Sol fallback, default-agent selection, other workers, permissions, providers, image, API version, and pilot are unchanged.
+Chart 0.5.7 changes only the generic `terra` execution subagent to
+`openai/gpt-6.1-terra`, retaining `medium`. All ten primaries, the global
+Sol fallback, and all five Sol-backed reviewer subagents stay on GPT-6.1 Sol
+with their existing variants. Other workers, default-agent selection, prompts,
+permissions, providers, image/appVersion 2.0.22, API version 2, and pilot are
+unchanged. The goal is lower delegated-task spend, not fewer tokens by fiat.
+
 The reasoning policy follows [OpenAI model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection):
-Luna low remains the focused-work preference. The restored Terra agents retain
-medium for coordinated work and xhigh for conflicting-evidence review; these
-preferences are owner-selected starting points, not measured model equivalence. Recruiter high and QA
+Luna low for focused work, Sol medium for coordinated revisable work, and Sol
+xhigh for decisions involving conflicting evidence. Recruiter high and QA
 medium are role-specific starting points, not benchmarked quality guarantees.
 Astra remains an exceptional, explicit owner-selected review option; no agent
 or automatic escalation is introduced. Avoid a universal high/max default.
@@ -229,9 +234,7 @@ A primary preference does not force a session's model or effort. OpenCode
 session selection from agent preferences: selecting a primary does not change
 the stored model, while a subagent uses its configured model. The root default
 aligns unspecified session-model selection with Sol; clients can supply a
-model explicitly, and existing sessions keep their selection. The restored
-primary headers do not switch unspecified new sessions to Terra: the root
-fallback remains Sol. Select Terra explicitly to verify those primary paths. The root model
+model explicitly, and existing sessions keep their selection. The root model
 has no variant override; primary header `medium` is not proof that all primary
 sessions send medium effort. Verify web, TUI, API, and child-session paths
 separately. Configuration is loaded at server startup, not hot-reloaded.
@@ -242,7 +245,7 @@ when switching primaries, explicit client selection taking precedence, and
 representative child agents using their configured models/variants. Use
 synthetic inputs for inference and tool-call checks; inspect only privacy-safe
 selection/effort metadata, never raw session payloads or credentials. Compare
-representative bounded Luna, coordinated Terra, and conflicting-evidence review
+representative bounded Luna, coordinated Sol, and conflicting-evidence review
 tasks for outcome quality and complete-task usage/latency before claiming an
 improvement. Static CI does not exercise these behavioral cases.
 
@@ -277,12 +280,46 @@ assert the four Kimi model/variant/mode selections and reject missing, duplicate
 or wrong selections and extra Kimi agents. Full parity and archive tests retain
 prompt, permission, and unrelated-file protection without a baseline rebase. The subsequent 0.5.6 routing transform changes exactly two source-routing paragraphs in each of `kimi.md` and `kimi-256k.md`; it never copies whole subagent files.
 
-A separate 0.5.7 restoration transform runs after the historical reasoning
-transform. It changes exactly the fifteen verified historical Terra headers
-from GPT-6.1 Sol to GPT-6.1 Terra, preserving each mode and variant, and aligns
-only the cloud reviewer's model self-description. Each old block must occur
-exactly once. The historical transforms and fixed baseline remain unchanged;
-there is no blanket subagent copy, baseline rebase, or parity exemption.
+The 0.5.7 restoration adds one exact transform after the historical reasoning
+step: only `terra.md` changes from GPT-6.1 Sol to GPT-6.1 Terra with its
+subagent mode and medium variant preserved. The old header block must occur
+exactly once. Primary and reviewer headers and bodies remain unchanged; the
+historical transforms, pinned baselines and full parity checks are retained.
+
+### Subagent engagement assessment (0.5.7)
+
+All six currently Sol-backed subagents appear in the historical Terra-to-Sol
+[conversion](https://github.com/makeitworkcloud/charts/commit/a7ab35550b139ca3c92cb54cd2b6b294cf64f1af);
+no newer Sol-only subagent is present in this chart inventory. History alone
+does not establish fitness for a cheaper model. This first pass evaluates the
+current contracts rather than restoring every historical assignment:
+
+| Subagent | Selected model / variant | Engagement rationale |
+| --- | --- | --- |
+| `terra` | Terra 6.1 / medium | Bounded execution with parent-owned interpretation, safety, acceptance criteria and final synthesis. |
+| `recruiter-resume-reviewer` | Sol 6.1 / high | Bounded inputs, but fact support and qualification distinctions affect an externally shared document; retain pending stronger comparative evidence. |
+| `cloud-architecture-reviewer` | Sol 6.1 / medium | Broad recovery, state, security, operability and cost tradeoffs with consequential missed requirements. |
+| `devops-engineer` | Sol 6.1 / medium | Cross-workflow identity, event, artifact, runner and GitOps interactions, including false-green paths. |
+| `adversarial-code-reviewer` | Sol 6.1 / xhigh | Independent correctness and edge-case gate, not routine delegated execution. |
+| `infra-security-reviewer` | Sol 6.1 / xhigh | Adversarial privilege, exposure, secret-boundary and supply-chain gate. |
+
+Luna/QA, Kimi documentation/release workers, GLM and MiniMax are unchanged;
+there is no blanket migration of non-Sol workers. Retaining reviewer tiers is
+a risk-based choice, not proof that Terra cannot perform those roles. A paired
+synthetic coding sample found the required boundary fix under both models;
+a paired resume sample exposed an evidence distinction missed by Terra but
+identified by Sol. These are bounded observations, not general performance
+rankings or tool-call tests. No automatic escalation or new agent is added.
+
+The [model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection)
+and [Terra announcement](https://openai.com/index/introducing-gpt-6-1-terra)
+support task-specific evaluation; OpenAI still recommends Sol/Astra for the
+most complex coding work. Published standard Terra input/output rates are
+50% below Sol's, not proof of fewer tokens or lower complete-task cost for
+this account. Revisit a reviewer downgrade only with matched representative
+cases covering false negatives, false positives, fact fidelity, permission
+adherence, correction burden and observed usage/latency. Do not run every
+production task twice as a permanent savings strategy.
 
 ### Subagents
 
@@ -307,7 +344,7 @@ criteria in the task prompt.
 
 [`files/agents/devops-engineer.md`](../files/agents/devops-engineer.md) defines
 a parent-directed, read-only DevOps integration and delivery reviewer using
-`openai/gpt-6.1-terra` with the medium variant. It reviews supplied DESIGN
+`openai/gpt-6.1-sol` with the medium variant. It reviews supplied DESIGN
 proposals and completed CHANGE diffs for CI, workflow, reusable-workflow,
 artifact, GitOps-handoff, runner, and delivery-integration contracts. All
 native and MCP tools are denied through a wildcard permission rule; the parent
@@ -317,7 +354,7 @@ retains implementation, mutation, and final authority.
 defines a supplied-evidence, read-only cloud architecture design reviewer that
 the code-capable primaries dispatch before implementing a new cloud service or
 a material change to service selection, topology, state placement, recovery,
-scaling, or recurring cost. It runs on `openai/gpt-6.1-terra` with the medium
+scaling, or recurring cost. It runs on `openai/gpt-6.1-sol` with the medium
 variant, all native and MCP tools denied, and a bounded 500-800-word review
 budget; it does not switch models, dispatch specialists, or retrieve evidence
 itself. It may recommend a specialist for a named material risk; the primary
@@ -374,7 +411,7 @@ does all other unspecialized work.
 
 The existing `make test-opencode-server-agents` target statically covers the
 `cloud-architecture-reviewer` packaging: exact frontmatter (description,
-Terra model, medium variant, subagent mode, wildcard and `edit`/`bash` tool
+Sol model, medium variant, subagent mode, wildcard and `edit`/`bash` tool
 denies), the mandatory headings and policy markers, the routing markers in
 the five code-capable primaries, the 25-agent inventory with ConfigMap and
 mount keys, and byte-exact archive inclusion. Functional review quality is

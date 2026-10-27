@@ -138,12 +138,11 @@ and changes the post-migration root Kimi CN model to Sol. Each old block must
 occur exactly once. The mechanic is still the sole approved new agent absent
 from that baseline and is copied from the current source.
 
-A separate 0.5.7 restoration transform runs after the historical reasoning
-transform. It changes exactly the fifteen verified historical Terra headers
-from GPT-6.1 Sol to GPT-6.1 Terra, preserving each mode and variant, and aligns
-only the cloud reviewer's model self-description. Each old block must occur
-exactly once. The historical transforms and fixed baseline remain unchanged;
-there is no blanket subagent copy, baseline rebase, or parity exemption.
+The 0.5.7 restoration adds one exact transform after the historical reasoning
+step: only `terra.md` changes from GPT-6.1 Sol to GPT-6.1 Terra with its
+subagent mode and medium variant preserved. The old header block must occur
+exactly once. Primary and reviewer headers and bodies remain unchanged; the
+historical transforms, pinned baselines and full parity checks are retained.
 
 The existing ten-primary runtime-policy transform remains explicit; a separate
 pinned-base check protects every primary operating-rules tail. Non-primary

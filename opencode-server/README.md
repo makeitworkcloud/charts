@@ -24,11 +24,11 @@ The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
 
 | Agents | Model | Variant |
 | --- | --- | --- |
-| `career`, `default`, `grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, `makeitwork`, `teacher`, `xnoto` | `openai/gpt-6.1-terra` | `medium` |
-| `mechanic` | `openai/gpt-6.1-sol` | `medium` |
-| `terra`, `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-terra` | `medium` |
-| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-terra` | `xhigh` |
-| `recruiter-resume-reviewer` | `openai/gpt-6.1-terra` | `high` |
+| All ten primaries | `openai/gpt-6.1-sol` | `medium` |
+| `terra` | `openai/gpt-6.1-terra` | `medium` |
+| `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-sol` | `medium` |
+| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `xhigh` |
+| `recruiter-resume-reviewer` | `openai/gpt-6.1-sol` | `high` |
 | `luna` | `openai/gpt-6-luna` | `low` |
 | `qa-engineer` | `openai/gpt-6-luna` | `medium` |
 
@@ -37,11 +37,18 @@ updates three Kimi model headers as described below; the 25-agent inventory,
 permissions, MCPs, provider wiring, image, and opt-in pilot remain unchanged.
 No new agent is added.
 
-Chart 0.5.7 restores only the nine historical Terra primaries and six historical Terra subagents to GPT-6.1 Terra, preserving every current variant. The primary scope is evidenced by [1b93cbea](https://github.com/makeitworkcloud/charts/commit/1b93cbea51987b5b227802efd71b090e810134d7), and the subagent scope by [a7ab3555](https://github.com/makeitworkcloud/charts/commit/a7ab35550b139ca3c92cb54cd2b6b294cf64f1af). Mechanic was never a Terra agent and remains Sol; the global Sol fallback, default-agent selection, other workers, permissions, providers, image, API version, and pilot are unchanged.
+Chart 0.5.7 changes only the generic `terra` execution subagent to
+`openai/gpt-6.1-terra`, retaining `medium`. All ten primaries, the global
+Sol fallback, and all five Sol-backed reviewer subagents stay on GPT-6.1 Sol
+with their existing variants. Other workers, default-agent selection, prompts,
+permissions, providers, image/appVersion 2.0.22, API version 2, and pilot are
+unchanged. The goal is lower delegated-task spend, not fewer tokens by fiat.
+
+See the [subagent engagement assessment](docs/agent-instruction-architecture.md#subagent-engagement-assessment-057)
+for the retained reviewer tiers and verification limits.
 The reasoning policy follows [OpenAI model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection):
-Luna low remains the focused-work preference. The restored Terra agents retain
-medium for coordinated work and xhigh for conflicting-evidence review; these
-preferences are owner-selected starting points, not measured model equivalence. Recruiter high and QA
+Luna low for focused work, Sol medium for coordinated revisable work, and Sol
+xhigh for decisions involving conflicting evidence. Recruiter high and QA
 medium are role-specific starting points, not benchmarked quality guarantees.
 Astra remains an exceptional, explicit owner-selected review option; no agent
 or automatic escalation is introduced. Avoid a universal high/max default.
@@ -57,9 +64,7 @@ A primary preference does not force a session's model or effort. OpenCode
 session selection from agent preferences: selecting a primary does not change
 the stored model, while a subagent uses its configured model. The root default
 aligns unspecified session-model selection with Sol; clients can supply a
-model explicitly, and existing sessions keep their selection. The restored
-primary headers do not switch unspecified new sessions to Terra: the root
-fallback remains Sol. Select Terra explicitly to verify those primary paths. The root model
+model explicitly, and existing sessions keep their selection. The root model
 has no variant override; primary header `medium` is not proof that all primary
 sessions send medium effort. Verify web, TUI, API, and child-session paths
 separately. Configuration is loaded at server startup, not hot-reloaded.
@@ -70,21 +75,33 @@ when switching primaries, explicit client selection taking precedence, and
 representative child agents using their configured models/variants. Use
 synthetic inputs for inference and tool-call checks; inspect only privacy-safe
 selection/effort metadata, never raw session payloads or credentials. Compare
-representative bounded Luna, coordinated Terra, and conflicting-evidence review
+representative bounded Luna, coordinated Sol, and conflicting-evidence review
 tasks for outcome quality and complete-task usage/latency before claiming an
 improvement. Static CI does not exercise these behavioral cases.
 
-The OpenCode catalog listed `openai/gpt-6.1-terra` as active with the preserved
-medium/high/xhigh variants on 2026-10-27. Catalog presence is not entitlement
-or inference proof. Pricing and account entitlement have not been verified for
-this change. No token rates, relative savings, or total task-cost claims are
-made, and no usage budget is implied. Chart CI is static validation and proves
-neither model availability, account entitlement, nor successful inference or
-Responses tool calls. Before any separately authorized rollout, confirm that
-the deployed OpenCode version's model catalog lists `openai/gpt-6.1-terra`,
-verify account entitlement and current pricing, and accept the resulting usage
-and cost. Fresh-session inference and tool-call checks remain required after
-rollout; roll back only through a separate GitOps chart pin revision.
+The OpenCode catalog listed `openai/gpt-6.1-terra` as active with `medium`
+on 2026-10-27. OpenAI's standard API rates are $1/$5 per million input/output
+tokens for [Terra](https://developers.openai.com/api/docs/models/gpt-6.1-terra),
+versus $2/$10 for [Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol);
+cached input is $0.05 versus $0.10. These are published API prices, not a claim
+about this account's plan billing, token counts, or complete-task savings.
+Retries, reasoning, and correction work can change total cost. Entitlement and
+usage accounting remain separate verification gates.
+
+A paired synthetic coding sample produced the requested zero/negative-limit
+fix and targeted tests under both models. A paired synthetic recruiter sample
+blocked fabricated claims and accepted the supported resume under both, but
+Terra missed an evidence distinction that Sol identified. These small
+supplied-text samples are not broad benchmarks, code execution, Responses
+tool-call verification, or proof of the deployed chart's behavior. The recruiter
+reviewer therefore remains Sol pending stronger comparative evidence.
+
+Chart CI is static validation. Before a separately authorized rollout, confirm
+the deployed catalog, account access and applicable cost; after rollout, verify
+a fresh `terra` child session's model/variant, inference and tool calls using
+synthetic input. Verify primary/default sessions still use their prior Sol
+selection. Configuration loads at startup, not hot reload. Roll back only
+through a separately confirmed GitOps pin to the prior published chart.
 
 ### Kimi 3.1 model policy (0.5.5)
 
@@ -134,11 +151,11 @@ After a confirmed rollout, check that the deployed OpenCode model catalog lists
 the `kimi-code-plan-cn` keys, then verify fresh-session inference and tool
 calls.
 
-The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6.1-terra` with the medium variant and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
+The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6.1-sol` with the medium variant and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### Cloud architecture design review
 
-The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6.1-terra` with the medium variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
+The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6.1-sol` with the medium variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
 
 The review is requirements-led and simplicity-biased: it prefers established vendor- or canonical-owner-maintained solutions, challenges unsupported complexity, and no cloud vendor is preferred by default. The five code-capable primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`) route material designs to it with a compact design brief and skip routine changes within an established pattern; the existing pre-pull-request review gates are unchanged, and this design review does not replace them.
 
@@ -373,12 +390,11 @@ and changes the post-migration root Kimi CN model to Sol. Each old block must
 occur exactly once. The mechanic is still the sole approved new agent absent
 from that baseline and is copied from the current source.
 
-A separate 0.5.7 restoration transform runs after the historical reasoning
-transform. It changes exactly the fifteen verified historical Terra headers
-from GPT-6.1 Sol to GPT-6.1 Terra, preserving each mode and variant, and aligns
-only the cloud reviewer's model self-description. Each old block must occur
-exactly once. The historical transforms and fixed baseline remain unchanged;
-there is no blanket subagent copy, baseline rebase, or parity exemption.
+The 0.5.7 restoration adds one exact transform after the historical reasoning
+step: only `terra.md` changes from GPT-6.1 Sol to GPT-6.1 Terra with its
+subagent mode and medium variant preserved. The old header block must occur
+exactly once. Primary and reviewer headers and bodies remain unchanged; the
+historical transforms, pinned baselines and full parity checks are retained.
 
 The existing ten-primary runtime-policy transform remains explicit; a separate
 pinned-base check protects every primary operating-rules tail. Non-primary
