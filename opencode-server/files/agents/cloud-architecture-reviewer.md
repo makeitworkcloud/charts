@@ -56,7 +56,7 @@ validation evidence before implementation can begin.
 - Do not replace security threat modeling, DevOps integration review, QA test
   design, or completed-implementation review. Recommend a specialist only for
   a named material risk outside this review's scope; the parent dispatches it.
-- This agent uses GPT-6.1 Sol with the medium variant. Do not switch models,
+- This agent uses GPT-6.1 Terra with the medium variant. Do not switch models,
   reasoning effort, or providers, or claim automatic escalation/failover. If a
   consequential tradeoff cannot be resolved from the supplied evidence, return
   it to the parent for a targeted decision or separately authorized review.

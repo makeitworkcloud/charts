@@ -24,10 +24,11 @@ The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
 
 | Agents | Model | Variant |
 | --- | --- | --- |
-| All ten primaries | `openai/gpt-6.1-sol` | `medium` |
-| `terra`, `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-sol` | `medium` |
-| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `xhigh` |
-| `recruiter-resume-reviewer` | `openai/gpt-6.1-sol` | `high` |
+| `career`, `default`, `grillmaster`, `homerepair`, `homesteader`, `lawnmowerman`, `makeitwork`, `teacher`, `xnoto` | `openai/gpt-6.1-terra` | `medium` |
+| `mechanic` | `openai/gpt-6.1-sol` | `medium` |
+| `terra`, `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-terra` | `medium` |
+| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-terra` | `xhigh` |
+| `recruiter-resume-reviewer` | `openai/gpt-6.1-terra` | `high` |
 | `luna` | `openai/gpt-6-luna` | `low` |
 | `qa-engineer` | `openai/gpt-6-luna` | `medium` |
 
@@ -35,9 +36,12 @@ Chart 0.5.4 left the Kimi, GLM, and MiniMax workers unchanged. Chart 0.5.5
 updates three Kimi model headers as described below; the 25-agent inventory,
 permissions, MCPs, provider wiring, image, and opt-in pilot remain unchanged.
 No new agent is added.
+
+Chart 0.5.7 restores only the nine historical Terra primaries and six historical Terra subagents to GPT-6.1 Terra, preserving every current variant. The primary scope is evidenced by [1b93cbea](https://github.com/makeitworkcloud/charts/commit/1b93cbea51987b5b227802efd71b090e810134d7), and the subagent scope by [a7ab3555](https://github.com/makeitworkcloud/charts/commit/a7ab35550b139ca3c92cb54cd2b6b294cf64f1af). Mechanic was never a Terra agent and remains Sol; the global Sol fallback, default-agent selection, other workers, permissions, providers, image, API version, and pilot are unchanged.
 The reasoning policy follows [OpenAI model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection):
-Luna low for focused work, Sol medium for coordinated revisable work, and Sol
-xhigh for decisions involving conflicting evidence. Recruiter high and QA
+Luna low remains the focused-work preference. The restored Terra agents retain
+medium for coordinated work and xhigh for conflicting-evidence review; these
+preferences are owner-selected starting points, not measured model equivalence. Recruiter high and QA
 medium are role-specific starting points, not benchmarked quality guarantees.
 Astra remains an exceptional, explicit owner-selected review option; no agent
 or automatic escalation is introduced. Avoid a universal high/max default.
@@ -53,7 +57,9 @@ A primary preference does not force a session's model or effort. OpenCode
 session selection from agent preferences: selecting a primary does not change
 the stored model, while a subagent uses its configured model. The root default
 aligns unspecified session-model selection with Sol; clients can supply a
-model explicitly, and existing sessions keep their selection. The root model
+model explicitly, and existing sessions keep their selection. The restored
+primary headers do not switch unspecified new sessions to Terra: the root
+fallback remains Sol. Select Terra explicitly to verify those primary paths. The root model
 has no variant override; primary header `medium` is not proof that all primary
 sessions send medium effort. Verify web, TUI, API, and child-session paths
 separately. Configuration is loaded at server startup, not hot-reloaded.
@@ -64,16 +70,18 @@ when switching primaries, explicit client selection taking precedence, and
 representative child agents using their configured models/variants. Use
 synthetic inputs for inference and tool-call checks; inspect only privacy-safe
 selection/effort metadata, never raw session payloads or credentials. Compare
-representative bounded Luna, coordinated Sol, and conflicting-evidence review
+representative bounded Luna, coordinated Terra, and conflicting-evidence review
 tasks for outcome quality and complete-task usage/latency before claiming an
 improvement. Static CI does not exercise these behavioral cases.
 
-Pricing and account entitlement for `gpt-6.1-sol` have not been verified for
+The OpenCode catalog listed `openai/gpt-6.1-terra` as active with the preserved
+medium/high/xhigh variants on 2026-10-27. Catalog presence is not entitlement
+or inference proof. Pricing and account entitlement have not been verified for
 this change. No token rates, relative savings, or total task-cost claims are
 made, and no usage budget is implied. Chart CI is static validation and proves
 neither model availability, account entitlement, nor successful inference or
 Responses tool calls. Before any separately authorized rollout, confirm that
-the deployed OpenCode version's model catalog lists `openai/gpt-6.1-sol`,
+the deployed OpenCode version's model catalog lists `openai/gpt-6.1-terra`,
 verify account entitlement and current pricing, and accept the resulting usage
 and cost. Fresh-session inference and tool-call checks remain required after
 rollout; roll back only through a separate GitOps chart pin revision.
@@ -126,11 +134,11 @@ After a confirmed rollout, check that the deployed OpenCode model catalog lists
 the `kimi-code-plan-cn` keys, then verify fresh-session inference and tool
 calls.
 
-The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6.1-sol` with the medium variant and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
+The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6.1-terra` with the medium variant and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### Cloud architecture design review
 
-The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6.1-sol` with the medium variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
+The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6.1-terra` with the medium variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
 
 The review is requirements-led and simplicity-biased: it prefers established vendor- or canonical-owner-maintained solutions, challenges unsupported complexity, and no cloud vendor is preferred by default. The five code-capable primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`) route material designs to it with a compact design brief and skip routine changes within an established pattern; the existing pre-pull-request review gates are unchanged, and this design review does not replace them.
 
@@ -365,6 +373,13 @@ and changes the post-migration root Kimi CN model to Sol. Each old block must
 occur exactly once. The mechanic is still the sole approved new agent absent
 from that baseline and is copied from the current source.
 
+A separate 0.5.7 restoration transform runs after the historical reasoning
+transform. It changes exactly the fifteen verified historical Terra headers
+from GPT-6.1 Sol to GPT-6.1 Terra, preserving each mode and variant, and aligns
+only the cloud reviewer's model self-description. Each old block must occur
+exactly once. The historical transforms and fixed baseline remain unchanged;
+there is no blanket subagent copy, baseline rebase, or parity exemption.
+
 The existing ten-primary runtime-policy transform remains explicit; a separate
 pinned-base check protects every primary operating-rules tail. Non-primary
 bytes remain equal to the transformed historical fixture, with exactly the
@@ -397,25 +412,19 @@ is deferred.
 4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
 5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
 
-### 0.5.6 consumer coordination gate
+### 0.5.7 consumer coordination gate
 
-At [kustomize-cluster revision 353c260f](https://github.com/makeitworkcloud/kustomize-cluster/blob/353c260fb517d497fa697bf54f95e6a5cd6cc7da/.github/workflows/test.yml#L912-L917),
-`test_chart_pin_and_selector_coupled` expects chart/API pair (`0.5.5`, `2`).
-The publisher changes only the Application pin, so the generated `0.5.6` pin PR
-cannot pass the current assertion. After the chart artifact is published, update
-the desired pin and the exact chart assertion atomically in the same consumer
-PR—for example, by amending the autogenerated pin branch—so both change from
-`0.5.5` to `0.5.6` together while API selector `2` remains unchanged. Do not bypass
-the check or merge an assertion-only change first: asserting `0.5.6` while the
-desired pin remains `0.5.5` would fail CI.
-Existing pin-PR auto-merge remains configured but blocked by that required
-assertion until coordination; do not bypass checks. This chart does not edit
-the consumer assertion, desired-state pin, or updater workflow. A confirmed
-chart merge publishes and starts the pin flow, not a backend migration.
-Publication, consumer selection, reconciliation, and runtime verification are
-separate stages. Any later backend migration requires the selected compatible
-consumer and separate approval; it is not authorized by this chart change.
-Reverify the consumer gate against its current revision before coordination.
+At [kustomize-cluster revision 00469e89](https://github.com/makeitworkcloud/kustomize-cluster/blob/00469e89a658ffab0659d732920b792674d18ecd/.github/workflows/test.yml#L911-L916),
+`test_chart_pin_and_selector_coupled` expects chart/API pair (`0.5.6`, `2`),
+and the Application pins `0.5.6`. The publisher changes only the Application
+pin, so its generated `0.5.7` pin PR needs the exact chart assertion updated
+atomically in that same consumer PR, retaining API selector `2`. Do not merge
+an assertion-only change first or bypass required checks. Existing pin-PR
+auto-merge stays configured but is blocked by this assertion until coordination.
+This chart changes neither the consumer pin/assertion nor the updater workflow.
+A confirmed chart merge publishes and starts the automatic pin flow; selection,
+root/child reconciliation, health, and functional verification remain separate
+stages. Reverify the consumer gate before coordinating the future pin PR.
 
 ### Historical 0.1.75 aggregate cutover
 
