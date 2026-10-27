@@ -270,6 +270,25 @@ else
   observe_rc=$?
   if [[ "$observe_rc" -eq 2 ]]; then
     echo 'KERNEL_OBSERVATION_DIAGNOSTIC outcome=client_exited'
+    full_client_rc=0
+    wait "$FULL_PID" || full_client_rc=$?
+    printf 'KERNEL_OBSERVATION_DIAGNOSTIC client_exit_code=%s\n' "$full_client_rc"
+    python3 - "$WORK_DIR/result-full.json" <<'PY'
+import json
+import sys
+
+ok = "unavailable"
+try:
+    with open(sys.argv[1], encoding="utf-8") as handle:
+        raw = handle.read(65537)
+    if len(raw) <= 65536:
+        doc = json.loads(raw)
+        if isinstance(doc, dict) and type(doc.get("ok")) is bool:
+            ok = "true" if doc["ok"] else "false"
+except (OSError, ValueError, UnicodeError):
+    pass
+print("KERNEL_OBSERVATION_DIAGNOSTIC client_result_ok=" + ok)
+PY
   else
     echo 'KERNEL_OBSERVATION_DIAGNOSTIC outcome=observation_deadline'
   fi
