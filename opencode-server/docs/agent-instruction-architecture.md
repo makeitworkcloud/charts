@@ -288,7 +288,7 @@ historical transforms, pinned baselines and full parity checks are retained.
 
 ### Subagent engagement assessment (0.5.7)
 
-All six currently Sol-backed subagents appear in the historical Terra-to-Sol
+All six pre-0.5.7 Sol-backed subagents appear in the historical Terra-to-Sol
 [conversion](https://github.com/makeitworkcloud/charts/commit/a7ab35550b139ca3c92cb54cd2b6b294cf64f1af);
 no newer Sol-only subagent is present in this chart inventory. History alone
 does not establish fitness for a cheaper model. This first pass evaluates the
