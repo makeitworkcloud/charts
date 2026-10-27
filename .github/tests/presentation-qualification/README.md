@@ -87,7 +87,7 @@ regardless of what this CI fixture shows.
    to `launch_ipykernel.py` (verified 648 lines: it does not read them
    itself), plus `--cluster-type none`. `LOG_LEVEL`/`EG_LOG_LEVEL` are pinned
    to `"30"` because the launcher defaults to DEBUG (10), which can print
-   channel connection material; the gateway runs `--log-level=WARNING`.
+   channel connection material; the gateway runs `--log-level=WARN`.
    Kernel and gateway logs are never collected, tailed, or uploaded.
 6. **Two fresh kernels per proof run** — a BUILD kernel runs `build_task.py`
    (PptxGenJS 4.0.1 authors a one-slide deck) and streams the PPTX back over
