@@ -132,7 +132,7 @@ allowlist transform runs after provider migration and changes only `kimi.md`,
 asserting each old model/variant/mode block exactly once; `kimi-256k.md` stays
 unchanged. An additional exact reasoning-policy
 transform applies medium to the nine historical primaries; upgrades the six
-historical Sol subagents to GPT-6.1 Sol with the variants in the [chart model policy](../README.md#packaged-configuration); adds
+historical Sol subagents to GPT-6.1 Sol with the historical 0.5.4 variants; adds
 low/medium to Luna/QA; replaces only the cloud reviewer's stale Terra sentence;
 and changes the post-migration root Kimi CN model to Sol. Each old block must
 occur exactly once. The mechanic is still the sole approved new agent absent
@@ -141,8 +141,13 @@ from that baseline and is copied from the current source.
 The 0.5.7 restoration adds one exact transform after the historical reasoning
 step: only `terra.md` changes from GPT-6.1 Sol to GPT-6.1 Terra with its
 subagent mode and medium variant preserved. The old header block must occur
-exactly once. Primary and reviewer headers and bodies remain unchanged; the
-historical transforms, pinned baselines and full parity checks are retained.
+exactly once. In that restoration, primary and reviewer headers and bodies
+remain unchanged. The separate 0.5.8 transform then changes only the exact
+Sol/subagent/xhigh header blocks of `adversarial-code-reviewer.md` and
+`infra-security-reviewer.md` to high, requiring each old block exactly once
+and rejecting missing, wrong or duplicate selection keys. Prompt bodies and
+unrelated files remain protected; historical transforms, both pinned baselines
+and full parity checks are retained.
 
 The existing ten-primary runtime-policy transform remains explicit; a separate
 pinned-base check protects every primary operating-rules tail. Non-primary

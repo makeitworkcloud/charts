@@ -27,7 +27,7 @@ The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
 | All ten primaries | `openai/gpt-6.1-sol` | `medium` |
 | `terra` | `openai/gpt-6.1-terra` | `medium` |
 | `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-sol` | `medium` |
-| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `xhigh` |
+| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `high` |
 | `recruiter-resume-reviewer` | `openai/gpt-6.1-sol` | `high` |
 | `luna` | `openai/gpt-6-luna` | `low` |
 | `qa-engineer` | `openai/gpt-6-luna` | `medium` |
@@ -46,12 +46,25 @@ unchanged. The goal is lower delegated-task spend, not fewer tokens by fiat.
 
 See the [subagent engagement assessment](docs/agent-instruction-architecture.md#subagent-engagement-assessment-057)
 for the retained reviewer tiers and verification limits.
-The reasoning policy follows [OpenAI model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection):
-Luna low for focused work, Sol medium for coordinated revisable work, and Sol
-xhigh for decisions involving conflicting evidence. Recruiter high and QA
-medium are role-specific starting points, not benchmarked quality guarantees.
-Astra remains an exceptional, explicit owner-selected review option; no agent
-or automatic escalation is introduced. Avoid a universal high/max default.
+### Reviewer reasoning policy (0.5.8)
+
+Chart 0.5.8 changes only `adversarial-code-reviewer` and
+`infra-security-reviewer` from Sol 6.1 `xhigh` to `high`. Their models, prompt
+bodies and permissions remain unchanged, as do every other model/variant,
+all ten primaries, the global Sol fallback, API version 2 and appVersion 2.0.22.
+This is an owner-approved risk/cost starting policy, not measured optimality,
+equivalent review quality or demonstrated savings. No matched comparative
+evaluation was performed; CI validates configuration, render and archive contracts.
+
+[OpenAI reasoning guidance](https://developers.openai.com/api/docs/guides/reasoning)
+reserves xhigh for evaluated benefits that justify extra latency and cost.
+Effort labels are not equivalent across providers: `glm-flash` remains at `max`
+for its bounded reasoning-sensitive automation, tool research, multimodal and
+broad-context role, consistent with [Z.ai guidance](https://docs.z.ai/devpack/latest-model).
+The flagship `glm` remains at `high`; Kimi, Luna and MiniMax remain unchanged.
+After a separately approved rollout, verify fresh reviewer child sessions select
+Sol/high and exercise representative synthetic reviews before making quality
+claims. Astra remains an explicit owner-selected option, not automatic escalation.
 
 The chart preserves its supported legacy frontmatter format: a base model
 plus a separate `variant` field. The pinned OpenCode 2.0.22
@@ -384,7 +397,7 @@ allowlist transform runs after provider migration and changes only `kimi.md`,
 asserting each old model/variant/mode block exactly once; `kimi-256k.md` stays
 unchanged by that header transform. A subsequent exact two-worker source-routing transform applies only the 0.5.6 schema and full-source paragraphs to `kimi.md` and `kimi-256k.md`, asserting each old paragraph exactly once. An additional exact reasoning-policy
 transform applies medium to the nine historical primaries; upgrades the six
-historical Sol subagents to GPT-6.1 Sol with the variants listed above; adds
+historical Sol subagents to GPT-6.1 Sol with the historical 0.5.4 variants; adds
 low/medium to Luna/QA; replaces only the cloud reviewer's stale Terra sentence;
 and changes the post-migration root Kimi CN model to Sol. Each old block must
 occur exactly once. The mechanic is still the sole approved new agent absent
@@ -393,8 +406,13 @@ from that baseline and is copied from the current source.
 The 0.5.7 restoration adds one exact transform after the historical reasoning
 step: only `terra.md` changes from GPT-6.1 Sol to GPT-6.1 Terra with its
 subagent mode and medium variant preserved. The old header block must occur
-exactly once. Primary and reviewer headers and bodies remain unchanged; the
-historical transforms, pinned baselines and full parity checks are retained.
+exactly once. In that restoration, primary and reviewer headers and bodies
+remain unchanged. The separate 0.5.8 transform then changes only the exact
+Sol/subagent/xhigh header blocks of `adversarial-code-reviewer.md` and
+`infra-security-reviewer.md` to high, requiring each old block exactly once
+and rejecting missing, wrong or duplicate selection keys. Prompt bodies and
+unrelated files remain protected; historical transforms, both pinned baselines
+and full parity checks are retained.
 
 The existing ten-primary runtime-policy transform remains explicit; a separate
 pinned-base check protects every primary operating-rules tail. Non-primary
@@ -428,12 +446,12 @@ is deferred.
 4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
 5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
 
-### 0.5.7 consumer coordination gate
+### 0.5.8 consumer coordination gate
 
-At [kustomize-cluster revision 00469e89](https://github.com/makeitworkcloud/kustomize-cluster/blob/00469e89a658ffab0659d732920b792674d18ecd/.github/workflows/test.yml#L911-L916),
-`test_chart_pin_and_selector_coupled` expects chart/API pair (`0.5.6`, `2`),
-and the Application pins `0.5.6`. The publisher changes only the Application
-pin, so its generated `0.5.7` pin PR needs the exact chart assertion updated
+At [kustomize-cluster revision 2edd5531](https://github.com/makeitworkcloud/kustomize-cluster/blob/2edd55319072c9bc52ecece692c36925c28bd715/.github/workflows/test.yml),
+`test_chart_pin_and_selector_coupled` expects chart/API pair (`0.5.7`, `2`),
+and the Application pins `0.5.7`. The publisher changes only the Application
+pin, so its generated `0.5.8` pin PR needs the exact chart assertion updated
 atomically in that same consumer PR, retaining API selector `2`. Do not merge
 an assertion-only change first or bypass required checks. Existing pin-PR
 auto-merge stays configured but is blocked by this assertion until coordination.

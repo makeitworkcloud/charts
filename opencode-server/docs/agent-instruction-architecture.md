@@ -199,7 +199,7 @@ The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
 | All ten primaries | `openai/gpt-6.1-sol` | `medium` |
 | `terra` | `openai/gpt-6.1-terra` | `medium` |
 | `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-sol` | `medium` |
-| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `xhigh` |
+| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `high` |
 | `recruiter-resume-reviewer` | `openai/gpt-6.1-sol` | `high` |
 | `luna` | `openai/gpt-6-luna` | `low` |
 | `qa-engineer` | `openai/gpt-6-luna` | `medium` |
@@ -216,12 +216,25 @@ with their existing variants. Other workers, default-agent selection, prompts,
 permissions, providers, image/appVersion 2.0.22, API version 2, and pilot are
 unchanged. The goal is lower delegated-task spend, not fewer tokens by fiat.
 
-The reasoning policy follows [OpenAI model-selection guidance](https://developers.openai.com/api/docs/guides/model-selection):
-Luna low for focused work, Sol medium for coordinated revisable work, and Sol
-xhigh for decisions involving conflicting evidence. Recruiter high and QA
-medium are role-specific starting points, not benchmarked quality guarantees.
-Astra remains an exceptional, explicit owner-selected review option; no agent
-or automatic escalation is introduced. Avoid a universal high/max default.
+### Reviewer reasoning policy (0.5.8)
+
+Chart 0.5.8 changes only `adversarial-code-reviewer` and
+`infra-security-reviewer` from Sol 6.1 `xhigh` to `high`. Their models, prompt
+bodies and permissions remain unchanged, as do every other model/variant,
+all ten primaries, the global Sol fallback, API version 2 and appVersion 2.0.22.
+This is an owner-approved risk/cost starting policy, not measured optimality,
+equivalent review quality or demonstrated savings. No matched comparative
+evaluation was performed; CI validates configuration, render and archive contracts.
+
+[OpenAI reasoning guidance](https://developers.openai.com/api/docs/guides/reasoning)
+reserves xhigh for evaluated benefits that justify extra latency and cost.
+Effort labels are not equivalent across providers: `glm-flash` remains at `max`
+for its bounded reasoning-sensitive automation, tool research, multimodal and
+broad-context role, consistent with [Z.ai guidance](https://docs.z.ai/devpack/latest-model).
+The flagship `glm` remains at `high`; Kimi, Luna and MiniMax remain unchanged.
+After a separately approved rollout, verify fresh reviewer child sessions select
+Sol/high and exercise representative synthetic reviews before making quality
+claims. Astra remains an explicit owner-selected option, not automatic escalation.
 
 The chart preserves its supported legacy frontmatter format: a base model
 plus a separate `variant` field. The pinned OpenCode 2.0.22
@@ -283,8 +296,13 @@ prompt, permission, and unrelated-file protection without a baseline rebase. The
 The 0.5.7 restoration adds one exact transform after the historical reasoning
 step: only `terra.md` changes from GPT-6.1 Sol to GPT-6.1 Terra with its
 subagent mode and medium variant preserved. The old header block must occur
-exactly once. Primary and reviewer headers and bodies remain unchanged; the
-historical transforms, pinned baselines and full parity checks are retained.
+exactly once. In that restoration, primary and reviewer headers and bodies
+remain unchanged. The separate 0.5.8 transform then changes only the exact
+Sol/subagent/xhigh header blocks of `adversarial-code-reviewer.md` and
+`infra-security-reviewer.md` to high, requiring each old block exactly once
+and rejecting missing, wrong or duplicate selection keys. Prompt bodies and
+unrelated files remain protected; historical transforms, both pinned baselines
+and full parity checks are retained.
 
 ### Subagent engagement assessment (0.5.7)
 
