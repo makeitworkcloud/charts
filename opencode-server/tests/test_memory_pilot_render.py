@@ -66,6 +66,11 @@ APPROVED_CBM_WORKER_SOURCE_CHANGES = (
 )
 
 
+LIBVIRT_RECOVERY_OLD = "Do not perform host changes, SSH commands, imports, state repair, volume deletion, VM replacement, firewall changes, taints, or direct apply operations from this server. Explain the smallest reviewed recovery path and obtain explicit confirmation before any live operation."
+LIBVIRT_RECOVERY_NEW = "## Ownership and execution boundary\n\nFor changes owned by `tfroot-libvirt`, use its reviewed OpenTofu workflow rather than manual host or guest commands. Do not use SSH to bypass IaC ownership for VM replacement, volume deletion, network or firewall configuration, imports, state repair, or taints. Never run local OpenTofu init, plan, apply, destroy, import, taint, or state operations from this server; use authorized CI and the canonical repository's recovery procedure.\n\nThis is not a blanket SSH prohibition. Use the configured `hero-ssh` MCP for authorized, bounded read-only host diagnostics. Separate owner-directed host work, including live migration outside the `tfroot-libvirt` workflow, is not prohibited merely because that repository will be updated afterward. Establish the actual ownership and scope first; if uncertain, ask before acting. Do not use an operational task as a pretext to make configuration changes owned by IaC.\n\nBefore any live mutation, explain the smallest reviewed procedure, its risks and recovery path, and obtain explicit confirmation of the exact operation and target. Diagnostic authorization is not mutation authorization; prior approval covers only its stated scope. Honor SSH tool policy and privilege gates, and never retrieve secrets, credentials, state, kubeconfig material, sensitive plans, or raw live-system payloads. Report only bounded, non-sensitive evidence."
+LIBVIRT_RECOVERY_PATH = os.path.join("files", "skills", "libvirt-host-and-vm-recovery", "SKILL.md")
+
+
 def run_helm(extra):
     return subprocess.run(["helm", "template", "test", CHART] + extra, capture_output=True, text=True)
 
@@ -320,6 +325,15 @@ class BaselineParity(unittest.TestCase):
         with open(configmap_path, "wb") as handle:
             handle.write(content)
 
+    def _apply_approved_libvirt_ownership_scope(self, baseline_chart):
+        path = os.path.join(baseline_chart, LIBVIRT_RECOVERY_PATH)
+        with open(path, "rb") as handle:
+            content = handle.read()
+        old = LIBVIRT_RECOVERY_OLD.encode("utf-8")
+        self.assertEqual(content.count(old), 1)
+        with open(path, "wb") as handle:
+            handle.write(content.replace(old, LIBVIRT_RECOVERY_NEW.encode("utf-8")))
+
     def _extract_baseline(self, tmp):
         archive = subprocess.run(["git", "archive", "--format=tar", BASELINE_SHA, "opencode-server"], capture_output=True, cwd=REPO_ROOT)
         self.assertEqual(archive.returncode, 0, archive.stderr.decode("utf-8", "replace"))
@@ -334,6 +348,7 @@ class BaselineParity(unittest.TestCase):
         self._apply_approved_reasoning_policy(baseline_chart)
         self._apply_approved_terra_restoration(baseline_chart)
         self._apply_approved_reviewer_reasoning_change(baseline_chart)
+        self._apply_approved_libvirt_ownership_scope(baseline_chart)
         self._apply_approved_new_agent_files(baseline_chart)
         self._apply_primary_runtime_policy(baseline_chart)
         self._apply_approved_production_runtime_changes(baseline_chart)
@@ -509,6 +524,48 @@ class ReviewerReasoningTransformContract(unittest.TestCase):
                     self._write_fixture(chart, originals)
                     with self.assertRaises(AssertionError):
                         BaselineParity()._apply_approved_reviewer_reasoning_change(chart)
+
+
+class LibvirtRecoveryScopeContract(unittest.TestCase):
+    def _fixture(self, chart, content):
+        path = os.path.join(chart, LIBVIRT_RECOVERY_PATH)
+        os.makedirs(os.path.dirname(path))
+        with open(path, "wb") as handle:
+            handle.write(content)
+        unrelated = os.path.join(os.path.dirname(path), "unrelated.md")
+        with open(unrelated, "wb") as handle:
+            handle.write(LIBVIRT_RECOVERY_OLD.encode("utf-8"))
+        return path, unrelated
+
+    def test_transform_changes_only_exact_paragraph_in_target_skill(self):
+        old = LIBVIRT_RECOVERY_OLD.encode("utf-8")
+        prefix, suffix = b"Unchanged frontmatter and evidence.\n", b"\nUnchanged firewall evidence.\n"
+        with tempfile.TemporaryDirectory() as chart:
+            path, unrelated = self._fixture(chart, prefix + old + suffix)
+            BaselineParity()._apply_approved_libvirt_ownership_scope(chart)
+            with open(path, "rb") as handle:
+                self.assertEqual(handle.read(), prefix + LIBVIRT_RECOVERY_NEW.encode("utf-8") + suffix)
+            with open(unrelated, "rb") as handle:
+                self.assertEqual(handle.read(), old)
+
+    def test_transform_rejects_missing_changed_or_duplicate_old_paragraph(self):
+        old = LIBVIRT_RECOVERY_OLD.encode("utf-8")
+        for content in (b"", old.replace(b"SSH commands", b"SSH diagnostics"), old + b"\n" + old):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as chart:
+                self._fixture(chart, content)
+                with self.assertRaises(AssertionError):
+                    BaselineParity()._apply_approved_libvirt_ownership_scope(chart)
+
+    def test_source_and_rendered_skill_keep_ownership_and_approval_boundaries(self):
+        source = chart_file(LIBVIRT_RECOVERY_PATH)
+        data = by_kind(render_docs([]), "ConfigMap")["data"]
+        rendered = data["skills-libvirt-host-and-vm-recovery-SKILL.md"]
+        self.assertEqual(source, rendered)
+        for text in (source, rendered):
+            self.assertEqual(text.count(LIBVIRT_RECOVERY_NEW), 1)
+            self.assertNotIn(LIBVIRT_RECOVERY_OLD, text)
+            self.assertIn("Verify the target host's active network and firewall-zone behavior", text)
+            self.assertIn("Do not assume either \x60libvirt\x60-zone or \x60public\x60-zone behavior.", text)
 
 
 class PrimaryModelContract(unittest.TestCase):

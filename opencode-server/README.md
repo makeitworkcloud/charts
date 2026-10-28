@@ -229,6 +229,24 @@ Inspect the exact advertised schemas FIRST; never infer capability from a projec
 
 Cloudflare's MCP exposes generic `execute` capability, so the token's read-only Cloudflare permission scope — not the MCP tool name — is the enforcement boundary. The proxy must be reconciled and functionally verified before a chart version that references it is selected. Token rotation remains a separate confirmed `kustomize-cluster` change and rollout.
 
+### Libvirt recovery ownership boundary (0.5.9)
+
+The packaged [libvirt recovery skill](files/skills/libvirt-host-and-vm-recovery/SKILL.md)
+reserves `tfroot-libvirt`-owned changes for its reviewed OpenTofu workflow;
+it does not prohibit authorized, bounded read-only diagnostics through `hero-ssh`.
+Separate owner-directed host operations, including live migration outside that
+workflow, are scoped by actual ownership, not by a later repository follow-up.
+Every live mutation still requires explicit confirmation of the exact operation
+and target, a reviewed procedure and recovery path, and the SSH tool policy and
+privilege gates. Local OpenTofu operations remain prohibited.
+
+CI applies an exact old-paragraph-to-new-boundary transform to the fixed historical
+baseline, rejects missing/changed/duplicate old paragraphs, and checks source,
+rendered ConfigMap and packaged skill parity. These static checks do not prove
+agent behavior or authorize a host operation. No host command runs as part of
+this change; publication, GitOps selection and fresh-session verification remain
+separate stages.
+
 ## Living knowledge
 
 Mutable repository lifecycle, topology, generated-file ownership, and producer-consumer guidance belongs in the private `makeitworkcloud/agent-knowledge` repository rather than immutable chart content. Agents use `codebase-memory` to discover and search owner-approved cached repositories and, when the cache is suitable, to read an exact complete `Module` source range. For documentation sources, the repository must be indexed in `full` mode; `fast` mode excludes documentation. The cache is derived read-only state, not canonical source.
