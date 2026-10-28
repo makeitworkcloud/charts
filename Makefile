@@ -291,10 +291,10 @@ test-opencode-server-agents:
 	! grep -Fq 'twilio-docs-troubleshooting' <<< "$$archive_entries"; \
 	grep -Fqx 'opencode-server/files/AGENTS.md' <<< "$$archive_entries"; \
 	tar -xOzf "$$archive" 'opencode-server/files/AGENTS.md' > "$$archive_dir/AGENTS.md"; \
-	cmp -s "$archive_dir/AGENTS.md" opencode-server/files/AGENTS.md; \
+	cmp -s "$$archive_dir/AGENTS.md" opencode-server/files/AGENTS.md; \
 	skill_entry=opencode-server/files/skills/libvirt-host-and-vm-recovery/SKILL.md; \
-	tar -xOzf "$archive" "$skill_entry" > "$archive_dir/libvirt-SKILL.md"; \
-	cmp -s "$archive_dir/libvirt-SKILL.md" "$skill_entry"; \
+	tar -xOzf "$$archive" "$$skill_entry" > "$$archive_dir/libvirt-SKILL.md"; \
+	cmp -s "$$archive_dir/libvirt-SKILL.md" "$$skill_entry"; \
 	for agent in $$all_agents; do \
 		entry="opencode-server/files/agents/$$agent.md"; \
 		grep -Fqx "$$entry" <<< "$$archive_entries"; \
