@@ -1,0 +1,82 @@
+# Rendered by launch_kubernetes.py (EG 0344929cbca688440ba1bc8f5faa074fe54bd595),
+# which loads the template adjacent to the script. Only KERNEL_ID maps to a
+# Jinja keyword (kernel_id); PORT_RANGE/PUBLIC_KEY/RESPONSE_ADDRESS are placed
+# in the launcher process environment by the gateway and appended to the pod
+# AFTER rendering by extend_pod_env, so templating them here would be a fake
+# context — the command forwards the appended real values instead.
+# launch_ipykernel.py (verified 648 lines at this revision) does not read those
+# vars itself, hence the explicit quoted argument forwarding.
+# The component=kernel label is REQUIRED: k8s.py get_container_status selects
+# pods by 'kernel_id=<id>,component=kernel'; without it the proxy cannot find
+# the worker pod. LOG_LEVEL/EG_LOG_LEVEL 30 (WARNING) is mandatory because the
+# launcher defaults to DEBUG (10), which can print channel connection secrets.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kernel-{{ kernel_id }}
+  namespace: pptx-jobs
+  labels:
+    app: pptx-qualification-kernel
+    component: kernel
+    kernel_id: "{{ kernel_id }}"
+spec:
+  automountServiceAccountToken: false
+  serviceAccountName: pptx-worker
+  restartPolicy: Never
+  terminationGracePeriodSeconds: 10
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: kernel
+      image: __PPTX_QUAL_WORKER_IMAGE__
+      imagePullPolicy: IfNotPresent
+      command:
+        - /bin/sh
+        - -c
+        - >-
+          exec /opt/venv/bin/python /usr/local/bin/kernel-launchers/python/scripts/launch_ipykernel.py
+          --kernel-id "$KERNEL_ID" --public-key "$PUBLIC_KEY"
+          --response-address "$RESPONSE_ADDRESS" --port-range "$PORT_RANGE"
+          --cluster-type none
+      env:
+        - name: KERNEL_ID
+          value: "{{ kernel_id }}"
+        - name: LOG_LEVEL
+          value: "30"
+        - name: EG_LOG_LEVEL
+          value: "30"
+        - name: HOME
+          value: /job/home
+        - name: TMPDIR
+          value: /job/tmp
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+          ephemeral-storage: 256Mi
+        limits:
+          cpu: "2"
+          memory: 2Gi
+          ephemeral-storage: 1Gi
+      volumeMounts:
+        - name: job
+          mountPath: /job
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: job
+      emptyDir:
+        sizeLimit: 1Gi
+    - name: tmp
+      emptyDir:
+        sizeLimit: 256Mi

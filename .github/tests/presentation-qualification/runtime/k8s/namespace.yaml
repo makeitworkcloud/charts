@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pptx-jobs
+  labels:
+    app.kubernetes.io/part-of: presentation-qualification
+    presentation-qualification/fixture: "true"
