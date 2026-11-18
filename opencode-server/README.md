@@ -19,16 +19,21 @@ The chart copies these immutable package inputs into `/home/opencode/.config/ope
 
 A change to any packaged file is chart content and requires a new `Chart.yaml` version. See [Agent instruction architecture](docs/agent-instruction-architecture.md) for the primary-agent, subagent, and shared-instruction design. Chart 0.5.4 aligns the global model and all existing Sol agents on GPT-6.1 Sol, adds explicit agent reasoning variants, and corrects stale cloud-reviewer terminology. Chart 0.5.5 upgrades three Kimi model headers to K3.1 Pro while retaining the reduced-quota `kimi-256k` agent. Image/appVersion 2.0.22 and API version 2 remain unchanged; the consuming GitOps pin and its exact chart/API assertion must be updated separately after publication.
 
-The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
+Chart 0.5.10 updates the global fallback, ten primaries, and five Sol-backed
+reviewers to [GPT-6.2 Sol](https://developers.openai.com/api/docs/models/gpt-6.2-sol)
+without changing their reasoning variants or selecting Astra. Other provider
+pins, appVersion and API version remain unchanged.
+
+The global model is `openai/gpt-6.2-sol`, and `default_agent` remains
 `default`. The configured OpenAI agent preferences are:
 
 | Agents | Model | Variant |
 | --- | --- | --- |
-| All ten primaries | `openai/gpt-6.1-sol` | `medium` |
+| All ten primaries | `openai/gpt-6.2-sol` | `medium` |
 | `terra` | `openai/gpt-6.1-terra` | `medium` |
-| `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-sol` | `medium` |
-| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `high` |
-| `recruiter-resume-reviewer` | `openai/gpt-6.1-sol` | `high` |
+| `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.2-sol` | `medium` |
+| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.2-sol` | `high` |
+| `recruiter-resume-reviewer` | `openai/gpt-6.2-sol` | `high` |
 | `luna` | `openai/gpt-6-luna` | `low` |
 | `qa-engineer` | `openai/gpt-6-luna` | `medium` |
 
@@ -39,7 +44,7 @@ No new agent is added.
 
 Chart 0.5.7 changes only the generic `terra` execution subagent to
 `openai/gpt-6.1-terra`, retaining `medium`. All ten primaries, the global
-Sol fallback, and all five Sol-backed reviewer subagents stay on GPT-6.1 Sol
+Sol fallback, and all five Sol-backed reviewer subagents stayed on GPT-6.1 Sol
 with their existing variants. Other workers, default-agent selection, prompts,
 permissions, providers, image/appVersion 2.0.22, API version 2, and pilot are
 unchanged. The goal is lower delegated-task spend, not fewer tokens by fiat.
@@ -164,11 +169,11 @@ After a confirmed rollout, check that the deployed OpenCode model catalog lists
 the `kimi-code-plan-cn` keys, then verify fresh-session inference and tool
 calls.
 
-The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6.1-sol` with the medium variant and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
+The `devops-engineer` subagent is a parent-directed, read-only reviewer for supplied DESIGN proposals and completed CHANGE diffs covering CI, workflows, artifacts, GitOps handoffs, runners, and delivery integration. It uses `openai/gpt-6.2-sol` with the medium variant and denies all native and MCP tools through a wildcard permission deny; it does not implement, dispatch, publish, merge, or mutate live systems.
 
 ### Cloud architecture design review
 
-The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6.1-sol` with the medium variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
+The `cloud-architecture-reviewer` subagent ([`files/agents/cloud-architecture-reviewer.md`](files/agents/cloud-architecture-reviewer.md)) is a supplied-evidence, preimplementation design critic for new cloud services or material changes to service selection, topology, state placement, recovery, scaling, or recurring cost. It uses `openai/gpt-6.2-sol` with the medium variant and denies all native and MCP tools through a wildcard permission deny, so it reviews only the parent-supplied design brief and evidence.
 
 The review is requirements-led and simplicity-biased: it prefers established vendor- or canonical-owner-maintained solutions, challenges unsupported complexity, and no cloud vendor is preferred by default. The five code-capable primary agents (`default`, `makeitwork`, `xnoto`, `career`, `teacher`) route material designs to it with a compact design brief and skip routine changes within an established pattern; the existing pre-pull-request review gates are unchanged, and this design review does not replace them.
 
@@ -432,6 +437,10 @@ and rejecting missing, wrong or duplicate selection keys. Prompt bodies and
 unrelated files remain protected; historical transforms, both pinned baselines
 and full parity checks are retained.
 
+The 0.5.10 parity transform updates only the root Sol default and the five
+historical Sol reviewer headers, plus the cloud reviewer’s model-name sentence.
+Primary headers are independently checked against the exact model matrix.
+
 The existing ten-primary runtime-policy transform remains explicit; a separate
 pinned-base check protects every primary operating-rules tail. Non-primary
 bytes remain equal to the transformed historical fixture, with exactly the
@@ -464,7 +473,14 @@ is deferred.
 4. Treat that pull request as a separate desired-state change gated by `kustomize-cluster` required checks. Its creation does not deploy or sync Argo CD.
 5. After the GitOps pin merge, verify the `gitops-workloads` root, `opencode` child Application, Deployment rollout, pods, events, and representative OpenCode behavior.
 
-### 0.5.8 consumer coordination gate
+### 0.5.10 consumer coordination gate
+
+The consumer currently asserts chart/API pair (`0.5.9`, `2`). After
+publication, update that exact assertion in the generated `0.5.10` pin PR
+and retain API selector `2`. Do not merge an assertion-only PR or bypass
+required checks.
+
+### Historical 0.5.8 consumer coordination gate
 
 At [kustomize-cluster revision 2edd5531](https://github.com/makeitworkcloud/kustomize-cluster/blob/2edd55319072c9bc52ecece692c36925c28bd715/.github/workflows/test.yml),
 `test_chart_pin_and_selector_coupled` expects chart/API pair (`0.5.7`, `2`),
