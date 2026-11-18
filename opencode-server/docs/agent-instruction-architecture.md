@@ -191,16 +191,21 @@ provenance and coverage evidence passes all checks. This is the exact recipe:
 
 ### Model and reasoning policy
 
-The global model is `openai/gpt-6.1-sol`, and `default_agent` remains
+Chart 0.5.10 updates the global fallback, ten primaries, and five Sol-backed
+reviewers to [GPT-6.2 Sol](https://developers.openai.com/api/docs/models/gpt-6.2-sol)
+without changing their reasoning variants or selecting Astra. Other provider
+pins, appVersion and API version remain unchanged.
+
+The global model is `openai/gpt-6.2-sol`, and `default_agent` remains
 `default`. The configured OpenAI agent preferences are:
 
 | Agents | Model | Variant |
 | --- | --- | --- |
-| All ten primaries | `openai/gpt-6.1-sol` | `medium` |
+| All ten primaries | `openai/gpt-6.2-sol` | `medium` |
 | `terra` | `openai/gpt-6.1-terra` | `medium` |
-| `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.1-sol` | `medium` |
-| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.1-sol` | `high` |
-| `recruiter-resume-reviewer` | `openai/gpt-6.1-sol` | `high` |
+| `cloud-architecture-reviewer`, `devops-engineer` | `openai/gpt-6.2-sol` | `medium` |
+| `adversarial-code-reviewer`, `infra-security-reviewer` | `openai/gpt-6.2-sol` | `high` |
+| `recruiter-resume-reviewer` | `openai/gpt-6.2-sol` | `high` |
 | `luna` | `openai/gpt-6-luna` | `low` |
 | `qa-engineer` | `openai/gpt-6-luna` | `medium` |
 
@@ -211,7 +216,7 @@ No new agent is added.
 
 Chart 0.5.7 changes only the generic `terra` execution subagent to
 `openai/gpt-6.1-terra`, retaining `medium`. All ten primaries, the global
-Sol fallback, and all five Sol-backed reviewer subagents stay on GPT-6.1 Sol
+Sol fallback, and all five Sol-backed reviewer subagents stayed on GPT-6.1 Sol
 with their existing variants. Other workers, default-agent selection, prompts,
 permissions, providers, image/appVersion 2.0.22, API version 2, and pilot are
 unchanged. The goal is lower delegated-task spend, not fewer tokens by fiat.
@@ -362,7 +367,7 @@ criteria in the task prompt.
 
 [`files/agents/devops-engineer.md`](../files/agents/devops-engineer.md) defines
 a parent-directed, read-only DevOps integration and delivery reviewer using
-`openai/gpt-6.1-sol` with the medium variant. It reviews supplied DESIGN
+`openai/gpt-6.2-sol` with the medium variant. It reviews supplied DESIGN
 proposals and completed CHANGE diffs for CI, workflow, reusable-workflow,
 artifact, GitOps-handoff, runner, and delivery-integration contracts. All
 native and MCP tools are denied through a wildcard permission rule; the parent
@@ -372,7 +377,7 @@ retains implementation, mutation, and final authority.
 defines a supplied-evidence, read-only cloud architecture design reviewer that
 the code-capable primaries dispatch before implementing a new cloud service or
 a material change to service selection, topology, state placement, recovery,
-scaling, or recurring cost. It runs on `openai/gpt-6.1-sol` with the medium
+scaling, or recurring cost. It runs on `openai/gpt-6.2-sol` with the medium
 variant, all native and MCP tools denied, and a bounded 500-800-word review
 budget; it does not switch models, dispatch specialists, or retrieve evidence
 itself. It may recommend a specialist for a named material risk; the primary
