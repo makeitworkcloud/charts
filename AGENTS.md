@@ -8,6 +8,8 @@ publish changed charts as OCI artifacts to GHCR.
 
 OpenCode runtime policy is owned by the [opencode-server chart](opencode-server/docs/agent-instruction-architecture.md), not by this repository guide.
 
+Use repository CI as the validation authority for chart changes.
+
 ## Workflow
 
 Use feature branches and pull requests. Agents may create a scoped branch,
