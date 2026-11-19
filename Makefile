@@ -257,13 +257,12 @@ test-opencode-server-agents:
 	grep -Fqi 'verified snapshot' <<< "$$floor"; \
 	grep -Fqi 'different snapshot' <<< "$$floor"; \
 	grep -Fqi 'requested SHA' <<< "$$floor"; \
-	root_agents="$$(tr -s '[:space:]' ' ' < AGENTS.md)"; \
-	grep -Fqi 'root_exists=true' <<< "$$root_agents"; \
-	grep -Fqi 'repo-cache-sync' <<< "$$root_agents"; \
-	grep -Fqi 'verified snapshot' <<< "$$root_agents"; \
-	grep -Fqi 'never per file' <<< "$$root_agents"; \
-	grep -Fqi 'requested SHA' <<< "$$root_agents"; \
-	! grep -Fqi 'recorded indexed' <<< "$$root_agents"; \
+	grep -Fq '(opencode-server/docs/agent-instruction-architecture.md)' AGENTS.md; \
+	grep -Fqi 'root_exists=true' opencode-server/files/agents/makeitwork.md; \
+	grep -Fqi 'repo-cache-sync' opencode-server/files/agents/makeitwork.md; \
+	grep -Fqi 'verified snapshot' opencode-server/files/agents/makeitwork.md; \
+	grep -Fqi 'never per file' opencode-server/files/agents/makeitwork.md; \
+	if grep -Fqi 'recorded indexed' opencode-server/files/agents/makeitwork.md; then exit 1; else test "$$?" -eq 1; fi; \
 	grep -Fqi 'verified snapshot' opencode-server/README.md; \
 	grep -Fqi 'requested SHA' opencode-server/README.md; \
 	! grep -Fqi 'recorded indexed' opencode-server/README.md; \
