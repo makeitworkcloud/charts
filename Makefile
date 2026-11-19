@@ -262,7 +262,7 @@ test-opencode-server-agents:
 	grep -Fqi 'repo-cache-sync' opencode-server/files/agents/makeitwork.md; \
 	grep -Fqi 'verified snapshot' opencode-server/files/agents/makeitwork.md; \
 	grep -Fqi 'never per file' opencode-server/files/agents/makeitwork.md; \
-	! grep -Fqi 'recorded indexed' opencode-server/files/agents/makeitwork.md; \
+	if grep -Fqi 'recorded indexed' opencode-server/files/agents/makeitwork.md; then exit 1; else test "$?" -eq 1; fi; \
 	grep -Fqi 'verified snapshot' opencode-server/README.md; \
 	grep -Fqi 'requested SHA' opencode-server/README.md; \
 	! grep -Fqi 'recorded indexed' opencode-server/README.md; \
